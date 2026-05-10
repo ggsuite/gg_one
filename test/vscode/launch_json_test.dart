@@ -20,18 +20,22 @@ void main() {
 
       final parsedLaunchJson = jsonDecode(launchJson) as Map<String, dynamic>;
 
-      // Ensure there is a configuration for executing bin/gg.dart
+      // Ensure there is a configuration for executing bin/gg_one.dart
       final configurations =
           parsedLaunchJson['configurations'] as List<dynamic>;
 
       final gg = configurations.firstWhere(
         (dynamic configuration) =>
-            configuration['name'].toString() == 'gg.dart',
+            configuration['name'].toString() == 'gg_one.dart',
       );
 
-      expect(gg, isNotNull, reason: 'Item for executing bin/gg.dart not found');
+      expect(
+        gg,
+        isNotNull,
+        reason: 'Item for executing bin/gg_one.dart not found',
+      );
 
-      expect(gg['name'], 'gg.dart');
+      expect(gg['name'], 'gg_one.dart');
       expect(gg['type'], 'dart');
       expect(gg['request'], 'launch');
 

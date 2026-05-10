@@ -24,11 +24,11 @@ void main() {
 
   group('gg()', () {
     // #########################################################################
-    group('gg', () {
+    group('gg_one', () {
       final gg = Gg(ggLog: messages.add, processWrapper: processWrapper);
 
       final CommandRunner<void> runner = CommandRunner<void>(
-        'gg',
+        'gg_one',
         'Description goes here.',
       )..addCommand(gg);
 
@@ -39,7 +39,7 @@ void main() {
         await capturePrint(
           ggLog: messages.add,
           code: () =>
-              runner.run(['gg', 'check', 'analyze', '--input', tmp.path]),
+              runner.run(['gg_one', 'check', 'analyze', '--input', tmp.path]),
         );
 
         await tmp.delete(recursive: true);
@@ -65,7 +65,7 @@ void main() {
 
         await capturePrint(
           ggLog: messages.add,
-          code: () async => await runner.run(['gg', '--help']),
+          code: () async => await runner.run(['gg_one', '--help']),
         );
 
         for (final subCommand in subCommands) {

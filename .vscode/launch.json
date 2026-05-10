@@ -6,10 +6,10 @@
 
   "configurations": [
     {
-      "name": "gg.dart",
+      "name": "gg_one.dart",
       "type": "dart",
       "request": "launch",
-      "program": "${workspaceFolder}/bin/gg.dart",
+      "program": "${workspaceFolder}/bin/gg_one.dart",
       "args": ["can", "commit"],
       "cwd": "P:\\grace_cloud\\kidney_core"
     },
