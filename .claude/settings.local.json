@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /p/workspace_grace_cloud/tickets/bugfixes-gg/gg/lib/src/**/*.dart)",
+      "Bash(xargs wc:*)",
+      "Bash(head -50 /p/workspace_grace_cloud/tickets/bugfixes-gg/gg/test/test_helpers/*.dart)",
+      "Bash(dart:*)",
+      "Bash(python -c \"import sys,json; deps=json.load\\(sys.stdin\\); [print\\(p['name'], p.get\\('source',''\\)\\) for p in deps.get\\('packages',[]\\)]\")",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(p\\) for p in data.get\\('packages',{}\\).get\\('gg_git',{}\\).keys\\(\\)]\")"
+    ]
+  }
+}
