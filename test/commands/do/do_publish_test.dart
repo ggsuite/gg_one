@@ -8,11 +8,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:mocktail/mocktail.dart';
@@ -162,7 +162,6 @@ void main() {
       'ticket',
       '-i',
       d.path,
-      '-b',
       'feat_abc',
       '-m',
       'Ticket merge message',

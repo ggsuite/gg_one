@@ -193,10 +193,9 @@ void main() {
         'ticket',
         '-i',
         d.path,
-        '-b',
-        'feat_cli',
         '-m',
         'CLI message',
+        'feat_cli',
       ]);
 
       verify(
@@ -327,15 +326,27 @@ void main() {
       );
     });
 
-    test('should throw when branch name is missing', () async {
+    test('should throw when issue id is missing on CLI', () async {
+      expect(
+        () => runner.run(['ticket', '-i', d.path, '-m', 'CLI message']),
+        throwsA(
+          isA<UsageException>().having(
+            (e) => e.message,
+            'message',
+            'Missing issue id parameter.',
+          ),
+        ),
+      );
+    });
+
+    test('should throw when issue id is missing programmatically', () async {
       expect(
         () => createTicket.exec(directory: d, ggLog: ggLog),
         throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'toString()',
-            'Exception: Missing branch name. '
-                'Run again with --branch-name <branch_name>.',
+          isA<UsageException>().having(
+            (e) => e.message,
+            'message',
+            'Missing issue id parameter.',
           ),
         ),
       );
@@ -343,12 +354,12 @@ void main() {
 
     test('should throw on CLI when message is missing', () async {
       expect(
-        () => runner.run(['ticket', '-i', d.path, '-b', 'feat_cli']),
+        () => runner.run(['ticket', '-i', d.path, 'feat_cli']),
         throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'toString()',
-            'Exception: Missing message. Run again with --message <message>.',
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            'Option message is mandatory.',
           ),
         ),
       );

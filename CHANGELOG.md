@@ -1,13 +1,19 @@
 # Changelog
 
-## [8.0.0] - 2026-05-10
+## \[8.0.0\] - 2026-05-10
 
 ### Changed
 
 - Renamed package from `gg` to `gg_one` and moved the repository to
-  <https://github.com/ggsuite/gg_one>. The previous history (versions
-  up to and including `7.0.5`) lives at <https://github.com/ggsuite/gg>
-  at commit `9141ef54f5edac470d119a39285813299143898f`.
+[https://github.com/ggsuite/gg\_one](https://github.com/ggsuite/gg_one). The previous history (versions
+up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
+at commit `9141ef54f5edac470d119a39285813299143898f`.
+
+## [8.1.0] - 2026-05-12
+
+### Changed
+
+- gg\_multi: changed references to git
 
 ## [7.0.5] - 2026-05-04
 
@@ -519,6 +525,7 @@
 
 > > > > > > > Stashed changes
 
+[8.1.0]: https://github.com/ggsuite/gg_one/compare/7.0.5...8.1.0
 [7.0.5]: https://github.com/inlavigo/gg/compare/7.0.4...7.0.5
 [7.0.4]: https://github.com/inlavigo/gg/compare/7.0.3...7.0.4
 [7.0.3]: https://github.com/inlavigo/gg/compare/7.0.2...7.0.3

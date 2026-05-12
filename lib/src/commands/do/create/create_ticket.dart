@@ -7,6 +7,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:args/command_runner.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_git/gg_git.dart';
@@ -59,13 +60,8 @@ class CreateTicket extends DirCommand<void> {
   }) async {
     await check(directory: directory);
 
-    final isCliInvocation = branchName == null;
     branchName ??= _branchNameFromArgs();
     message ??= argResults?['message'] as String?;
-
-    if (isCliInvocation && (message == null || message.isEmpty)) {
-      throw Exception('Missing message. Run again with --message <message>.');
-    }
 
     await _canCheckout.exec(directory: directory, ggLog: ggLog);
 
@@ -87,29 +83,22 @@ class CreateTicket extends DirCommand<void> {
 
   /// Adds CLI arguments for the command.
   void _addArgs() {
-    argParser
-      ..addOption(
-        'branch-name',
-        abbr: 'b',
-        help: 'The name of the branch to create and check out.',
-      )
-      ..addOption(
-        'message',
-        abbr: 'm',
-        help: 'Ticket description written to the .ticket file.',
-      );
+    argParser.addOption(
+      'message',
+      abbr: 'm',
+      help: 'Ticket description written to the .ticket file.',
+      mandatory: true,
+    );
   }
 
   /// Returns the branch name from CLI arguments or throws if it is missing.
   String _branchNameFromArgs() {
-    final branchName = argResults?['branch-name'] as String? ?? '';
-    if (branchName.isEmpty) {
-      throw Exception(
-        'Missing branch name. Run again with --branch-name <branch_name>.',
-      );
+    final rest = argResults?.rest ?? const <String>[];
+    if (rest.isEmpty) {
+      throw UsageException('Missing issue id parameter.', usage);
     }
 
-    return branchName;
+    return rest.first;
   }
 
   /// Stashes local changes, performs the checkout, and reapplies the stash.
