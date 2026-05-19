@@ -19,6 +19,7 @@ export 'src/commands/check.dart';
 export 'src/commands/check/analyze.dart';
 export 'src/commands/check/format.dart';
 export 'src/commands/check/pana.dart';
+export 'src/commands/check/pub_get_offline.dart';
 // Did
 export 'src/commands/did.dart';
 export 'src/commands/did/did_commit.dart';

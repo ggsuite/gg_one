@@ -1,9 +1,13 @@
 # Changelog
 
-## \[8.0.0\] - 2026-05-10
+## [8.2.1] - 2026-05-19
 
 ### Changed
 
+- `CanCommit`: `dart pub get --offline` (or the Flutter equivalent) now runs as
+a regular check below the `Can commit?` header and is logged as
+`Running "dart pub get --offline"`, matching the style of the other checks
+(was framed with `»«` and printed above the header).
 - Renamed package from `gg` to `gg_one` and moved the repository to
 [https://github.com/ggsuite/gg\_one](https://github.com/ggsuite/gg_one). The previous history (versions
 up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
@@ -538,6 +542,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[8.2.1]: https://github.com/ggsuite/gg_one/compare/8.2.0...8.2.1
 [8.2.0]: https://github.com/ggsuite/gg_one/compare/8.1.1...8.2.0
 [8.1.1]: https://github.com/ggsuite/gg_one/compare/8.1.0...8.1.1
 [8.1.0]: https://github.com/ggsuite/gg_one/compare/7.0.5...8.1.0
