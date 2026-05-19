@@ -7,10 +7,14 @@
 import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
+import 'package:gg_is_flutter/gg_is_flutter.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:matcher/expect.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:path/path.dart' as p;
 
 /// Are the last changes ready for »git commit«?
 class CanCommit extends CommandCluster {
@@ -18,11 +22,15 @@ class CanCommit extends CommandCluster {
   CanCommit({
     required super.ggLog,
     Checks? checks,
+    GgProcessWrapper processWrapper = const GgProcessWrapper(),
     super.name = 'commit',
     super.description = 'Are the last changes ready for »git commit«?',
     super.shortDescription = 'Can commit?',
     super.stateKey = 'canCommit',
-  }) : super(commands: _checks(checks, ggLog));
+  }) : _processWrapper = processWrapper,
+       super(commands: _checks(checks, ggLog));
+
+  final GgProcessWrapper _processWrapper;
 
   // ...........................................................................
   @override
@@ -32,8 +40,46 @@ class CanCommit extends CommandCluster {
     bool? force,
     bool? saveState,
   }) async {
+    // Ensure pubspec.lock matches pubspec.yaml before running the checks.
+    await _runPubGetOffline(directory: directory, ggLog: ggLog);
+
     // Execute commands.
     await super.get(directory: directory, ggLog: ggLog, force: force);
+  }
+
+  // ...........................................................................
+  Future<void> _runPubGetOffline({
+    required Directory directory,
+    required GgLog ggLog,
+  }) async {
+    if (!File(p.join(directory.path, 'pubspec.yaml')).existsSync()) {
+      return;
+    }
+
+    final executable = isFlutterDir(directory) ? 'flutter' : 'dart';
+    const args = ['pub', 'get', '--offline'];
+
+    await GgStatusPrinter<bool>(
+      message: 'Run »$executable ${args.join(' ')}«',
+      ggLog: ggLog,
+    ).logTask(
+      task: () async {
+        final result = await _processWrapper.run(
+          executable,
+          args,
+          workingDirectory: directory.path,
+        );
+
+        if (result.exitCode != 0) {
+          throw Exception(
+            '»$executable ${args.join(' ')}« failed: ${result.stderr}',
+          );
+        }
+
+        return true;
+      },
+      success: (success) => success,
+    );
   }
 
   // ...........................................................................

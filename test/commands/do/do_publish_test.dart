@@ -53,13 +53,12 @@ void main() {
     return false;
   }
 
-  // DoMerge variant that skips `dart pub get` so the bare test repo
-  // (no SDK constraint, no .gitignore) does not trip over it.
+  // DoMerge variant for the bare test repo.
   DoMerge noPubGetDoMerge() => DoMerge(
     ggLog: ggLog,
     doMerge: gg_merge.DoMerge(
       ggLog: ggLog,
-      localMerge: gg_merge.LocalMerge(ggLog: ggLog, runPubGet: false),
+      localMerge: gg_merge.LocalMerge(ggLog: ggLog),
     ),
   );
 
@@ -949,6 +948,54 @@ void main() {
                 'feat_abc',
               ], workingDirectory: d.path),
             ).called(1);
+          });
+
+          test('logs each executed command when --verbose is set', () async {
+            mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+            await DirectJson.writeFile(
+              file: File(join(d.path, '.gg', '.gg.json')),
+              path: 'doPublish/success/hash',
+              value: needsChangeHash,
+            );
+
+            final cliDoPublish = DoPublish(
+              ggLog: ggLog,
+              publish: publish,
+              prepareNextVersion: PrepareNextVersion(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              canPublish: canPublish,
+              isPublished: IsPublished(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              versionSelector: versionSelector,
+              publishedVersion: publishedVersion,
+              processWrapper: processWrapper,
+              localBranch: localBranch,
+              editMessage: defaultEditMessage,
+              confirmDeleteFeatureBranch: (_) => false,
+              doMerge: noPubGetDoMerge(),
+            );
+
+            final runner = CommandRunner<void>('gg', 'gg')
+              ..addCommand(cliDoPublish);
+
+            await runner.run([
+              'publish',
+              '-i',
+              d.path,
+              '--no-ask-before-publishing',
+              '--no-delete-feature-branch',
+              '--verbose',
+            ]);
+
+            expect(
+              messages,
+              contains('\$ git status --porcelain pubspec.lock'),
+            );
           });
 
           test(

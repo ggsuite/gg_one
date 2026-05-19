@@ -9,9 +9,13 @@ import 'dart:io';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_process/gg_process.dart';
 import 'package:gg_test/gg_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
+class _MockProcessWrapper extends Mock implements GgProcessWrapper {}
 
 // .............................................................................
 void main() {
@@ -80,6 +84,84 @@ void main() {
           expect(messages[1], 'did analyze');
           expect(messages[2], 'did format');
           expect(messages[3], 'did cover');
+        });
+      });
+
+      group('pub get --offline', () {
+        late _MockProcessWrapper processWrapper;
+        late CanCommit commitWithPubGet;
+
+        setUp(() {
+          processWrapper = _MockProcessWrapper();
+          commitWithPubGet = CanCommit(
+            ggLog: messages.add,
+            checks: commands,
+            processWrapper: processWrapper,
+          );
+        });
+
+        test(
+          'runs »dart pub get --offline« when pubspec.yaml is present',
+          () async {
+            File(p.join(d.path, 'pubspec.yaml')).writeAsStringSync('name: x');
+            await addAndCommitSampleFile(d);
+
+            when(
+              () => processWrapper.run('dart', [
+                'pub',
+                'get',
+                '--offline',
+              ], workingDirectory: d.path),
+            ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+            await commitWithPubGet.exec(directory: d, ggLog: messages.add);
+
+            verify(
+              () => processWrapper.run('dart', [
+                'pub',
+                'get',
+                '--offline',
+              ], workingDirectory: d.path),
+            ).called(1);
+          },
+        );
+
+        test('skips pub get when pubspec.yaml is missing', () async {
+          await addAndCommitSampleFile(d);
+
+          await commitWithPubGet.exec(directory: d, ggLog: messages.add);
+
+          verifyNever(
+            () => processWrapper.run(
+              any(),
+              any(),
+              workingDirectory: any(named: 'workingDirectory'),
+            ),
+          );
+        });
+
+        test('throws when pub get fails', () async {
+          File(p.join(d.path, 'pubspec.yaml')).writeAsStringSync('name: x');
+          await addAndCommitSampleFile(d);
+
+          when(
+            () => processWrapper.run('dart', [
+              'pub',
+              'get',
+              '--offline',
+            ], workingDirectory: d.path),
+          ).thenAnswer((_) async => ProcessResult(0, 1, '', 'pub error'));
+
+          expect(
+            () => commitWithPubGet.exec(directory: d, ggLog: messages.add),
+            throwsA(
+              isA<Exception>().having(
+                (e) => e.toString(),
+                'message',
+                contains('pub get --offline'),
+              ),
+            ),
+          );
         });
       });
     });

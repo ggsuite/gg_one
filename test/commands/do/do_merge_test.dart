@@ -146,6 +146,7 @@ void main() {
           ggLog: ggLog,
           automerge: false,
           local: false,
+          verbose: false,
         ),
       ).thenAnswer((_) async => true);
 
@@ -191,6 +192,7 @@ void main() {
           ggLog: ggLog,
           automerge: false,
           local: false,
+          verbose: false,
         ),
         () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
       ]);
@@ -210,6 +212,7 @@ void main() {
           ggLog: ggLog,
           automerge: false,
           local: false,
+          verbose: false,
         ),
       ).thenAnswer((_) async => true);
 
@@ -287,7 +290,44 @@ void main() {
           ggLog: any(named: 'ggLog'),
           automerge: any(named: 'automerge'),
           local: any(named: 'local'),
+          verbose: any(named: 'verbose'),
         ),
+      );
+    });
+
+    test('logs each git command when verbose is true', () async {
+      when(
+        () =>
+            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
+      ).thenAnswer((_) async => false);
+
+      stubGitCommands();
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: false,
+          local: false,
+          verbose: true,
+        ),
+      ).thenAnswer((_) async => true);
+
+      when(
+        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+      ).thenAnswer((_) async {});
+
+      await doMerge.get(directory: d, ggLog: ggLog, verbose: true);
+
+      expect(
+        messages,
+        containsAll(<String>[
+          '\$ git rev-parse --abbrev-ref HEAD',
+          '\$ git checkout main',
+          '\$ git fetch',
+          '\$ git pull',
+          '\$ git checkout feature/x',
+        ]),
       );
     });
 
@@ -322,6 +362,7 @@ void main() {
             ggLog: ggLog,
             automerge: true,
             local: true,
+            verbose: false,
           ),
         ).thenAnswer((_) async => true);
 
@@ -342,6 +383,7 @@ void main() {
             ggLog: ggLog,
             automerge: true,
             local: true,
+            verbose: false,
           ),
         ).called(1);
       });

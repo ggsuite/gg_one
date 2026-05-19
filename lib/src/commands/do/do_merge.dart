@@ -48,6 +48,13 @@ class DoMerge extends DirCommand<void> {
       abbr: 'm',
       help: 'The merge commit message.',
     );
+    argParser.addFlag(
+      'verbose',
+      abbr: 'v',
+      help: 'Prints each executed command before running it.',
+      defaultsTo: false,
+      negatable: false,
+    );
   }
 
   final GgState _state;
@@ -65,12 +72,14 @@ class DoMerge extends DirCommand<void> {
     bool? automerge,
     bool? local,
     String? message,
+    bool? verbose,
   }) => get(
     directory: directory,
     ggLog: ggLog,
     automerge: automerge,
     local: local,
     message: message,
+    verbose: verbose,
   );
 
   @override
@@ -80,10 +89,12 @@ class DoMerge extends DirCommand<void> {
     bool? automerge,
     bool? local,
     String? message,
+    bool? verbose,
   }) async {
     automerge ??= argResults?['automerge'] as bool? ?? false;
     local ??= argResults?['local'] as bool? ?? false;
     message ??= argResults?['message'] as String?;
+    verbose ??= argResults?['verbose'] as bool? ?? false;
 
     // Check state
     final isDone = await _state.readSuccess(
@@ -98,7 +109,11 @@ class DoMerge extends DirCommand<void> {
     }
 
     // Update local main branch via fetch + pull
-    await _fetchAndPullMain(directory: directory);
+    await _fetchAndPullMain(
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
 
     // Perform merge using gg_merge
     await _doMerge.get(
@@ -107,6 +122,7 @@ class DoMerge extends DirCommand<void> {
       automerge: automerge,
       local: local,
       message: message,
+      verbose: verbose,
     );
 
     // Save state
@@ -114,7 +130,11 @@ class DoMerge extends DirCommand<void> {
   }
 
   /// Fetches and pulls the main branch before performing the merge.
-  Future<void> _fetchAndPullMain({required Directory directory}) async {
+  Future<void> _fetchAndPullMain({
+    required Directory directory,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
     final mainBranchName = await _mainBranch.get(
       directory: directory,
       ggLog: <String>[].add,
@@ -124,6 +144,8 @@ class DoMerge extends DirCommand<void> {
       directory: directory,
       arguments: const ['rev-parse', '--abbrev-ref', 'HEAD'],
       actionDescription: 'determine the current branch',
+      ggLog: ggLog,
+      verbose: verbose,
     );
     final originalBranch = currentBranch.trim();
     final switchBranches = originalBranch != mainBranchName;
@@ -133,6 +155,8 @@ class DoMerge extends DirCommand<void> {
         directory: directory,
         arguments: ['checkout', mainBranchName],
         actionDescription: 'checkout $mainBranchName',
+        ggLog: ggLog,
+        verbose: verbose,
       );
     }
 
@@ -141,11 +165,15 @@ class DoMerge extends DirCommand<void> {
         directory: directory,
         arguments: const ['fetch'],
         actionDescription: 'fetch on $mainBranchName',
+        ggLog: ggLog,
+        verbose: verbose,
       );
       await _runGitCommand(
         directory: directory,
         arguments: const ['pull'],
         actionDescription: 'pull on $mainBranchName',
+        ggLog: ggLog,
+        verbose: verbose,
       );
     } finally {
       if (switchBranches) {
@@ -153,6 +181,8 @@ class DoMerge extends DirCommand<void> {
           directory: directory,
           arguments: ['checkout', originalBranch],
           actionDescription: 'checkout $originalBranch',
+          ggLog: ggLog,
+          verbose: verbose,
         );
       }
     }
@@ -163,7 +193,12 @@ class DoMerge extends DirCommand<void> {
     required Directory directory,
     required List<String> arguments,
     required String actionDescription,
+    required GgLog ggLog,
+    required bool verbose,
   }) async {
+    if (verbose) {
+      ggLog('\$ git ${arguments.join(' ')}');
+    }
     final result = await _processWrapper.run(
       'git',
       arguments,

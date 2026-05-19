@@ -9,6 +9,12 @@
 up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
 at commit `9141ef54f5edac470d119a39285813299143898f`.
 
+## [8.2.0] - 2026-05-19
+
+### Changed
+
+- gg\_multi: changed references to git
+
 ## [8.1.1] - 2026-05-19
 
 ### Changed
@@ -532,6 +538,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[8.2.0]: https://github.com/ggsuite/gg_one/compare/8.1.1...8.2.0
 [8.1.1]: https://github.com/ggsuite/gg_one/compare/8.1.0...8.1.1
 [8.1.0]: https://github.com/ggsuite/gg_one/compare/7.0.5...8.1.0
 [7.0.5]: https://github.com/inlavigo/gg/compare/7.0.4...7.0.5

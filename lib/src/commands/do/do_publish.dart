@@ -95,12 +95,14 @@ class DoPublish extends DirCommand<void> {
     bool? askBeforePublishing,
     String? message,
     bool? deleteFeatureBranch,
+    bool? verbose,
   }) => get(
     directory: directory,
     ggLog: ggLog,
     askBeforePublishing: askBeforePublishing,
     message: message,
     deleteFeatureBranch: deleteFeatureBranch,
+    verbose: verbose,
   );
 
   @override
@@ -110,7 +112,9 @@ class DoPublish extends DirCommand<void> {
     bool? askBeforePublishing,
     String? message,
     bool? deleteFeatureBranch,
+    bool? verbose,
   }) async {
+    final isVerbose = verbose ?? _verboseFromArgs;
     _publishedVersion ??= PublishedVersion(ggLog: ggLog);
     message = await _resolveMergeMessage(
       directory: directory,
@@ -179,6 +183,7 @@ class DoPublish extends DirCommand<void> {
         directory: directory,
         ggLog: ggLog,
         hashBefore: hashBeforePubDev,
+        verbose: isVerbose,
       );
 
       await _state.writeSuccess(
@@ -194,7 +199,7 @@ class DoPublish extends DirCommand<void> {
     );
 
     if (!didMerge) {
-      await _merge(directory: directory, message: message);
+      await _merge(directory: directory, message: message, verbose: isVerbose);
 
       await _state.writeSuccess(directory: directory, key: stateKeyDoMerge);
     }
@@ -210,7 +215,11 @@ class DoPublish extends DirCommand<void> {
     );
 
     if (shouldDelete) {
-      await _deleteFeatureBranch(directory: directory, branchName: branchName);
+      await _deleteFeatureBranch(
+        directory: directory,
+        branchName: branchName,
+        verbose: isVerbose,
+      );
     }
 
     await _publishGit(directory: directory, ggLog: ggLog);
@@ -311,13 +320,15 @@ class DoPublish extends DirCommand<void> {
   Future<void> _merge({
     required Directory directory,
     required String? message,
+    required bool verbose,
   }) async {
     await _doMerge.get(
       directory: directory,
-      ggLog: <String>[].add,
+      ggLog: verbose ? ggLog : <String>[].add,
       automerge: false,
       local: true,
       message: message,
+      verbose: verbose,
     );
   }
 
@@ -451,12 +462,15 @@ class DoPublish extends DirCommand<void> {
     required Directory directory,
     required GgLog ggLog,
     required int hashBefore,
+    required bool verbose,
   }) async {
-    final result = await _processWrapper.run('git', [
-      'status',
-      '--porcelain',
-      'pubspec.lock',
-    ], workingDirectory: directory.path);
+    final result = await _runProcess(
+      'git',
+      const ['status', '--porcelain', 'pubspec.lock'],
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
 
     if (result.stdout.toString().trim().isEmpty) {
       return;
@@ -539,13 +553,15 @@ class DoPublish extends DirCommand<void> {
   Future<void> _deleteFeatureBranch({
     required Directory directory,
     required String branchName,
+    required bool verbose,
   }) async {
-    final result = await _processWrapper.run('git', <String>[
-      'push',
-      'origin',
-      '--delete',
-      branchName,
-    ], workingDirectory: directory.path);
+    final result = await _runProcess(
+      'git',
+      <String>['push', 'origin', '--delete', branchName],
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
 
     if (result.exitCode != 0) {
       throw Exception(
@@ -555,6 +571,27 @@ class DoPublish extends DirCommand<void> {
 
     ggLog(green('Deleted remote feature branch $branchName.'));
   }
+
+  /// Wrapper around `_processWrapper.run` that prints the command in verbose
+  /// mode.
+  Future<ProcessResult> _runProcess(
+    String executable,
+    List<String> arguments, {
+    required Directory directory,
+    required GgLog ggLog,
+    required bool verbose,
+  }) {
+    if (verbose) {
+      ggLog('\$ $executable ${arguments.join(' ')}');
+    }
+    return _processWrapper.run(
+      executable,
+      arguments,
+      workingDirectory: directory.path,
+    );
+  }
+
+  bool get _verboseFromArgs => argResults?['verbose'] as bool? ?? false;
 
   bool get _askBeforePublishingFromParam =>
       argResults?['ask-before-publishing'] as bool? ?? true;
@@ -619,6 +656,14 @@ class DoPublish extends DirCommand<void> {
       'message',
       abbr: 'm',
       help: 'The merge commit message used for the final merge step.',
+    );
+
+    argParser.addFlag(
+      'verbose',
+      abbr: 'v',
+      help: 'Prints each executed command before running it.',
+      defaultsTo: false,
+      negatable: false,
     );
   }
 }
