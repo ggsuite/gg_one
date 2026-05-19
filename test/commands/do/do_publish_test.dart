@@ -12,6 +12,7 @@ import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
@@ -51,6 +52,16 @@ void main() {
   bool defaultConfirmDeleteFeatureBranch(String branchName) {
     return false;
   }
+
+  // DoMerge variant that skips `dart pub get` so the bare test repo
+  // (no SDK constraint, no .gitignore) does not trip over it.
+  DoMerge noPubGetDoMerge() => DoMerge(
+    ggLog: ggLog,
+    doMerge: gg_merge.DoMerge(
+      ggLog: ggLog,
+      localMerge: gg_merge.LocalMerge(ggLog: ggLog, runPubGet: false),
+    ),
+  );
 
   void mockPublishIsSuccessful({
     required bool success,
@@ -245,6 +256,7 @@ void main() {
       localBranch: localBranch,
       confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
       editMessage: defaultEditMessage,
+      doMerge: noPubGetDoMerge(),
     );
 
     await makeLastStateSuccessful();
@@ -492,6 +504,7 @@ void main() {
                 localBranch: localBranch,
                 confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
                 editMessage: defaultEditMessage,
+                doMerge: noPubGetDoMerge(),
               );
 
               // Prepare pubspec.yaml
@@ -624,6 +637,7 @@ void main() {
                 initialMessage = message;
                 return 'Edited merge message';
               },
+              doMerge: noPubGetDoMerge(),
             );
 
             await DirectJson.writeFile(
@@ -681,6 +695,7 @@ void main() {
                 initialMessage = message;
                 return 'Edited without ticket';
               },
+              doMerge: noPubGetDoMerge(),
             );
 
             await DirectJson.writeFile(
@@ -735,6 +750,7 @@ void main() {
                 fail('Editor must not be opened when message is provided.');
               },
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+              doMerge: noPubGetDoMerge(),
             );
 
             await DirectJson.writeFile(
@@ -861,6 +877,7 @@ void main() {
                   promptBranchName = branchName;
                   return true;
                 },
+                doMerge: noPubGetDoMerge(),
               );
 
               await doPublishWithPrompt.exec(
@@ -910,6 +927,7 @@ void main() {
               confirmDeleteFeatureBranch: (_) {
                 fail('Prompt must not be used when flag is provided.');
               },
+              doMerge: noPubGetDoMerge(),
             );
 
             final runner = CommandRunner<void>('gg', 'gg')
@@ -967,6 +985,7 @@ void main() {
                 confirmDeleteFeatureBranch: (_) {
                   fail('Prompt must not be used when flag is provided.');
                 },
+                doMerge: noPubGetDoMerge(),
               );
 
               final runner = CommandRunner<void>('gg', 'gg')
@@ -1029,6 +1048,7 @@ void main() {
                   );
                 },
                 confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+                doMerge: noPubGetDoMerge(),
               );
 
               final runner = CommandRunner<void>('gg', 'gg')
