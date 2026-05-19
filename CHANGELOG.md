@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `CanCommit`: `dart pub get --offline` (or the Flutter equivalent) now runs as
+  a regular check below the `Can commit?` header and is logged as
+  `Running "dart pub get --offline"`, matching the style of the other checks
+  (was framed with `»«` and printed above the header).
+
 ## \[8.0.0\] - 2026-05-10
 
 ### Changed

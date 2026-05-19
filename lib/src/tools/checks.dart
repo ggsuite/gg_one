@@ -18,6 +18,7 @@ class Checks {
   /// Constructor
   Checks({
     required this.ggLog,
+    PubGetOffline? pubGetOffline,
     Analyze? analyze,
     Format? format,
     Tests? tests,
@@ -27,7 +28,8 @@ class Checks {
     IsVersioned? isVersioned,
     IsPublished? isPublished,
     IsUpgraded? isUpgraded,
-  }) : analyze = analyze ?? Analyze(ggLog: ggLog),
+  }) : pubGetOffline = pubGetOffline ?? PubGetOffline(ggLog: ggLog),
+       analyze = analyze ?? Analyze(ggLog: ggLog),
        format = format ?? Format(ggLog: ggLog),
        tests = tests ?? Tests(ggLog: ggLog),
        pana = pana ?? Pana(ggLog: ggLog),
@@ -41,6 +43,9 @@ class Checks {
 
   /// The log function
   final GgLog ggLog;
+
+  /// The pub-get-offline command
+  final PubGetOffline pubGetOffline;
 
   /// The analyze command
   final Analyze analyze;
@@ -77,6 +82,7 @@ class Checks {
 
   void _initAll() {
     _all = [
+      pubGetOffline,
       analyze,
       format,
       tests,

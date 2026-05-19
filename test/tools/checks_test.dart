@@ -16,8 +16,9 @@ void main() {
   group('Checks', () {
     group('all', () {
       test('should provide a list of all checks', () {
-        expect(checks.all, hasLength(9));
+        expect(checks.all, hasLength(10));
         expect(checks.all, [
+          checks.pubGetOffline,
           checks.analyze,
           checks.format,
           checks.tests,
