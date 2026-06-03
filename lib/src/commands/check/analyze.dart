@@ -7,7 +7,7 @@
 import 'dart:io';
 
 import 'package:gg_one/src/tools/analyzer.dart';
-import 'package:gg_one/src/tools/project_type.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:mocktail/mocktail.dart' as mocktail;

@@ -6,7 +6,7 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/type_script_package_manager.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_is_github/gg_is_github.dart';
 import 'package:gg_log/gg_log.dart';
@@ -38,29 +38,34 @@ class DartFormatter extends Formatter {
   const DartFormatter({
     this.processWrapper = const GgProcessWrapper(),
     bool Function()? isGitHub,
+    this.catalog,
   }) : _isGitHubImpl = isGitHub;
 
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
+
+  /// The language catalog. Defaults to the bundled gg_lang catalog when null.
+  final LanguageCatalog? catalog;
 
   final bool Function()? _isGitHubImpl;
   bool get _isGitHub => _isGitHubImpl != null ? _isGitHubImpl() : isGitHub;
 
   @override
   Future<void> run({required Directory directory, required GgLog ggLog}) async {
+    final cat = catalog ?? await LanguageCatalog.load();
+    final command = cat.spec(ProjectType.dart).command('formatFix');
+
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
-      message: 'Running "dart format"',
+      message: 'Running "${command.label}"',
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
-    final result = await processWrapper.run('dart', [
-      'format',
-      '.',
-      '-o',
-      'write',
-      '--set-exit-if-changed',
-    ], workingDirectory: directory.path);
+    final result = await processWrapper.run(
+      command.exec!,
+      command.args,
+      workingDirectory: directory.path,
+    );
 
     if (result.exitCode == 0) {
       statusPrinter.logStatus(GgStatusPrinterStatus.success);
@@ -103,11 +108,15 @@ class TypeScriptFormatter extends Formatter {
     this.processWrapper = const GgProcessWrapper(),
     bool Function()? isGitHub,
     TypeScriptPackageManager Function(Directory)? packageManager,
+    this.catalog,
   }) : _isGitHubImpl = isGitHub,
        _packageManager = packageManager;
 
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
+
+  /// The language catalog. Defaults to the bundled gg_lang catalog when null.
+  final LanguageCatalog? catalog;
 
   final bool Function()? _isGitHubImpl;
   bool get _isGitHub => _isGitHubImpl != null ? _isGitHubImpl() : isGitHub;
@@ -116,15 +125,21 @@ class TypeScriptFormatter extends Formatter {
 
   @override
   Future<void> run({required Directory directory, required GgLog ggLog}) async {
+    final cat = catalog ?? await LanguageCatalog.load();
+    // On GitHub runners check only (`eslint`); locally auto-fix (`eslint
+    // --fix`).
+    final command = cat
+        .spec(ProjectType.typescript)
+        .command(_isGitHub ? 'formatCheck' : 'formatFix');
+
     final pm = (_packageManager ?? detectTypeScriptPackageManager).call(
       directory,
     );
-    final eslintArgs = _isGitHub ? <String>[] : <String>['--fix'];
-    final cmd = pm.execCommand('eslint', eslintArgs);
+    final cmd = pm.execCommand(command.tool!, command.args);
 
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
-      message: 'Running "eslint"',
+      message: 'Running "${command.label}"',
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -134,7 +149,7 @@ class TypeScriptFormatter extends Formatter {
       workingDirectory: directory.path,
       // Node tooling ships as `.cmd`/`.ps1` launchers on Windows, which
       // `dart:io` can only resolve via the shell.
-      runInShell: true,
+      runInShell: command.runInShell,
     );
 
     statusPrinter.logStatus(

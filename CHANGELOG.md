@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- feat: language-universal commit/publish via gg\_lang (isDartFamily gating, lockFileFor, registry-aware dispatch)
+
 ## [8.2.1] - 2026-05-19
 
 ### Changed
@@ -542,6 +548,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/8.2.1...HEAD
 [8.2.1]: https://github.com/ggsuite/gg_one/compare/8.2.0...8.2.1
 [8.2.0]: https://github.com/ggsuite/gg_one/compare/8.1.1...8.2.0
 [8.1.1]: https://github.com/ggsuite/gg_one/compare/8.1.0...8.1.1

@@ -47,7 +47,16 @@ export 'src/tools/checks.dart';
 export 'src/tools/formatter.dart';
 export 'src/tools/command_cluster.dart';
 export 'src/tools/gg_state.dart';
-export 'src/tools/project_type.dart';
 export 'src/tools/repository_url.dart';
-export 'src/tools/type_script_package_manager.dart';
 export 'src/tools/version_selector.dart';
+// Project-type detection and package-manager handling now live in gg_lang
+// (the shared language catalog). Re-exported here so existing gg_one
+// consumers keep importing them from gg_one.
+export 'package:gg_lang/gg_lang.dart'
+    show
+        ProjectType,
+        ProjectTypeX,
+        detectProjectType,
+        lockFileFor,
+        TypeScriptPackageManager,
+        detectTypeScriptPackageManager;
