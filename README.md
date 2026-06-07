@@ -73,6 +73,64 @@ Automate your testing process by setting up the gg_one GitHub Action, like here:
 
 <https://github.com/ggsuite/gg_one/blob/main/.github/workflows/pipeline.yaml>
 
+## Publish a single package with `gg one do publish`
+
+`gg one do publish` walks a single repo through the publish pipeline:
+`can publish` → version bump → CHANGELOG release → merge feature branch
+into `main` → push → publish to pub.dev (skipped when
+`publish_to: none` is set in `pubspec.yaml`).
+
+By default the command is interactive: it asks for a merge message and
+which part of the version to bump (`patch` / `minor` / `major`). For
+scripted releases and CI you can predeclare both via a JSON config
+file:
+
+```bash
+gg one do publish --config .gg-publish.json
+```
+
+### `.gg-publish.json` schema (single-repo)
+
+`gg one` reads the **top-level** fields and ignores `repos`:
+
+```jsonc
+{
+  "version_increment": "patch",                // "patch" | "minor" | "major"
+  "merge_message": "Release: API cleanup"
+}
+```
+
+Both fields are mandatory when `--config` is given — a missing field
+causes a `FormatException` instead of silently dropping back to a
+prompt.
+
+### Where the config is looked up
+
+Resolution order:
+
+1. `<configArg>` as given (relative to the current directory, or an
+   absolute path).
+2. `<repo>/.gg/<configArg>` — handy for keeping per-package release
+   defaults under version control inside the package itself.
+
+### Example
+
+```bash
+cd my_package
+cat .gg/release.json
+# {
+#   "version_increment": "minor",
+#   "merge_message": "feat: add user-facing settings API"
+# }
+
+gg one do publish --config release.json   # finds it under .gg/
+```
+
+The same `.gg-publish.json` schema is shared with `gg multi do publish`,
+which additionally honours a per-repo `repos.<name>` override block.
+See the [`gg_multi` README](../gg_multi/README.md) for the multi-repo
+form.
+
 ## Contributions
 
 Report your errors and contributions to <https://github.com/ggsuite/gg_one>.
