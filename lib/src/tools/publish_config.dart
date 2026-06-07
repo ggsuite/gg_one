@@ -129,10 +129,7 @@ class PublishConfig {
     required String configArg,
     required String fallbackDir,
   }) {
-    final candidates = <String>[
-      configArg,
-      p.join(fallbackDir, configArg),
-    ];
+    final candidates = <String>[configArg, p.join(fallbackDir, configArg)];
     File? found;
     for (final candidate in candidates) {
       final file = File(candidate);

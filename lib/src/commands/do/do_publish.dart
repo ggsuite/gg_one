@@ -721,7 +721,8 @@ class DoPublish extends DirCommand<void> {
 
     argParser.addOption(
       'config',
-      help: 'Path to a .gg-publish.json file with merge_message and '
+      help:
+          'Path to a .gg-publish.json file with merge_message and '
           'version_increment. Resolved as-given (CWD), then under "<repo>/.gg/".',
     );
 
