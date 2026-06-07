@@ -96,6 +96,7 @@ class DoPublish extends DirCommand<void> {
     String? message,
     bool? deleteFeatureBranch,
     bool? verbose,
+    String? versionIncrement,
   }) => get(
     directory: directory,
     ggLog: ggLog,
@@ -103,6 +104,7 @@ class DoPublish extends DirCommand<void> {
     message: message,
     deleteFeatureBranch: deleteFeatureBranch,
     verbose: verbose,
+    versionIncrement: versionIncrement,
   );
 
   @override
@@ -113,9 +115,30 @@ class DoPublish extends DirCommand<void> {
     String? message,
     bool? deleteFeatureBranch,
     bool? verbose,
+    String? versionIncrement,
   }) async {
     final isVerbose = verbose ?? _verboseFromArgs;
     _publishedVersion ??= PublishedVersion(ggLog: ggLog);
+
+    // If --config <path> was passed and no overriding values were provided
+    // by the caller, load .gg-publish.json from <path> (with .gg/ fallback in
+    // the target directory) and use its top-level version_increment +
+    // merge_message. The schema requires both fields when --config is set.
+    if (versionIncrement == null || message == null) {
+      final configArg = argResults?['config'] as String?;
+      if (configArg != null) {
+        final config = PublishConfig.load(
+          configArg: configArg,
+          fallbackDir: join(directory.path, '.gg'),
+        );
+        final resolved = config.resolveSingle(configPath: configArg);
+        versionIncrement ??= resolved.versionIncrement;
+        message ??= resolved.mergeMessage;
+      }
+    }
+
+    _explicitVersionIncrement = versionIncrement;
+
     message = await _resolveMergeMessage(
       directory: directory,
       message: message,
@@ -244,6 +267,11 @@ class DoPublish extends DirCommand<void> {
   final LocalBranch _localBranch;
   final ConfirmDeleteFeatureBranch _confirmDeleteFeatureBranch;
   final EditMessage _editMessage;
+
+  /// Pre-resolved version increment ('patch' | 'minor' | 'major'). When
+  /// non-null, [_addNextVersion] uses this value instead of asking the user.
+  /// Set inside [get] from either a direct parameter or `--config`.
+  String? _explicitVersionIncrement;
 
   /// Returns true when pub.dev publishing was already completed or is obsolete.
   Future<bool> _didPublishPubDevOrVersionAlreadyPublished({
@@ -393,9 +421,17 @@ class DoPublish extends DirCommand<void> {
       ggLog: ggLog,
     );
 
-    final increment = await _versionSelector.selectIncrement(
-      currentVersion: currentVersion,
-    );
+    final VersionIncrement increment;
+    final explicit = _explicitVersionIncrement;
+    if (explicit != null) {
+      // --config (or a direct caller via exec(versionIncrement: …)) supplied
+      // the increment, so don't prompt.
+      increment = parseVersionIncrement(explicit);
+    } else {
+      increment = await _versionSelector.selectIncrement(
+        currentVersion: currentVersion,
+      );
+    }
 
     await _prepareNextVersion.exec(
       directory: directory,
@@ -681,6 +717,12 @@ class DoPublish extends DirCommand<void> {
       'message',
       abbr: 'm',
       help: 'The merge commit message used for the final merge step.',
+    );
+
+    argParser.addOption(
+      'config',
+      help: 'Path to a .gg-publish.json file with merge_message and '
+          'version_increment. Resolved as-given (CWD), then under "<repo>/.gg/".',
     );
 
     argParser.addFlag(

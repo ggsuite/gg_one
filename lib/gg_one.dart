@@ -47,6 +47,7 @@ export 'src/tools/checks.dart';
 export 'src/tools/formatter.dart';
 export 'src/tools/command_cluster.dart';
 export 'src/tools/gg_state.dart';
+export 'src/tools/publish_config.dart';
 export 'src/tools/repository_url.dart';
 export 'src/tools/version_selector.dart';
 // Project-type detection and package-manager handling now live in gg_lang
