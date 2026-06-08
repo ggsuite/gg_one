@@ -8,8 +8,8 @@ import 'dart:io';
 
 import 'package:gg_one/src/commands/can/can_commit.dart';
 import 'package:gg_one/src/tools/gg_state.dart';
-import 'package:gg_one/src/tools/project_type.dart';
 import 'package:gg_one/src/tools/repository_url.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_changelog/gg_changelog.dart' as cl;
 import 'package:gg_console_colors/gg_console_colors.dart';
@@ -131,9 +131,7 @@ class DoCommit extends DirCommand<void> {
     // CHANGELOG update currently depends on cider, which requires
     // pubspec.yaml. Skip it for TypeScript projects until we have a
     // TypeScript-native changelog writer.
-    final projectType = detectProjectType(directory);
-    final supportsChangeLog =
-        projectType == ProjectType.dart || projectType == ProjectType.flutter;
+    final supportsChangeLog = detectProjectType(directory).isDartFamily;
 
     final repoUrl = supportsChangeLog ? await readRepositoryUrl(directory) : '';
 

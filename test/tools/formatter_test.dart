@@ -7,7 +7,7 @@
 import 'dart:io';
 
 import 'package:gg_one/src/tools/formatter.dart';
-import 'package:gg_one/src/tools/type_script_package_manager.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';

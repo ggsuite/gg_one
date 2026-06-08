@@ -6,7 +6,7 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/type_script_package_manager.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
@@ -31,27 +31,36 @@ abstract class Analyzer {
 
 // #############################################################################
 
-/// Runs `dart analyze` on a Dart or Flutter package.
+/// Runs the catalog `analyze` command on a Dart or Flutter package.
 class DartAnalyzer extends Analyzer {
   /// Constructor.
-  const DartAnalyzer({this.processWrapper = const GgProcessWrapper()});
+  const DartAnalyzer({
+    this.processWrapper = const GgProcessWrapper(),
+    this.catalog,
+  });
 
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
 
+  /// The language catalog. Defaults to the bundled gg_lang catalog when null.
+  final LanguageCatalog? catalog;
+
   @override
   Future<void> run({required Directory directory, required GgLog ggLog}) async {
+    final cat = catalog ?? await LanguageCatalog.load();
+    final command = cat.spec(ProjectType.dart).command('analyze');
+
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
-      message: 'Running "dart analyze"',
+      message: 'Running "${command.label}"',
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
-    final result = await processWrapper.run('dart', [
-      'analyze',
-      '--fatal-infos',
-      '--fatal-warnings',
-    ], workingDirectory: directory.path);
+    final result = await processWrapper.run(
+      command.exec!,
+      command.args,
+      workingDirectory: directory.path,
+    );
 
     statusPrinter.logStatus(
       result.exitCode == 0
@@ -71,7 +80,7 @@ class DartAnalyzer extends Analyzer {
     ggLog(files.map((e) => red('- $e')).join('\n'));
 
     throw Exception(
-      'Analyze failed. Run "${blue('dart analyze')}" to see details.',
+      'Analyze failed. Run "${blue(command.label)}" to see details.',
     );
   }
 }
@@ -88,23 +97,30 @@ class TypeScriptAnalyzer extends Analyzer {
   const TypeScriptAnalyzer({
     this.processWrapper = const GgProcessWrapper(),
     TypeScriptPackageManager Function(Directory)? packageManager,
+    this.catalog,
   }) : _packageManager = packageManager;
 
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
 
+  /// The language catalog. Defaults to the bundled gg_lang catalog when null.
+  final LanguageCatalog? catalog;
+
   final TypeScriptPackageManager Function(Directory)? _packageManager;
 
   @override
   Future<void> run({required Directory directory, required GgLog ggLog}) async {
+    final cat = catalog ?? await LanguageCatalog.load();
+    final command = cat.spec(ProjectType.typescript).command('analyze');
+
     final pm = (_packageManager ?? detectTypeScriptPackageManager).call(
       directory,
     );
-    final cmd = pm.execCommand('tsc', ['--noEmit']);
+    final cmd = pm.execCommand(command.tool!, command.args);
 
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
-      message: 'Running "tsc --noEmit"',
+      message: 'Running "${command.label}"',
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -114,7 +130,7 @@ class TypeScriptAnalyzer extends Analyzer {
       workingDirectory: directory.path,
       // Node tooling ships as `.cmd`/`.ps1` launchers on Windows, which
       // `dart:io` can only resolve via the shell.
-      runInShell: true,
+      runInShell: command.runInShell,
     );
 
     statusPrinter.logStatus(

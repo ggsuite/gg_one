@@ -7,7 +7,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:gg_one/src/tools/project_type.dart';
+import 'package:gg_lang/gg_lang.dart';
 
 // #############################################################################
 
