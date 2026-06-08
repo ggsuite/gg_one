@@ -6,6 +6,7 @@
 
 - feat: language-universal commit/publish via gg\_lang (isDartFamily gating, lockFileFor, registry-aware dispatch)
 - test: real PublishConfig tests + dart format tidy; bypass known TOCTOU flake in gg\_state.readSuccess under parallel coverage
+- gg\_multi: changed references to git
 
 ## [8.2.1] - 2026-05-19
 
