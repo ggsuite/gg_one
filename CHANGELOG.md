@@ -1,5 +1,13 @@
 # Changelog
 
+## [9.1.0] - 2026-06-09
+
+### Changed
+
+- feat(ts): version-pinned git deps via #semver: + tag-push for npm/pnpm
+- refactor(ts): trim comments to grace-cloud style limits + do\_maintain layout
+- style: apply grace-cloud comment + 80-char limits across ticket
+
 ## [9.0.0] - 2026-06-08
 
 ### Changed
@@ -552,6 +560,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[9.1.0]: https://github.com/ggsuite/gg_one/compare/9.0.0...9.1.0
 [9.0.0]: https://github.com/ggsuite/gg_one/compare/8.2.1...9.0.0
 [8.2.1]: https://github.com/ggsuite/gg_one/compare/8.2.0...8.2.1
 [8.2.0]: https://github.com/ggsuite/gg_one/compare/8.1.1...8.2.0

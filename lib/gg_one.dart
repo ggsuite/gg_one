@@ -41,6 +41,7 @@ export 'src/commands/do/do_upgrade.dart';
 export 'src/commands/info.dart';
 export 'src/gg.dart';
 // Tools
+export 'src/tools/add_typescript_version_tag.dart';
 export 'src/tools/analyzer.dart';
 export 'src/tools/carriage_return.dart';
 export 'src/tools/checks.dart';

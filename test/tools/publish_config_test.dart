@@ -223,6 +223,47 @@ void main() {
         );
       });
 
+      test('parses valid repos.<name> entries - both fields, then each '
+          'alone', () async {
+        // Happy path of the `repos` loop in `load()`.
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "top default",
+  "repos": {
+    "both_overrides": {
+      "version_increment": "minor",
+      "merge_message": "custom for both"
+    },
+    "only_version": {
+      "version_increment": "major"
+    },
+    "only_message": {
+      "merge_message": "custom message only"
+    }
+  }
+}
+''');
+        final cfg = PublishConfig.load(
+          configArg: 'release.json',
+          fallbackDir: tmp.path,
+        );
+        expect(
+          cfg.repos.keys,
+          containsAll(<String>[
+            'both_overrides',
+            'only_version',
+            'only_message',
+          ]),
+        );
+        expect(cfg.repos['both_overrides']!.versionIncrement, 'minor');
+        expect(cfg.repos['both_overrides']!.mergeMessage, 'custom for both');
+        expect(cfg.repos['only_version']!.versionIncrement, 'major');
+        expect(cfg.repos['only_version']!.mergeMessage, isNull);
+        expect(cfg.repos['only_message']!.versionIncrement, isNull);
+        expect(cfg.repos['only_message']!.mergeMessage, 'custom message only');
+      });
+
       test('rejects an unknown version_increment in a repos entry', () async {
         await writeConfig('release.json', '''
 {
@@ -243,6 +284,73 @@ void main() {
               (e) => e.message,
               'message',
               contains('repos.foo'),
+            ),
+          ),
+        );
+      });
+
+      test('parses delete_ticket=true at the top level', () async {
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "x",
+  "delete_ticket": true
+}
+''');
+        final cfg = PublishConfig.load(
+          configArg: 'release.json',
+          fallbackDir: tmp.path,
+        );
+        expect(cfg.deleteTicket, isTrue);
+      });
+
+      test('parses delete_ticket=false at the top level', () async {
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "x",
+  "delete_ticket": false
+}
+''');
+        final cfg = PublishConfig.load(
+          configArg: 'release.json',
+          fallbackDir: tmp.path,
+        );
+        expect(cfg.deleteTicket, isFalse);
+      });
+
+      test('leaves deleteTicket null when delete_ticket is unset', () async {
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "x"
+}
+''');
+        final cfg = PublishConfig.load(
+          configArg: 'release.json',
+          fallbackDir: tmp.path,
+        );
+        expect(cfg.deleteTicket, isNull);
+      });
+
+      test('rejects a non-boolean delete_ticket', () async {
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "x",
+  "delete_ticket": "yes"
+}
+''');
+        expect(
+          () => PublishConfig.load(
+            configArg: 'release.json',
+            fallbackDir: tmp.path,
+          ),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('"delete_ticket" must be a boolean'),
             ),
           ),
         );
@@ -358,6 +466,27 @@ void main() {
                   contains('version_increment'),
                   contains('repos.app_core'),
                 ),
+              ),
+            ),
+          );
+        },
+      );
+
+      test(
+        'hard errors when merge_message is missing on both override + default',
+        () {
+          // Neither top-level nor override supplies `merge_message`.
+          final cfg = PublishConfig(
+            versionIncrement: 'patch',
+            repos: {'app_core': RepoOverride()},
+          );
+          expect(
+            () => cfg.forRepo(repoName: 'app_core', configPath: 'release.json'),
+            throwsA(
+              isA<FormatException>().having(
+                (e) => e.message,
+                'message',
+                allOf(contains('merge_message'), contains('repos.app_core')),
               ),
             ),
           );

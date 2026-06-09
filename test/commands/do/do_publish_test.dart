@@ -345,8 +345,7 @@ void main() {
                         ).get(directory: d, ggLog: ggLog);
                         expect(headMessage, 'Ticket merge message');
 
-                        // Was .gg/.gg.json updated in a way that didCommit,
-                        // didPush and didPublish return true?
+                        // Did .gg/.gg.json mark commit, push and publish done?
                         expect(
                           await DidCommit(
                             ggLog: ggLog,
@@ -494,7 +493,7 @@ void main() {
           });
 
           group('not to pub.dev', () {
-            test('when »publish_to: none« is found in pubspec.yaml', () async {
+            test('when »publish_to: none« in pubspec.yaml', () async {
               doPublish = DoPublish(
                 ggLog: ggLog,
                 publish: publish,
@@ -558,8 +557,7 @@ void main() {
               ).get(directory: d, ggLog: ggLog);
               expect(headMessage, 'Ticket merge message');
 
-              // Was .gg/.gg.json updated in a way that didCommit,
-              // didPush and didPublish return true?
+              // Did .gg/.gg.json mark commit, push and publish done?
               expect(
                 await DidCommit(ggLog: ggLog).get(directory: d, ggLog: ggLog),
                 isTrue,
@@ -948,6 +946,75 @@ void main() {
                 'feat_abc',
               ], workingDirectory: d.path),
             ).called(1);
+          });
+
+          test('reads version_increment + merge_message from --config '
+              'when neither is supplied on the CLI', () async {
+            // Covers the single-repo `--config` resolve path.
+            mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+            await DirectJson.writeFile(
+              file: File(join(d.path, '.gg', '.gg.json')),
+              path: 'doPublish/success/hash',
+              value: needsChangeHash,
+            );
+
+            // Config sits outside the repo to keep the working tree clean.
+            final cfgDir = await Directory.systemTemp.createTemp(
+              'publish_config_',
+            );
+            final cfgPath = join(cfgDir.path, 'release.json');
+            await File(cfgPath).writeAsString(
+              '{"version_increment":"patch",'
+              '"merge_message":"from .gg-publish.json"}',
+            );
+
+            // Editor must stay shut when --config supplies both fields.
+            final cliDoPublish = DoPublish(
+              ggLog: ggLog,
+              publish: publish,
+              prepareNextVersion: PrepareNextVersion(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              canPublish: canPublish,
+              isPublished: IsPublished(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              versionSelector: versionSelector,
+              publishedVersion: publishedVersion,
+              processWrapper: processWrapper,
+              localBranch: localBranch,
+              editMessage: (initial) async {
+                fail(
+                  'Editor must not be opened when --config supplies the '
+                  'merge_message (got initialMessage="$initial").',
+                );
+              },
+              confirmDeleteFeatureBranch: (_) => false,
+              doMerge: noPubGetDoMerge(),
+            );
+
+            final runner = CommandRunner<void>('gg', 'gg')
+              ..addCommand(cliDoPublish);
+
+            await runner.run(<String>[
+              'publish',
+              '-i',
+              d.path,
+              '--config',
+              cfgPath,
+              '--no-ask-before-publishing',
+              '--no-delete-feature-branch',
+            ]);
+
+            // Reaching here proves the load+resolve path ran successfully.
+            expect(
+              await DidPublish(ggLog: ggLog).get(directory: d, ggLog: ggLog),
+              isTrue,
+            );
+
+            cfgDir.deleteSync(recursive: true);
           });
 
           test('logs each executed command when --verbose is set', () async {
