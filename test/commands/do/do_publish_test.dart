@@ -345,8 +345,7 @@ void main() {
                         ).get(directory: d, ggLog: ggLog);
                         expect(headMessage, 'Ticket merge message');
 
-                        // Was .gg/.gg.json updated in a way that didCommit,
-                        // didPush and didPublish return true?
+                        // Did .gg/.gg.json mark commit, push and publish done?
                         expect(
                           await DidCommit(
                             ggLog: ggLog,
@@ -494,7 +493,7 @@ void main() {
           });
 
           group('not to pub.dev', () {
-            test('when »publish_to: none« is found in pubspec.yaml', () async {
+            test('when »publish_to: none« in pubspec.yaml', () async {
               doPublish = DoPublish(
                 ggLog: ggLog,
                 publish: publish,
@@ -558,8 +557,7 @@ void main() {
               ).get(directory: d, ggLog: ggLog);
               expect(headMessage, 'Ticket merge message');
 
-              // Was .gg/.gg.json updated in a way that didCommit,
-              // didPush and didPublish return true?
+              // Did .gg/.gg.json mark commit, push and publish done?
               expect(
                 await DidCommit(ggLog: ggLog).get(directory: d, ggLog: ggLog),
                 isTrue,

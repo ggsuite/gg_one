@@ -127,10 +127,7 @@ class DoPublish extends DirCommand<void> {
     final isVerbose = verbose ?? _verboseFromArgs;
     _publishedVersion ??= PublishedVersion(ggLog: ggLog);
 
-    // If --config <path> was passed and no overriding values were provided
-    // by the caller, load .gg-publish.json from <path> (with .gg/ fallback in
-    // the target directory) and use its top-level version_increment +
-    // merge_message. The schema requires both fields when --config is set.
+    // Load --config <path> (with .gg/ fallback) for version_increment + msg.
     if (versionIncrement == null || message == null) {
       final configArg = argResults?['config'] as String?;
       if (configArg != null) {
@@ -276,9 +273,7 @@ class DoPublish extends DirCommand<void> {
   final ConfirmDeleteFeatureBranch _confirmDeleteFeatureBranch;
   final EditMessage _editMessage;
 
-  /// Pre-resolved version increment ('patch' | 'minor' | 'major'). When
-  /// non-null, [_addNextVersion] uses this value instead of asking the user.
-  /// Set inside [get] from either a direct parameter or `--config`.
+  /// Pre-resolved version increment; when set, skips the interactive prompt.
   String? _explicitVersionIncrement;
 
   /// Returns true when pub.dev publishing was already completed or is obsolete.
@@ -325,9 +320,7 @@ class DoPublish extends DirCommand<void> {
   }) async {
     await _addNextVersion(directory, ggLog);
 
-    // The CHANGELOG.md release step is cider/pubspec based and only applies to
-    // Dart/Flutter packages. TypeScript packages use a registry/manifest based
-    // versioning flow and have no CHANGELOG.md to release.
+    // CHANGELOG.md release is Dart/Flutter only; TS uses manifest versioning.
     if (_supportsChangeLog(directory)) {
       await _prepareChangelog(directory: directory, ggLog: noLog);
     }
@@ -436,8 +429,7 @@ class DoPublish extends DirCommand<void> {
     final VersionIncrement increment;
     final explicit = _explicitVersionIncrement;
     if (explicit != null) {
-      // --config (or a direct caller via exec(versionIncrement: …)) supplied
-      // the increment, so don't prompt.
+      // Increment was supplied (via --config or caller); skip prompt.
       increment = parseVersionIncrement(explicit);
     } else {
       increment = await _versionSelector.selectIncrement(
@@ -517,10 +509,7 @@ class DoPublish extends DirCommand<void> {
   }
 
   /// Commits the lock file if it was modified during publishing.
-  ///
-  /// The lock file name is resolved per project type from the language
-  /// catalog (`pubspec.lock` for Dart/Flutter, `package-lock.json` for
-  /// TypeScript).
+  /// Lock file name is resolved per project type via the language catalog.
   Future<void> _commitLockFileIfChanged({
     required Directory directory,
     required GgLog ggLog,
@@ -735,7 +724,8 @@ class DoPublish extends DirCommand<void> {
       'config',
       help:
           'Path to a .gg-publish.json file with merge_message and '
-          'version_increment. Resolved as-given (CWD), then under "<repo>/.gg/".',
+          'version_increment. Resolved as-given (CWD), then under '
+          '"<repo>/.gg/".',
     );
 
     argParser.addFlag(

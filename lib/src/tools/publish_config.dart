@@ -30,26 +30,9 @@ class ResolvedPublishValues {
   final String mergeMessage;
 }
 
-/// In-memory representation of a `.gg-publish.json` config file as used by
-/// `gg one do publish --config <path>` (single-repo) and
-/// `gg multi do publish --config <path>` (ticket).
-///
-/// Schema:
-/// ```json
-/// {
-///   "version_increment": "patch",
-///   "merge_message": "Default merge message for all repos",
-///   "repos": {
-///     "<repoName>": {
-///       "version_increment": "minor",
-///       "merge_message": "Per-repo merge message"
-///     }
-///   }
-/// }
-/// ```
-///
-/// Top-level `version_increment` / `merge_message` are defaults. Entries
-/// under `repos.<name>` override the defaults for that repo.
+/// In-memory representation of a `.gg-publish.json` config file.
+/// Top-level `version_increment` / `merge_message` are defaults.
+/// Entries under `repos.<name>` override the defaults per repo.
 class PublishConfig {
   /// Constructor (used by [load] and tests).
   PublishConfig({
@@ -59,17 +42,13 @@ class PublishConfig {
     Map<String, RepoOverride>? repos,
   }) : repos = repos ?? const {};
 
-  /// Default `version_increment`. May be null when only per-repo overrides
-  /// are specified.
+  /// Default `version_increment`; null when only per-repo overrides exist.
   final String? versionIncrement;
 
-  /// Default `merge_message`. May be null when only per-repo overrides are
-  /// specified.
+  /// Default `merge_message`; null when only per-repo overrides exist.
   final String? mergeMessage;
 
-  /// Top-level `delete_ticket` from `.gg-publish.json`. When set, bypasses
-  /// the interactive "delete ticket?" prompt at the end of multi-publish.
-  /// Ticket-wide; no per-repo override.
+  /// Top-level `delete_ticket`; bypasses the interactive prompt when set.
   final bool? deleteTicket;
 
   /// Per-repo overrides keyed by repository name.
@@ -121,16 +100,9 @@ class PublishConfig {
     );
   }
 
-  /// Loads a [PublishConfig] from [configArg].
-  ///
-  /// Resolution order:
-  ///   1. [configArg] interpreted as-given (absolute or relative to CWD).
-  ///   2. `<fallbackDir>/<configArg>` — for single-repo this is the repo's
-  ///      `.gg/` directory; for multi-repo this is the ticket directory.
-  ///
-  /// Throws a [FileSystemException] when no file can be found and a
-  /// [FormatException] when the file content is not a valid JSON object or
-  /// when a field has an unexpected type / value.
+  /// Loads a [PublishConfig] from [configArg], falling back to
+  /// `<fallbackDir>/<configArg>`. Throws [FileSystemException] when no file
+  /// is found and [FormatException] on invalid JSON / field types.
   factory PublishConfig.load({
     required String configArg,
     required String fallbackDir,
@@ -284,10 +256,9 @@ class RepoOverride {
   final String? mergeMessage;
 }
 
-/// Maps the string form of a version increment (as produced by
-/// [PublishConfig]) to the corresponding [VersionIncrement] enum value.
-/// Throws [ArgumentError] for unknown strings — callers should have validated
-/// earlier via [allowedVersionIncrements].
+/// Maps a version increment string to its [VersionIncrement] enum value.
+/// Throws [ArgumentError] for unknown strings; validate earlier via
+/// [allowedVersionIncrements].
 VersionIncrement parseVersionIncrement(String increment) {
   switch (increment) {
     case 'patch':
