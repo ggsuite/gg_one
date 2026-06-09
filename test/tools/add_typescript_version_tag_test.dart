@@ -15,9 +15,7 @@ import 'package:test/test.dart';
 class _MockGgProcessWrapper extends Mock implements GgProcessWrapper {}
 
 void main() {
-  // mocktail requires a fallback whenever `any()` is used for a non-primitive
-  // positional argument — we use it to assert non-invocation of `run(...)`
-  // without coupling to the exact argument list.
+  // mocktail `any()` for `List<String>` needs a registered fallback.
   setUpAll(() {
     registerFallbackValue(<String>[]);
   });
@@ -137,17 +135,13 @@ void main() {
     group('skips tag creation', () {
       test('when HEAD already carries the exact version tag', () async {
         packageJson().writeAsStringSync('{"name":"@x/y","version":"1.2.3"}');
-        // Existing tags include the version — note that git's
-        // `--points-at HEAD` output uses newlines, and we tolerate trailing
-        // CRLF on Windows.
+        // CRLF on Windows is tolerated by the splitter.
         stubExistingTags('something-unrelated\r\n1.2.3\r\n');
 
         await command.exec(directory: tmp);
 
         expect(messages, ['Version 1.2.3 tag already present.']);
-        // mocktail doesn't allow `any()` inside a literal list, so match the
-        // creation call by its `tag -a` prefix via a Matcher passed to
-        // `any(that: …)` instead.
+        // `any(that:)` matches the `tag -a …` creation call by its prefix.
         verifyNever(
           () => processWrapper.run(
             'git',
@@ -245,9 +239,7 @@ void main() {
 
     // .........................................................................
     test('uses the default GgProcessWrapper when none is injected', () {
-      // Smoke-test the default-parameter branch so the no-arg
-      // `processWrapper` path is exercised, mirroring the convention used
-      // by gg_one's other tools.
+      // Smoke-test the default-parameter branch.
       expect(
         AddTypeScriptVersionTag(ggLog: (_) {}),
         isA<AddTypeScriptVersionTag>(),

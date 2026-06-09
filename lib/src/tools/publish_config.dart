@@ -67,12 +67,9 @@ class PublishConfig {
   /// specified.
   final String? mergeMessage;
 
-  /// If non-null, the multi-repo publish flow uses this value to decide
-  /// whether to delete the ticket workspace + remote feature branches at
-  /// the end of a successful publish run, instead of asking interactively.
-  ///
-  /// Allowed in `.gg-publish.json` as the top-level field `delete_ticket`
-  /// (boolean). The setting is ticket-wide — there is no per-repo override.
+  /// Top-level `delete_ticket` from `.gg-publish.json`. When set, bypasses
+  /// the interactive "delete ticket?" prompt at the end of multi-publish.
+  /// Ticket-wide; no per-repo override.
   final bool? deleteTicket;
 
   /// Per-repo overrides keyed by repository name.

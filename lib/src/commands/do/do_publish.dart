@@ -374,16 +374,9 @@ class DoPublish extends DirCommand<void> {
     );
   }
 
-  /// Adds the version tag for the project at [directory] and lets `do_push`
-  /// publish it alongside the version commit.
-  ///
-  /// Dart/Flutter packages reuse `AddVersionTag` from `gg_version`, which
-  /// cross-checks `pubspec.yaml`, `CHANGELOG.md`, and the latest git tag.
-  /// TypeScript packages don't carry a CHANGELOG-driven version, so we
-  /// derive the tag from `package.json` via [AddTypeScriptVersionTag] —
-  /// pnpm's `#semver:<range>` resolver matches against these git tags, so
-  /// the chained workspace deps emitted by `gg_localize_refs` only work
-  /// when the tags are pushed alongside the version bump.
+  /// Adds the version tag for [directory] so `do_push --tags` carries it.
+  /// Dart uses `AddVersionTag` (pubspec ↔ CHANGELOG); TS reads
+  /// `package.json` via [AddTypeScriptVersionTag] — required for `#semver:`.
   Future<void> _publishGit({
     required Directory directory,
     required GgLog ggLog,
@@ -396,9 +389,7 @@ class DoPublish extends DirCommand<void> {
       return;
     }
     if (detectProjectType(directory) == ProjectType.typescript) {
-      // `ggLog` was wired at construction time (with the `✅` prefix that
-      // matches the Dart `_addVersionTag` callback above), so we only pass
-      // the directory here.
+      // ggLog with `✅` prefix is bound at construction time.
       await _addTypeScriptVersionTag.exec(directory: directory);
     }
   }

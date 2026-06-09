@@ -9,48 +9,20 @@ import 'dart:io';
 
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:mocktail/mocktail.dart' as mocktail;
 import 'package:path/path.dart';
 
-// #############################################################################
-/// Creates the git tag that mirrors the `version` field of a TypeScript
-/// project's `package.json`.
-///
-/// The Dart/Flutter publish flow uses `AddVersionTag` from `gg_version`, which
-/// reconciles `pubspec.yaml`, `CHANGELOG.md`, and the latest git tag.
-/// TypeScript projects don't carry a CHANGELOG-driven version, so the tag is
-/// derived purely from `package.json` — that's the version `npm`/`pnpm`
-/// consumers expect to resolve `#semver:<range>` against.
-///
-/// The tag name is the raw version string (e.g. `0.1.3`), matching the format
-/// `AddVersionTag` writes for Dart so downstream tooling (and `pnpm`'s git
-/// resolver) accept either project type without special-casing.
-///
-/// The operation is **idempotent**: if HEAD already carries the version tag,
-/// the call is a no-op. Missing or unparseable `package.json` or `version`
-/// fields are silent no-ops too — the caller decided this is a TS project, we
-/// just have nothing to do.
+/// Tags HEAD with the `version` field of a TS `package.json` — the TS
+/// counterpart to `gg_version.AddVersionTag`. Idempotent.
 class AddTypeScriptVersionTag {
   /// Constructor.
-  ///
-  /// [ggLog] is bound at construction time — same pattern as `AddVersionTag`
-  /// in `gg_version` — so callers wire log routing once and the per-`exec`
-  /// surface stays minimal.
   AddTypeScriptVersionTag({
     required this.ggLog,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
   }) : _processWrapper = processWrapper;
 
-  /// Receives a single human-readable status line per successful `exec`:
-  /// either `Tag <v> added.` after a create or
-  /// `Version <v> tag already present.` for a no-op.
-  final GgLog ggLog;
-
-  final GgProcessWrapper _processWrapper;
-
   // ...........................................................................
-  /// Reads `<directory>/package.json` and tags HEAD with its `version`.
-  ///
-  /// Throws an [Exception] when `git tag` reports a non-zero exit code.
+  /// Reads `package.json` version and tags HEAD. Throws on `git tag` failure.
   Future<void> exec({required Directory directory}) async {
     final version = _readPackageJsonVersion(directory);
     if (version == null) return;
@@ -76,14 +48,24 @@ class AddTypeScriptVersionTag {
     ggLog('Tag $version added.');
   }
 
+  /// One status line per `exec`: `Tag <v> added.` or `… already present.`.
+  final GgLog ggLog;
+
+  /// Example instance for tests — logs to `print`, default process wrapper.
+  factory AddTypeScriptVersionTag.example() =>
+      AddTypeScriptVersionTag(ggLog: print);
+
+  // ######################
+  // Private
+  // ######################
+
   // ...........................................................................
-  /// Returns the `version` field from `<directory>/package.json`, or `null`
-  /// when the file is missing, unparseable, or carries no usable `version`.
-  ///
-  /// Kept as a small private helper rather than reaching into
-  /// `gg_localize_refs.PackageJsonIo`: making `gg_one` depend on
-  /// `gg_localize_refs` purely for this five-line read would invert the
-  /// existing dependency direction (gg_multi → gg_one + gg_localize_refs).
+
+  final GgProcessWrapper _processWrapper;
+
+  // ...........................................................................
+  /// Reads `version` from `package.json`, or null on any miss. Inlined
+  /// (not via `gg_localize_refs.PackageJsonIo`) to keep gg_one independent.
   String? _readPackageJsonVersion(Directory directory) {
     final pkg = File(join(directory.path, 'package.json'));
     if (!pkg.existsSync()) return null;
@@ -116,3 +98,7 @@ class AddTypeScriptVersionTag {
         .contains(tag);
   }
 }
+
+/// Mock for [AddTypeScriptVersionTag].
+class MockAddTypeScriptVersionTag extends mocktail.Mock
+    implements AddTypeScriptVersionTag {}

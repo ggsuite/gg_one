@@ -952,10 +952,7 @@ void main() {
 
           test('reads version_increment + merge_message from --config '
               'when neither is supplied on the CLI', () async {
-            // Covers the single-repo `--config` path of `do publish`:
-            // `versionIncrement` and `message` are both null on entry, so
-            // `do/do_publish.dart` resolves them from `.gg-publish.json`
-            // via `PublishConfig.load(...).resolveSingle(...)`.
+            // Covers the single-repo `--config` resolve path.
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
             await DirectJson.writeFile(
               file: File(join(d.path, '.gg', '.gg.json')),
@@ -963,9 +960,7 @@ void main() {
               value: needsChangeHash,
             );
 
-            // Keep the config OUTSIDE the test repo so it doesn't show up
-            // as an uncommitted change in the working tree (which would
-            // trip `do publish`'s clean-state check).
+            // Config sits outside the repo to keep the working tree clean.
             final cfgDir = await Directory.systemTemp.createTemp(
               'publish_config_',
             );
@@ -975,9 +970,7 @@ void main() {
               '"merge_message":"from .gg-publish.json"}',
             );
 
-            // With both fields resolved from the config, no editor prompt
-            // is needed — the test fails the run if anything still tries
-            // to open one.
+            // Editor must stay shut when --config supplies both fields.
             final cliDoPublish = DoPublish(
               ggLog: ggLog,
               publish: publish,
@@ -1017,9 +1010,7 @@ void main() {
               '--no-delete-feature-branch',
             ]);
 
-            // If we got here, the config-load line ran, both fields
-            // resolved, the editor stayed shut, and the publish reached
-            // its success state.
+            // Reaching here proves the load+resolve path ran successfully.
             expect(
               await DidPublish(ggLog: ggLog).get(directory: d, ggLog: ggLog),
               isTrue,

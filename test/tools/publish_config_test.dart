@@ -223,11 +223,9 @@ void main() {
         );
       });
 
-      test('parses valid repos.<name> entries — both fields, then each '
+      test('parses valid repos.<name> entries - both fields, then each '
           'alone', () async {
-        // Covers the happy-path branch of the `repos` loop in `load()`
-        // where the entry passes all the validators and a `RepoOverride`
-        // is constructed and stored.
+        // Happy path of the `repos` loop in `load()`.
         await writeConfig('release.json', '''
 {
   "version_increment": "patch",
@@ -477,9 +475,7 @@ void main() {
       test(
         'hard errors when merge_message is missing on both override + default',
         () {
-          // versionIncrement is set, but neither the top-level config nor the
-          // per-repo override supplies a `merge_message` — the resolver must
-          // raise a FormatException naming `merge_message`.
+          // Neither top-level nor override supplies `merge_message`.
           final cfg = PublishConfig(
             versionIncrement: 'patch',
             repos: {'app_core': RepoOverride()},
