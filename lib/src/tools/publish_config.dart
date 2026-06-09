@@ -55,6 +55,7 @@ class PublishConfig {
   PublishConfig({
     this.versionIncrement,
     this.mergeMessage,
+    this.deleteTicket,
     Map<String, RepoOverride>? repos,
   }) : repos = repos ?? const {};
 
@@ -65,6 +66,14 @@ class PublishConfig {
   /// Default `merge_message`. May be null when only per-repo overrides are
   /// specified.
   final String? mergeMessage;
+
+  /// If non-null, the multi-repo publish flow uses this value to decide
+  /// whether to delete the ticket workspace + remote feature branches at
+  /// the end of a successful publish run, instead of asking interactively.
+  ///
+  /// Allowed in `.gg-publish.json` as the top-level field `delete_ticket`
+  /// (boolean). The setting is ticket-wide — there is no per-repo override.
+  final bool? deleteTicket;
 
   /// Per-repo overrides keyed by repository name.
   final Map<String, RepoOverride> repos;
@@ -172,6 +181,11 @@ class PublishConfig {
       key: 'merge_message',
       where: found.path,
     );
+    final deleteTicket = _readBool(
+      decoded,
+      key: 'delete_ticket',
+      where: found.path,
+    );
 
     final repos = <String, RepoOverride>{};
     final rawRepos = decoded['repos'];
@@ -208,8 +222,23 @@ class PublishConfig {
     return PublishConfig(
       versionIncrement: increment,
       mergeMessage: message,
+      deleteTicket: deleteTicket,
       repos: repos,
     );
+  }
+
+  static bool? _readBool(
+    Map<String, dynamic> json, {
+    required String key,
+    required String where,
+  }) {
+    if (!json.containsKey(key)) return null;
+    final v = json[key];
+    if (v == null) return null;
+    if (v is! bool) {
+      throw FormatException('$where: "$key" must be a boolean.');
+    }
+    return v;
   }
 
   static String? _readString(
