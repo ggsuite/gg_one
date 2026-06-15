@@ -161,6 +161,50 @@ void main() {
           ).called(1);
         });
 
+        test('dispatches bridge repos to the typescript analyzer', () async {
+          // A bridge repo ships pubspec.yaml AND package.json + tsconfig.json.
+          final bridgeDir = Directory.systemTemp.createTempSync();
+          File('${bridgeDir.path}/pubspec.yaml').writeAsStringSync('name: b\n');
+          File('${bridgeDir.path}/package.json').writeAsStringSync('{}');
+          File('${bridgeDir.path}/tsconfig.json').writeAsStringSync('{}');
+
+          final dartAnalyzer = MockAnalyzer();
+          final tsAnalyzer = MockAnalyzer();
+          when(
+            () => tsAnalyzer.run(
+              directory: any(named: 'directory'),
+              ggLog: any(named: 'ggLog'),
+            ),
+          ).thenAnswer((_) async {});
+
+          final localRunner = CommandRunner<void>('test', 'test');
+          localRunner.addCommand(
+            Analyze(
+              ggLog: messages.add,
+              dartAnalyzer: dartAnalyzer,
+              typeScriptAnalyzer: tsAnalyzer,
+            ),
+          );
+
+          try {
+            await localRunner.run(['analyze', '--input', bridgeDir.path]);
+            verify(
+              () => tsAnalyzer.run(
+                directory: any(named: 'directory'),
+                ggLog: any(named: 'ggLog'),
+              ),
+            ).called(1);
+            verifyNever(
+              () => dartAnalyzer.run(
+                directory: any(named: 'directory'),
+                ggLog: any(named: 'ggLog'),
+              ),
+            );
+          } finally {
+            bridgeDir.deleteSync(recursive: true);
+          }
+        });
+
         test('dispatches Flutter projects to the dart analyzer', () async {
           final flutterDir = Directory.systemTemp.createTempSync();
           File('${flutterDir.path}/pubspec.yaml').writeAsStringSync(

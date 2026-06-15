@@ -16,6 +16,9 @@ import 'package:mocktail/mocktail.dart' as mocktail;
 
 /// Runs static analysis on the source code, dispatching to the right
 /// [Analyzer] based on the detected [ProjectType].
+///
+/// Cross-language bridge repos (see [isBridgeProject]) are analyzed as
+/// TypeScript, so their package.json `lint` script drives the check.
 class Analyze extends DirCommand<void> {
   /// Constructor.
   Analyze({
@@ -34,7 +37,11 @@ class Analyze extends DirCommand<void> {
   Future<void> get({required Directory directory, required GgLog ggLog}) async {
     await check(directory: directory);
 
-    final analyzer = switch (detectProjectType(directory)) {
+    final type = isBridgeProject(directory)
+        ? ProjectType.typescript
+        : detectProjectType(directory);
+
+    final analyzer = switch (type) {
       ProjectType.dart || ProjectType.flutter => _dartAnalyzer,
       ProjectType.typescript => _typeScriptAnalyzer,
     };

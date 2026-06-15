@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Treat dart-typescript bridge repos as TypeScript for can/do commit, running package.json scripts (test/lint/format:check)
+
 ## [9.1.1] - 2026-06-11
 
 ### Changed
@@ -566,6 +572,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/9.1.1...HEAD
 [9.1.1]: https://github.com/ggsuite/gg_one/compare/9.1.0...9.1.1
 [9.1.0]: https://github.com/ggsuite/gg_one/compare/9.0.0...9.1.0
 [9.0.0]: https://github.com/ggsuite/gg_one/compare/8.2.1...9.0.0

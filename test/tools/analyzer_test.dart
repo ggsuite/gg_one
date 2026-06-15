@@ -126,6 +126,40 @@ void main() {
       expect(messages[1], contains('✅ Running "tsc --noEmit"'));
     });
 
+    test('runs the package.json "lint" script when one is defined', () async {
+      File(
+        '${tmpDir.path}/package.json',
+      ).writeAsStringSync('{"scripts":{"lint":"eslint"}}');
+      when(
+        () => processWrapper.run(
+          any(),
+          any(),
+          workingDirectory: any(named: 'workingDirectory'),
+          runInShell: any(named: 'runInShell'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
+
+      final analyzer = TypeScriptAnalyzer(
+        processWrapper: processWrapper,
+        packageManager: (_) => TypeScriptPackageManager.pnpm,
+      );
+      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+
+      final captured = verify(
+        () => processWrapper.run(
+          captureAny(),
+          captureAny(),
+          workingDirectory: captureAny(named: 'workingDirectory'),
+          runInShell: any(named: 'runInShell'),
+        ),
+      ).captured;
+      expect(captured[0], 'pnpm');
+      expect(captured[1], ['run', 'lint']);
+      expect(captured[2], tmpDir.path);
+      expect(messages[0], contains('⌛️ Running "pnpm run lint"'));
+      expect(messages[1], contains('✅ Running "pnpm run lint"'));
+    });
+
     test('throws and echoes tool output on failure', () async {
       when(
         () => processWrapper.run(

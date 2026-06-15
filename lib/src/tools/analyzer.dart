@@ -87,11 +87,11 @@ class DartAnalyzer extends Analyzer {
 
 // #############################################################################
 
-/// Runs TypeScript static analysis (`tsc --noEmit`).
+/// Runs TypeScript static analysis.
 ///
-/// Linting is handled by [TypeScriptFormatter] (via ESLint) rather than
-/// here, because ESLint produces auto-fixable diagnostics that belong to
-/// the format phase.
+/// When the project's `package.json` declares a `lint` script, that script is
+/// run (`<pm> run lint`) so each repo controls exactly what its analyze phase
+/// does. Otherwise it falls back to the catalog default (`tsc --noEmit`).
 class TypeScriptAnalyzer extends Analyzer {
   /// Constructor.
   const TypeScriptAnalyzer({
@@ -110,17 +110,30 @@ class TypeScriptAnalyzer extends Analyzer {
 
   @override
   Future<void> run({required Directory directory, required GgLog ggLog}) async {
-    final cat = catalog ?? await LanguageCatalog.load();
-    final command = cat.spec(ProjectType.typescript).command('analyze');
-
     final pm = (_packageManager ?? detectTypeScriptPackageManager).call(
       directory,
     );
-    final cmd = pm.execCommand(command.tool!, command.args);
+
+    final ({String executable, List<String> args}) cmd;
+    final String label;
+    final bool runInShell;
+
+    if (hasNpmScript(directory, 'lint')) {
+      // Prefer the project's own lint script when one is defined.
+      cmd = pm.runCommand('lint');
+      label = '${cmd.executable} ${cmd.args.join(' ')}';
+      runInShell = true;
+    } else {
+      final cat = catalog ?? await LanguageCatalog.load();
+      final command = cat.spec(ProjectType.typescript).command('analyze');
+      cmd = pm.execCommand(command.tool!, command.args);
+      label = command.label;
+      runInShell = command.runInShell;
+    }
 
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
-      message: 'Running "${command.label}"',
+      message: 'Running "$label"',
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -130,7 +143,7 @@ class TypeScriptAnalyzer extends Analyzer {
       workingDirectory: directory.path,
       // Node tooling ships as `.cmd`/`.ps1` launchers on Windows, which
       // `dart:io` can only resolve via the shell.
-      runInShell: command.runInShell,
+      runInShell: runInShell,
     );
 
     statusPrinter.logStatus(

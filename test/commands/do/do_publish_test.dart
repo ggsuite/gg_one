@@ -4,6 +4,14 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+// These are git-subprocess-heavy integration tests: setUp plus each
+// DoPublish.exec spawn dozens of real `git` processes. Under the parallel
+// coverage gate that contention can push the heaviest case past the default
+// 30s per-test timeout (it passes comfortably in isolation / at -j1), so we
+// give the whole file generous headroom.
+@Timeout(Duration(minutes: 2))
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -1270,6 +1278,103 @@ void main() {
           );
         });
       });
+    });
+
+    group('on a TypeScript project', () {
+      test(
+        'tags HEAD via AddTypeScriptVersionTag instead of the CHANGELOG flow',
+        () async {
+          // Turn the Dart repo into a TypeScript one: drop pubspec.yaml and
+          // CHANGELOG.md, add a versioned package.json and a tsconfig.json.
+          await File(join(d.path, 'pubspec.yaml')).delete();
+          final changelog = File(join(d.path, 'CHANGELOG.md'));
+          if (changelog.existsSync()) {
+            await changelog.delete();
+          }
+          await addAndCommitSampleFile(
+            d,
+            fileName: 'package.json',
+            content: '{"name": "x", "version": "1.2.3"}',
+          );
+          await addAndCommitSampleFile(
+            d,
+            fileName: 'tsconfig.json',
+            content: '{}',
+          );
+
+          // Recompute the success state for the new TypeScript working tree.
+          await makeLastStateSuccessful();
+
+          // The TS lock file (package-lock.json) is unchanged.
+          when(
+            () => processWrapper.run('git', [
+              'status',
+              '--porcelain',
+              'package-lock.json',
+            ], workingDirectory: d.path),
+          ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+          // The TS version tag is added via the (mocked) process wrapper.
+          when(
+            () => processWrapper.run('git', [
+              'tag',
+              '--points-at',
+              'HEAD',
+            ], workingDirectory: d.path),
+          ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+          when(
+            () => processWrapper.run('git', [
+              'tag',
+              '-a',
+              '1.2.4',
+              '-m',
+              'Version 1.2.4',
+            ], workingDirectory: d.path),
+          ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+          mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+          publishedVersionValue = Version(1, 2, 3);
+          mockPublishedVersion();
+
+          await DirectJson.writeFile(
+            file: File(join(d.path, '.gg', '.gg.json')),
+            path: 'doPublish/success/hash',
+            value: needsChangeHash,
+          );
+
+          messages.clear();
+
+          await doPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+          );
+
+          final allMessages = messages.join('\n');
+          expect(allMessages, contains('Publishing was successful.'));
+          // The TypeScript tag path (do_publish.dart `_publishGit`) ran.
+          expect(allMessages, contains('Tag 1.2.4 added.'));
+
+          // package.json was bumped and no CHANGELOG was (re)created.
+          final packageJson = await File(
+            join(d.path, 'package.json'),
+          ).readAsString();
+          expect(packageJson, contains('1.2.4'));
+          expect(File(join(d.path, 'CHANGELOG.md')).existsSync(), isFalse);
+
+          // The TS tag creation went through the process wrapper.
+          verify(
+            () => processWrapper.run('git', [
+              'tag',
+              '-a',
+              '1.2.4',
+              '-m',
+              'Version 1.2.4',
+            ], workingDirectory: d.path),
+          ).called(1);
+        },
+      );
     });
 
     test('should have a code coverage of 100%', () {
