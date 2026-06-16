@@ -60,6 +60,7 @@ export 'package:gg_lang/gg_lang.dart'
         ProjectTypeX,
         detectProjectType,
         isBridgeProject,
+        checkProjectType,
         lockFileFor,
         TypeScriptPackageManager,
         detectTypeScriptPackageManager;

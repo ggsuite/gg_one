@@ -37,9 +37,7 @@ class Analyze extends DirCommand<void> {
   Future<void> get({required Directory directory, required GgLog ggLog}) async {
     await check(directory: directory);
 
-    final type = isBridgeProject(directory)
-        ? ProjectType.typescript
-        : detectProjectType(directory);
+    final type = checkProjectType(directory);
 
     final analyzer = switch (type) {
       ProjectType.dart || ProjectType.flutter => _dartAnalyzer,

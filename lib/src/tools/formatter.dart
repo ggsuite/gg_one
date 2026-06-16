@@ -41,6 +41,9 @@ class DartFormatter extends Formatter {
     this.catalog,
   }) : _isGitHubImpl = isGitHub;
 
+  /// Example instance for tests — uses the real default process wrapper.
+  factory DartFormatter.example() => const DartFormatter();
+
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
 
@@ -113,6 +116,10 @@ class TypeScriptFormatter extends Formatter {
     this.catalog,
   }) : _isGitHubImpl = isGitHub,
        _packageManager = packageManager;
+
+  /// Example instance for tests — uses the real default process wrapper and
+  /// package-manager detection.
+  factory TypeScriptFormatter.example() => const TypeScriptFormatter();
 
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;

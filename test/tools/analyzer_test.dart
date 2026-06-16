@@ -221,4 +221,11 @@ void main() {
       expect(analyzer.processWrapper, isA<GgProcessWrapper>());
     });
   });
+
+  group('examples', () {
+    test('provide real, usable instances', () {
+      expect(DartAnalyzer.example(), isA<DartAnalyzer>());
+      expect(TypeScriptAnalyzer.example(), isA<TypeScriptAnalyzer>());
+    });
+  });
 }

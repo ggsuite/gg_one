@@ -339,4 +339,11 @@ void main() {
       expect(formatter.processWrapper, isA<GgProcessWrapper>());
     });
   });
+
+  group('examples', () {
+    test('provide real, usable instances', () {
+      expect(DartFormatter.example(), isA<DartFormatter>());
+      expect(TypeScriptFormatter.example(), isA<TypeScriptFormatter>());
+    });
+  });
 }

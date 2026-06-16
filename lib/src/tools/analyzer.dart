@@ -39,6 +39,9 @@ class DartAnalyzer extends Analyzer {
     this.catalog,
   });
 
+  /// Example instance for tests — uses the real default process wrapper.
+  factory DartAnalyzer.example() => const DartAnalyzer();
+
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
 
@@ -99,6 +102,10 @@ class TypeScriptAnalyzer extends Analyzer {
     TypeScriptPackageManager Function(Directory)? packageManager,
     this.catalog,
   }) : _packageManager = packageManager;
+
+  /// Example instance for tests — uses the real default process wrapper and
+  /// package-manager detection.
+  factory TypeScriptAnalyzer.example() => const TypeScriptAnalyzer();
 
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
