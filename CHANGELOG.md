@@ -5,6 +5,7 @@
 ### Changed
 
 - Treat dart-typescript bridge repos as TypeScript for can/do commit, running package.json scripts (test/lint/format:check)
+- Treat dart-typescript bridge repos as TypeScript for can/do review (npm install, skip dart pub get); export isBridgeProject from gg\_one
 
 ## [9.1.1] - 2026-06-11
 
