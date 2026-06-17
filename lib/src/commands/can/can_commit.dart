@@ -28,7 +28,13 @@ class CanCommit extends CommandCluster {
   static List<DirCommand<void>> _checks(Checks? checks, GgLog ggLog) {
     checks ??= Checks(ggLog: ggLog);
 
-    return [checks.pubGetOffline, checks.analyze, checks.format, checks.tests];
+    return [
+      checks.pubGetOffline,
+      checks.analyze,
+      checks.format,
+      checks.tests,
+      checks.packageJsonScripts,
+    ];
   }
 }
 
