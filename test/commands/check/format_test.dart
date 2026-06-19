@@ -219,6 +219,50 @@ void main() {
             flutterDir.deleteSync(recursive: true);
           }
         });
+
+        test('bridge repos to the typescript formatter', () async {
+          // A bridge repo ships pubspec.yaml AND package.json + tsconfig.json.
+          final bridgeDir = Directory.systemTemp.createTempSync();
+          File('${bridgeDir.path}/pubspec.yaml').writeAsStringSync('name: b\n');
+          File('${bridgeDir.path}/package.json').writeAsStringSync('{}');
+          File('${bridgeDir.path}/tsconfig.json').writeAsStringSync('{}');
+
+          final dartFormatter = MockFormatter();
+          final tsFormatter = MockFormatter();
+          when(
+            () => tsFormatter.run(
+              directory: any(named: 'directory'),
+              ggLog: any(named: 'ggLog'),
+            ),
+          ).thenAnswer((_) async {});
+
+          final localRunner = CommandRunner<void>('test', 'test');
+          localRunner.addCommand(
+            Format(
+              ggLog: messages.add,
+              dartFormatter: dartFormatter,
+              typeScriptFormatter: tsFormatter,
+            ),
+          );
+
+          try {
+            await localRunner.run(['format', '--input', bridgeDir.path]);
+            verify(
+              () => tsFormatter.run(
+                directory: any(named: 'directory'),
+                ggLog: any(named: 'ggLog'),
+              ),
+            ).called(1);
+            verifyNever(
+              () => dartFormatter.run(
+                directory: any(named: 'directory'),
+                ggLog: any(named: 'ggLog'),
+              ),
+            );
+          } finally {
+            bridgeDir.deleteSync(recursive: true);
+          }
+        });
       });
     });
   });

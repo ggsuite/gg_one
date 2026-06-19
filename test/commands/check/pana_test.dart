@@ -137,6 +137,17 @@ void main() {
         expect(messages[1], contains('✅ Running pana'));
       });
 
+      test('when pana prints a preamble before the JSON', () async {
+        // On a cold run pana prints e.g. "Resolving dependencies..." to
+        // stdout before the JSON report. The preamble must be skipped.
+        mockPanaResult('Resolving dependencies...\n$successReport');
+
+        await runner.run(['pana', '--input', d.path]);
+
+        expect(messages[0], contains('⌛️ Running pana'));
+        expect(messages[1], contains('✅ Running pana'));
+      });
+
       group('when package is not published to pub.dev', () {
         test('and publishedOnly is set to true', () async {
           // Add publish_to: none

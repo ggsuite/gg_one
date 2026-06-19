@@ -233,11 +233,77 @@ void main() {
           isA<Exception>().having(
             (e) => e.toString(),
             'message',
-            contains('eslint failed.'),
+            contains('Format check failed'),
           ),
         ),
       );
       expect(messages, contains('src/foo.ts: 2 problems'));
+    });
+
+    test('runs the package.json "format" script locally', () async {
+      File(
+        '${tmpDir.path}/package.json',
+      ).writeAsStringSync('{"scripts":{"format":"prettier --write ."}}');
+      when(
+        () => processWrapper.run(
+          any(),
+          any(),
+          workingDirectory: any(named: 'workingDirectory'),
+          runInShell: any(named: 'runInShell'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
+
+      final formatter = TypeScriptFormatter(
+        processWrapper: processWrapper,
+        isGitHub: () => false,
+        packageManager: (_) => TypeScriptPackageManager.pnpm,
+      );
+      await formatter.run(directory: tmpDir, ggLog: messages.add);
+
+      final captured = verify(
+        () => processWrapper.run(
+          captureAny(),
+          captureAny(),
+          workingDirectory: captureAny(named: 'workingDirectory'),
+          runInShell: any(named: 'runInShell'),
+        ),
+      ).captured;
+      expect(captured[0], 'pnpm');
+      expect(captured[1], ['run', 'format']);
+      expect(messages[0], contains('⌛️ Running "pnpm run format"'));
+      expect(messages[1], contains('✅ Running "pnpm run format"'));
+    });
+
+    test('runs the package.json "format:check" script on GitHub', () async {
+      File(
+        '${tmpDir.path}/package.json',
+      ).writeAsStringSync('{"scripts":{"format:check":"prettier --check ."}}');
+      when(
+        () => processWrapper.run(
+          any(),
+          any(),
+          workingDirectory: any(named: 'workingDirectory'),
+          runInShell: any(named: 'runInShell'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
+
+      final formatter = TypeScriptFormatter(
+        processWrapper: processWrapper,
+        isGitHub: () => true,
+        packageManager: (_) => TypeScriptPackageManager.npm,
+      );
+      await formatter.run(directory: tmpDir, ggLog: messages.add);
+
+      final captured = verify(
+        () => processWrapper.run(
+          captureAny(),
+          captureAny(),
+          workingDirectory: any(named: 'workingDirectory'),
+          runInShell: any(named: 'runInShell'),
+        ),
+      ).captured;
+      expect(captured[0], 'npm');
+      expect(captured[1], ['run', 'format:check']);
     });
 
     test('detects the package manager from the directory by default', () async {
@@ -271,6 +337,13 @@ void main() {
     test('defaults processWrapper and isGitHub when not provided', () {
       const formatter = TypeScriptFormatter();
       expect(formatter.processWrapper, isA<GgProcessWrapper>());
+    });
+  });
+
+  group('examples', () {
+    test('provide real, usable instances', () {
+      expect(DartFormatter.example(), isA<DartFormatter>());
+      expect(TypeScriptFormatter.example(), isA<TypeScriptFormatter>());
     });
   });
 }

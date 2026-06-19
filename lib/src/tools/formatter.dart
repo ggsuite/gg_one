@@ -41,6 +41,9 @@ class DartFormatter extends Formatter {
     this.catalog,
   }) : _isGitHubImpl = isGitHub;
 
+  /// Example instance for tests — uses the real default process wrapper.
+  factory DartFormatter.example() => const DartFormatter();
+
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
 
@@ -97,11 +100,13 @@ class DartFormatter extends Formatter {
 
 // #############################################################################
 
-/// Runs ESLint to apply lint + formatting fixes to a TypeScript project.
+/// Formats a TypeScript project.
 ///
-/// Locally, invokes `eslint --fix` so auto-fixable issues are rewritten in
-/// place. On GitHub runners, invokes `eslint` (no `--fix`) so the CI job
-/// fails when sources would need to change.
+/// When the project's `package.json` declares the matching script, that
+/// script is run (`<pm> run format` locally, `<pm> run format:check` on
+/// GitHub runners) so each repo controls its own formatting. Otherwise it
+/// falls back to the catalog default: `eslint --fix` locally and `eslint`
+/// (check only) on GitHub runners.
 class TypeScriptFormatter extends Formatter {
   /// Constructor.
   const TypeScriptFormatter({
@@ -111,6 +116,10 @@ class TypeScriptFormatter extends Formatter {
     this.catalog,
   }) : _isGitHubImpl = isGitHub,
        _packageManager = packageManager;
+
+  /// Example instance for tests — uses the real default process wrapper and
+  /// package-manager detection.
+  factory TypeScriptFormatter.example() => const TypeScriptFormatter();
 
   /// The process wrapper used to execute shell processes.
   final GgProcessWrapper processWrapper;
@@ -125,21 +134,36 @@ class TypeScriptFormatter extends Formatter {
 
   @override
   Future<void> run({required Directory directory, required GgLog ggLog}) async {
-    final cat = catalog ?? await LanguageCatalog.load();
-    // On GitHub runners check only (`eslint`); locally auto-fix (`eslint
-    // --fix`).
-    final command = cat
-        .spec(ProjectType.typescript)
-        .command(_isGitHub ? 'formatCheck' : 'formatFix');
-
     final pm = (_packageManager ?? detectTypeScriptPackageManager).call(
       directory,
     );
-    final cmd = pm.execCommand(command.tool!, command.args);
+
+    // On GitHub runners check only (`format:check`); locally auto-fix
+    // (`format`).
+    final scriptName = _isGitHub ? 'format:check' : 'format';
+
+    final ({String executable, List<String> args}) cmd;
+    final String label;
+    final bool runInShell;
+
+    if (hasNpmScript(directory, scriptName)) {
+      // Prefer the project's own format script when one is defined.
+      cmd = pm.runCommand(scriptName);
+      label = '${cmd.executable} ${cmd.args.join(' ')}';
+      runInShell = true;
+    } else {
+      final cat = catalog ?? await LanguageCatalog.load();
+      final command = cat
+          .spec(ProjectType.typescript)
+          .command(_isGitHub ? 'formatCheck' : 'formatFix');
+      cmd = pm.execCommand(command.tool!, command.args);
+      label = command.label;
+      runInShell = command.runInShell;
+    }
 
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
-      message: 'Running "${command.label}"',
+      message: 'Running "$label"',
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -149,7 +173,7 @@ class TypeScriptFormatter extends Formatter {
       workingDirectory: directory.path,
       // Node tooling ships as `.cmd`/`.ps1` launchers on Windows, which
       // `dart:io` can only resolve via the shell.
-      runInShell: command.runInShell,
+      runInShell: runInShell,
     );
 
     statusPrinter.logStatus(
@@ -167,7 +191,7 @@ class TypeScriptFormatter extends Formatter {
     if (stdout.isNotEmpty) ggLog(stdout.trimRight());
     if (stderr.isNotEmpty) ggLog(stderr.trimRight());
 
-    throw Exception('eslint failed.');
+    throw Exception('Format check failed ("$label").');
   }
 }
 

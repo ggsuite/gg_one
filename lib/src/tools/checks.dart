@@ -22,6 +22,7 @@ class Checks {
     Analyze? analyze,
     Format? format,
     Tests? tests,
+    CheckPackageJsonScripts? packageJsonScripts,
     Pana? pana,
     IsPushed? isPushed,
     IsCommitted? isCommitted,
@@ -32,6 +33,8 @@ class Checks {
        analyze = analyze ?? Analyze(ggLog: ggLog),
        format = format ?? Format(ggLog: ggLog),
        tests = tests ?? Tests(ggLog: ggLog),
+       packageJsonScripts =
+           packageJsonScripts ?? CheckPackageJsonScripts(ggLog: ggLog),
        pana = pana ?? Pana(ggLog: ggLog),
        isPushed = isPushed ?? IsPushed(ggLog: ggLog),
        isCommitted = isCommitted ?? IsCommitted(ggLog: ggLog),
@@ -55,6 +58,9 @@ class Checks {
 
   /// The coverage command
   final Tests tests;
+
+  /// The package.json scripts check (TypeScript projects only)
+  final CheckPackageJsonScripts packageJsonScripts;
 
   /// The pana command
   final Pana pana;
@@ -86,6 +92,7 @@ class Checks {
       analyze,
       format,
       tests,
+      packageJsonScripts,
       pana,
       isPushed,
       isCommitted,

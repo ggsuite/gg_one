@@ -42,6 +42,9 @@ void main() {
     ).thenAnswer((_) async {
       messages.add('did cover');
     });
+    when(
+      () => commands.packageJsonScripts.exec(directory: d, ggLog: messages.add),
+    ).thenAnswer((_) async {});
   }
 
   // ...........................................................................
@@ -52,6 +55,7 @@ void main() {
       analyze: MockAnalyze(),
       format: MockFormat(),
       tests: MockTests(),
+      packageJsonScripts: MockCheckPackageJsonScripts(),
     );
 
     commit = CanCommit(ggLog: messages.add, checks: commands);

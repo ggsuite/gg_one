@@ -381,7 +381,8 @@ class DoPublish extends DirCommand<void> {
       );
       return;
     }
-    if (detectProjectType(directory) == ProjectType.typescript) {
+    if (checkProjectType(directory) == ProjectType.typescript) {
+      // Bridges tag from package.json too (published as TypeScript).
       // ggLog with `✅` prefix is bound at construction time.
       await _addTypeScriptVersionTag.exec(directory: directory);
     }
@@ -448,13 +449,24 @@ class DoPublish extends DirCommand<void> {
 
     final newVersion = await _fromPubspec.fromDirectory(directory: directory);
 
-    await _commit.commit(
-      ggLog: ggLog,
-      directory: directory,
-      doStage: true,
-      message: 'Finish development of version $newVersion',
-      ammendWhenNotPushed: false,
-    );
+    try {
+      await _commit.commit(
+        ggLog: ggLog,
+        directory: directory,
+        doStage: true,
+        message: 'Finish development of version $newVersion',
+        ammendWhenNotPushed: false,
+      );
+    } on Exception catch (e) {
+      // When resuming after a failed publish, the version is already bumped
+      // and committed, so there is nothing left to commit. Tolerate the empty
+      // commit instead of crashing — this keeps »do publish« idempotent.
+      if (e.toString().contains('Nothing to commit')) {
+        ggLog('Version $newVersion is already prepared — nothing to commit.');
+      } else {
+        rethrow;
+      }
+    }
   }
 
   /// Resolve the version used as baseline for selecting the next increment.
@@ -554,7 +566,7 @@ class DoPublish extends DirCommand<void> {
   /// Whether [directory] uses the Dart/Flutter CHANGELOG.md based versioning
   /// flow. TypeScript and other project types use a registry/manifest flow.
   bool _supportsChangeLog(Directory directory) =>
-      detectProjectType(directory).isDartFamily;
+      checkProjectType(directory).isDartFamily;
 
   /// Resolves the merge message from parameters, args, or .ticket.
   Future<String?> _resolveMergeMessage({

@@ -16,6 +16,10 @@ import 'package:mocktail/mocktail.dart' as mocktail;
 
 /// Applies formatting to the source code, dispatching to the right
 /// [Formatter] based on the detected [ProjectType].
+///
+/// Cross-language bridge repos (see [isBridgeProject]) are formatted as
+/// TypeScript, so their package.json `format` / `format:check` script drives
+/// the check.
 class Format extends DirCommand<void> {
   /// Constructor.
   Format({
@@ -35,7 +39,9 @@ class Format extends DirCommand<void> {
   Future<void> get({required Directory directory, required GgLog ggLog}) async {
     await check(directory: directory);
 
-    final formatter = switch (detectProjectType(directory)) {
+    final type = checkProjectType(directory);
+
+    final formatter = switch (type) {
       ProjectType.dart || ProjectType.flutter => _dartFormatter,
       ProjectType.typescript => _typeScriptFormatter,
     };

@@ -1,5 +1,20 @@
 # Changelog
 
+## [9.2.0] - 2026-06-19
+
+### Added
+
+- Add 'package-json-scripts' check to can commit: TypeScript projects (incl. bridges) must declare test/build/lint/prepublish in package.json, and prepublish must run test and build; Dart projects are skipped
+
+### Changed
+
+- Treat dart-typescript bridge repos as TypeScript for can/do commit, running package.json scripts (test/lint/format:check)
+- Treat dart-typescript bridge repos as TypeScript for can/do review (npm install, skip dart pub get); export isBridgeProject from gg\_one
+- Introduce checkProjectType() as single source of truth for bridge->TypeScript check rule; add .example() real-instance factories & P:\programs\flutter/bin/internal/exit\_with\_errorlevel.bat
+- Publish bridges as TypeScript: pnpm-aware publish, dual-manifest version bump, non-swallowed publish errors, idempotent resume, review skips merged repos, link: for local TS deps, package.json scripts check
+- gg\_multi: changed references to git
+- Pana check: skip stdout preamble before JSON (robust parse of cold-run pana output)
+
 ## [9.1.1] - 2026-06-11
 
 ### Changed
@@ -566,6 +581,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[9.2.0]: https://github.com/ggsuite/gg_one/compare/9.1.1...9.2.0
 [9.1.1]: https://github.com/ggsuite/gg_one/compare/9.1.0...9.1.1
 [9.1.0]: https://github.com/ggsuite/gg_one/compare/9.0.0...9.1.0
 [9.0.0]: https://github.com/ggsuite/gg_one/compare/8.2.1...9.0.0

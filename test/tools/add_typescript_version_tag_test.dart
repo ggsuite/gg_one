@@ -245,5 +245,10 @@ void main() {
         isA<AddTypeScriptVersionTag>(),
       );
     });
+
+    // .........................................................................
+    test('.example builds a usable instance', () {
+      expect(AddTypeScriptVersionTag.example(), isA<AddTypeScriptVersionTag>());
+    });
   });
 }

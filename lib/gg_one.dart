@@ -18,6 +18,7 @@ export 'src/commands/can/can_upgrade.dart';
 export 'src/commands/check.dart';
 export 'src/commands/check/analyze.dart';
 export 'src/commands/check/format.dart';
+export 'src/commands/check/package_json_scripts.dart';
 export 'src/commands/check/pana.dart';
 export 'src/commands/check/pub_get_offline.dart';
 // Did
@@ -59,6 +60,8 @@ export 'package:gg_lang/gg_lang.dart'
         ProjectType,
         ProjectTypeX,
         detectProjectType,
+        isBridgeProject,
+        checkProjectType,
         lockFileFor,
         TypeScriptPackageManager,
         detectTypeScriptPackageManager;
