@@ -146,9 +146,17 @@ class Pana extends DirCommand<void> {
     ], workingDirectory: dir.path);
 
     try {
+      // pana may print progress (e.g. "Resolving dependencies...") to stdout
+      // before the JSON payload on a cold run. Skip any such preamble and
+      // parse from the first object brace so a valid report is not rejected.
+      final rawOutput = result.stdout.toString();
+      final braceIndex = rawOutput.indexOf('{');
+      final jsonString = braceIndex >= 0
+          ? rawOutput.substring(braceIndex)
+          : rawOutput;
+
       // Parse the JSON output to get the score
-      final jsonOutput =
-          jsonDecode(result.stdout.toString()) as Map<String, dynamic>;
+      final jsonOutput = jsonDecode(jsonString) as Map<String, dynamic>;
       final allowedMissingPoints = _ignoreMissingVersionInChangeLog(jsonOutput);
       final grantedPoints = jsonOutput['scores']['grantedPoints'];
       final maxPoints =

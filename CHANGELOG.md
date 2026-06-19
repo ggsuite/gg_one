@@ -13,6 +13,7 @@
 - Introduce checkProjectType() as single source of truth for bridge->TypeScript check rule; add .example() real-instance factories & P:\programs\flutter/bin/internal/exit\_with\_errorlevel.bat
 - Publish bridges as TypeScript: pnpm-aware publish, dual-manifest version bump, non-swallowed publish errors, idempotent resume, review skips merged repos, link: for local TS deps, package.json scripts check
 - gg\_multi: changed references to git
+- Pana check: skip stdout preamble before JSON (robust parse of cold-run pana output)
 
 ## [9.1.1] - 2026-06-11
 
