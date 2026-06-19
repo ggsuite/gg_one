@@ -15,14 +15,17 @@ import 'package:mocktail/mocktail.dart' as mocktail;
 // #############################################################################
 
 /// The npm scripts every TypeScript project must declare in its package.json.
-const List<String> requiredNpmScripts = <String>[
-  'test',
-  'build',
-  'lint',
+const List<String> requiredNpmScripts = <String>['test', 'build', 'lint'];
+
+/// The publish-lifecycle script that must run `test` and `build`. npm's modern
+/// name is `prepublishOnly`; the deprecated `prepublish` is accepted as an
+/// equivalent. Exactly one of these must be present.
+const List<String> prepublishScriptNames = <String>[
+  'prepublishOnly',
   'prepublish',
 ];
 
-/// The scripts that the `prepublish` script itself must run.
+/// The scripts that the prepublish-lifecycle script itself must run.
 const List<String> prepublishMustRun = <String>['test', 'build'];
 
 /// Checks that a TypeScript project's `package.json` declares every npm
@@ -93,18 +96,32 @@ class CheckPackageJsonScripts extends DirCommand<void> {
       throw Exception(
         'package.json is missing required scripts: '
         '${missing.join(', ')}. A TypeScript project must declare: '
-        '${requiredNpmScripts.join(', ')}.',
+        '${requiredNpmScripts.join(', ')} and one of '
+        '${prepublishScriptNames.join(' / ')}.',
       );
     }
 
-    // `prepublish` must run both `test` and `build`.
-    final prepublish = scripts['prepublish']!;
+    // One of `prepublishOnly` (preferred) / `prepublish` must be present …
+    final prepublishName = prepublishScriptNames.firstWhere(
+      scripts.containsKey,
+      orElse: () => '',
+    );
+    if (prepublishName.isEmpty) {
+      throw Exception(
+        'package.json is missing a publish-lifecycle script. A TypeScript '
+        'project must declare one of: ${prepublishScriptNames.join(' / ')} '
+        '(it must run ${prepublishMustRun.join(' and ')}).',
+      );
+    }
+
+    // … and it must run both `test` and `build`.
+    final prepublish = scripts[prepublishName]!;
     final missingInPrepublish = prepublishMustRun
         .where((name) => !_referencesScript(prepublish, name))
         .toList();
     if (missingInPrepublish.isNotEmpty) {
       throw Exception(
-        'The "prepublish" script must run '
+        'The "$prepublishName" script must run '
         '${missingInPrepublish.join(' and ')} '
         '(its command is "$prepublish").',
       );

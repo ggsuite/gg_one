@@ -131,7 +131,8 @@ class DoCommit extends DirCommand<void> {
     // CHANGELOG update currently depends on cider, which requires
     // pubspec.yaml. Skip it for TypeScript projects until we have a
     // TypeScript-native changelog writer.
-    final supportsChangeLog = detectProjectType(directory).isDartFamily;
+    // Bridges are treated as TypeScript (no Dart CHANGELOG/cider step).
+    final supportsChangeLog = checkProjectType(directory).isDartFamily;
 
     final repoUrl = supportsChangeLog ? await readRepositoryUrl(directory) : '';
 

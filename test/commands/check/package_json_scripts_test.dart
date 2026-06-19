@@ -77,6 +77,16 @@ void main() {
         await run();
         expect(messages.any((m) => m.contains('✅')), isTrue);
       });
+
+      test('when the publish-lifecycle script is prepublishOnly '
+          '(npm\'s modern name)', () async {
+        final scripts = Map<String, String>.from(validScripts)
+          ..remove('prepublish')
+          ..['prepublishOnly'] = 'npm run test && npm run build';
+        writeTsProject(scripts);
+        await run();
+        expect(messages.any((m) => m.contains('✅')), isTrue);
+      });
     });
 
     group('throws', () {
@@ -90,6 +100,22 @@ void main() {
               (e) => e.toString(),
               'message',
               allOf(contains('missing required scripts'), contains('build')),
+            ),
+          ),
+        );
+      });
+
+      test('when neither prepublish nor prepublishOnly is present', () async {
+        final scripts = Map<String, String>.from(validScripts)
+          ..remove('prepublish');
+        writeTsProject(scripts);
+        await expectLater(
+          run(),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              allOf(contains('publish-lifecycle'), contains('prepublishOnly')),
             ),
           ),
         );

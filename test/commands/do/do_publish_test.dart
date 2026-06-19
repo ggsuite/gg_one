@@ -1375,6 +1375,126 @@ void main() {
           ).called(1);
         },
       );
+
+      // Builds a DoPublish whose version commit is driven by [commit], on a
+      // TypeScript working tree (no CHANGELOG step).
+      Future<DoPublish> tsDoPublishWith(Commit commit) async {
+        await File(join(d.path, 'pubspec.yaml')).delete();
+        final changelog = File(join(d.path, 'CHANGELOG.md'));
+        if (changelog.existsSync()) {
+          await changelog.delete();
+        }
+        await addAndCommitSampleFile(
+          d,
+          fileName: 'package.json',
+          content: '{\n  "name": "x",\n  "version": "1.2.3"\n}\n',
+        );
+        await addAndCommitSampleFile(
+          d,
+          fileName: 'tsconfig.json',
+          content: '{}',
+        );
+        await makeLastStateSuccessful();
+
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+        publishedVersionValue = Version(1, 2, 3);
+        mockPublishedVersion();
+
+        await DirectJson.writeFile(
+          file: File(join(d.path, '.gg', '.gg.json')),
+          path: 'doPublish/success/hash',
+          value: needsChangeHash,
+        );
+
+        return DoPublish(
+          ggLog: ggLog,
+          publish: publish,
+          commit: commit,
+          prepareNextVersion: PrepareNextVersion(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          canPublish: canPublish,
+          isPublished: IsPublished(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          versionSelector: versionSelector,
+          publishedVersion: publishedVersion,
+          processWrapper: processWrapper,
+          localBranch: localBranch,
+          confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+          editMessage: defaultEditMessage,
+          doMerge: noPubGetDoMerge(),
+        );
+      }
+
+      test('tolerates an empty version commit when resuming', () async {
+        // Resuming after a failed publish: the version is already committed,
+        // so the commit reports "Nothing to commit" — »do publish« must keep
+        // going instead of crashing.
+        final commit = _MockCommit();
+        when(
+          () => commit.commit(
+            ggLog: any(named: 'ggLog'),
+            directory: any(named: 'directory'),
+            doStage: any(named: 'doStage'),
+            message: any(named: 'message'),
+            ammendWhenNotPushed: any(named: 'ammendWhenNotPushed'),
+          ),
+        ).thenThrow(Exception('Nothing to commit. No uncommitted changes.'));
+
+        final doPublish = await tsDoPublishWith(commit);
+        messages.clear();
+
+        // The downstream merge is not the subject here; we only assert the
+        // idempotent branch logged its message before continuing.
+        try {
+          await doPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+          );
+        } catch (_) {
+          // ignore later steps
+        }
+
+        expect(
+          messages.join('\n'),
+          contains('Version 1.2.4 is already prepared — nothing to commit.'),
+        );
+      });
+
+      test('rethrows non-empty-commit failures during version bump', () async {
+        final commit = _MockCommit();
+        when(
+          () => commit.commit(
+            ggLog: any(named: 'ggLog'),
+            directory: any(named: 'directory'),
+            doStage: any(named: 'doStage'),
+            message: any(named: 'message'),
+            ammendWhenNotPushed: any(named: 'ammendWhenNotPushed'),
+          ),
+        ).thenThrow(Exception('disk full'));
+
+        final doPublish = await tsDoPublishWith(commit);
+        messages.clear();
+
+        late String exception;
+        try {
+          await doPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+          );
+        } catch (e) {
+          exception = e.toString();
+        }
+
+        expect(exception, contains('disk full'));
+      });
     });
 
     test('should have a code coverage of 100%', () {
@@ -1397,3 +1517,5 @@ void main() {
 class MockGgProcessWrapper extends Mock implements GgProcessWrapper {}
 
 class MockLocalBranch extends Mock implements LocalBranch {}
+
+class _MockCommit extends Mock implements Commit {}
