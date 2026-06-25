@@ -1,7 +1,6 @@
 name: gg_one
 description: A collection of checks and actions like analyzing, linting, testing, code coverage, committing, pushing, publishing.
 version: 9.2.0
-publish_to: none
 repository: https://github.com/ggsuite/gg_one.git
 
 environment:
@@ -18,10 +17,7 @@ dependencies:
   gg_process: ^1.1.6
   gg_publish: ^3.5.0
   gg_status_printer: ^1.1.4
-  gg_test:
-    git:
-      url: git@github.com:ggsuite/gg_test.git
-      ref: revert_org_prefix_folders
+  gg_test: ^2.2.1
   gg_version: ^4.2.0
   meta: ^1.18.2
   mocktail: ^1.0.5
