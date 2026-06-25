@@ -1,5 +1,11 @@
 # Changelog
 
+## [9.2.1] - 2026-06-25
+
+### Changed
+
+- gg\_multi: changed references to git
+
 ## [9.2.0] - 2026-06-19
 
 ### Added
@@ -581,6 +587,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[9.2.1]: https://github.com/ggsuite/gg_one/compare/9.2.0...9.2.1
 [9.2.0]: https://github.com/ggsuite/gg_one/compare/9.1.1...9.2.0
 [9.1.1]: https://github.com/ggsuite/gg_one/compare/9.1.0...9.1.1
 [9.1.0]: https://github.com/ggsuite/gg_one/compare/9.0.0...9.1.0
