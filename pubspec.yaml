@@ -1,7 +1,6 @@
 name: gg_one
 description: A collection of checks and actions like analyzing, linting, testing, code coverage, committing, pushing, publishing.
 version: 9.2.1
-publish_to: none
 repository: https://github.com/ggsuite/gg_one.git
 
 environment:
@@ -13,25 +12,13 @@ dependencies:
   gg_console_colors: ^2.1.5
   gg_git: ^3.0.7
   gg_is_flutter: ^1.0.7
-  gg_lang:
-    git:
-      url: https://github.com/ggsuite/gg_lang.git
-      ref: bridge_build_and_script_checks
+  gg_lang: ^0.2.1
   gg_log: ^1.0.6
   gg_process: ^1.1.6
-  gg_publish:
-    git:
-      url: git@github.com:ggsuite/gg_publish.git
-      ref: bridge_build_and_script_checks
+  gg_publish: ^3.5.1
   gg_status_printer: ^1.1.4
-  gg_test:
-    git:
-      url: git@github.com:ggsuite/gg_test.git
-      ref: bridge_build_and_script_checks
-  gg_version:
-    git:
-      url: git@github.com:ggsuite/gg_version.git
-      ref: bridge_build_and_script_checks
+  gg_test: ^2.2.2
+  gg_version: ^4.2.1
   meta: ^1.18.2
   mocktail: ^1.0.5
   path: ^1.9.1
@@ -44,10 +31,7 @@ dependencies:
   gg_is_github: ^1.0.6
   matcher: ^0.12.20
   gg_direct_json: ^2.0.1
-  gg_merge:
-    git:
-      url: git@github.com:ggsuite/gg_merge.git
-      ref: bridge_build_and_script_checks
+  gg_merge: ^1.3.1
   interact: ^2.2.0
 
 dev_dependencies:
