@@ -17,19 +17,28 @@ import 'package:mocktail/mocktail.dart' as mocktail;
 /// The npm scripts every TypeScript project must declare in its package.json.
 const List<String> requiredNpmScripts = <String>['test', 'build', 'lint'];
 
-/// The publish-lifecycle script that must run `test` and `build`. npm's modern
-/// name is `prepublishOnly`; the deprecated `prepublish` is accepted as an
-/// equivalent. Exactly one of these must be present.
+/// The publish-lifecycle script that must run `test`. npm's modern name is
+/// `prepublishOnly`; the deprecated `prepublish` is accepted as an equivalent.
+/// Exactly one of these must be present (unless the package is private).
 const List<String> prepublishScriptNames = <String>[
   'prepublishOnly',
   'prepublish',
 ];
 
-/// The scripts that the prepublish-lifecycle script itself must run.
-const List<String> prepublishMustRun = <String>['test', 'build'];
+/// The script that the `test` script itself must run, so that building always
+/// happens as part of testing.
+const String testMustRunScript = 'build';
+
+/// The script that the prepublish-lifecycle script must run. It is enough for
+/// `prepublishOnly` to run `test`, because `test` in turn runs
+/// [testMustRunScript] (`build`).
+const String prepublishMustRunScript = 'test';
 
 /// Checks that a TypeScript project's `package.json` declares every npm
-/// script gg relies on, and that `prepublish` runs `test` and `build`.
+/// script gg relies on, that its `test` script runs `build`, and that its
+/// `prepublishOnly` script runs `test` — forming a `prepublishOnly` → `test`
+/// → `build` chain. Packages marked `"private": true` are never published and
+/// are therefore exempt from the `prepublishOnly` requirement.
 ///
 /// Dart and Flutter projects are skipped. Cross-language bridge repos are
 /// checked as TypeScript (see [checkProjectType]).
@@ -101,6 +110,23 @@ class CheckPackageJsonScripts extends DirCommand<void> {
       );
     }
 
+    // The `test` script must run `build`, so that building always happens as
+    // part of testing. This applies to every TypeScript project, including
+    // private ones.
+    final testScript = scripts['test']!;
+    if (!_referencesScript(testScript, testMustRunScript)) {
+      throw Exception(
+        'The "test" script must run $testMustRunScript '
+        '(its command is "$testScript").',
+      );
+    }
+
+    // Private packages are never published (npm/pnpm refuse to publish them),
+    // so they need no publish-lifecycle script.
+    if (isPrivateNpmPackage(directory)) {
+      return;
+    }
+
     // One of `prepublishOnly` (preferred) / `prepublish` must be present …
     final prepublishName = prepublishScriptNames.firstWhere(
       scripts.containsKey,
@@ -110,19 +136,15 @@ class CheckPackageJsonScripts extends DirCommand<void> {
       throw Exception(
         'package.json is missing a publish-lifecycle script. A TypeScript '
         'project must declare one of: ${prepublishScriptNames.join(' / ')} '
-        '(it must run ${prepublishMustRun.join(' and ')}).',
+        '(it must run $prepublishMustRunScript), or set "private": true.',
       );
     }
 
-    // … and it must run both `test` and `build`.
+    // … and it must run `test` (which in turn runs `build`).
     final prepublish = scripts[prepublishName]!;
-    final missingInPrepublish = prepublishMustRun
-        .where((name) => !_referencesScript(prepublish, name))
-        .toList();
-    if (missingInPrepublish.isNotEmpty) {
+    if (!_referencesScript(prepublish, prepublishMustRunScript)) {
       throw Exception(
-        'The "$prepublishName" script must run '
-        '${missingInPrepublish.join(' and ')} '
+        'The "$prepublishName" script must run $prepublishMustRunScript '
         '(its command is "$prepublish").',
       );
     }

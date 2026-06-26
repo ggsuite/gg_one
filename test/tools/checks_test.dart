@@ -16,10 +16,11 @@ void main() {
   group('Checks', () {
     group('all', () {
       test('should provide a list of all checks', () {
-        expect(checks.all, hasLength(11));
+        expect(checks.all, hasLength(12));
         expect(checks.all, [
           checks.pubGetOffline,
           checks.analyze,
+          checks.build,
           checks.format,
           checks.tests,
           checks.packageJsonScripts,

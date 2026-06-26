@@ -20,6 +20,7 @@ class Checks {
     required this.ggLog,
     PubGetOffline? pubGetOffline,
     Analyze? analyze,
+    Build? build,
     Format? format,
     Tests? tests,
     CheckPackageJsonScripts? packageJsonScripts,
@@ -31,6 +32,7 @@ class Checks {
     IsUpgraded? isUpgraded,
   }) : pubGetOffline = pubGetOffline ?? PubGetOffline(ggLog: ggLog),
        analyze = analyze ?? Analyze(ggLog: ggLog),
+       build = build ?? Build(ggLog: ggLog),
        format = format ?? Format(ggLog: ggLog),
        tests = tests ?? Tests(ggLog: ggLog),
        packageJsonScripts =
@@ -52,6 +54,9 @@ class Checks {
 
   /// The analyze command
   final Analyze analyze;
+
+  /// The build command (bridge repos only)
+  final Build build;
 
   /// The format command
   final Format format;
@@ -90,6 +95,7 @@ class Checks {
     _all = [
       pubGetOffline,
       analyze,
+      build,
       format,
       tests,
       packageJsonScripts,

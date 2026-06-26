@@ -38,6 +38,11 @@ void main() {
       messages.add('did format');
     });
     when(
+      () => commands.build.exec(directory: d, ggLog: messages.add),
+    ).thenAnswer((_) async {
+      messages.add('did build');
+    });
+    when(
       () => commands.tests.exec(directory: d, ggLog: messages.add),
     ).thenAnswer((_) async {
       messages.add('did cover');
@@ -53,6 +58,7 @@ void main() {
       ggLog: messages.add,
       pubGetOffline: MockPubGetOffline(),
       analyze: MockAnalyze(),
+      build: MockBuild(),
       format: MockFormat(),
       tests: MockTests(),
       packageJsonScripts: MockCheckPackageJsonScripts(),
@@ -83,15 +89,16 @@ void main() {
 
     group('Commit', () {
       group('run(directory)', () {
-        test('should print "Can commit?" first, then pub get, analyze, format '
-            'and coverage in that order', () async {
+        test('should print "Can commit?" first, then pub get, analyze, format, '
+            'build and coverage in that order', () async {
           await addAndCommitSampleFile(d);
           await commit.exec(directory: d, ggLog: messages.add);
           expect(messages[0], yellow('Can commit?'));
           expect(messages[1], 'did pub get');
           expect(messages[2], 'did analyze');
           expect(messages[3], 'did format');
-          expect(messages[4], 'did cover');
+          expect(messages[4], 'did build');
+          expect(messages[5], 'did cover');
         });
       });
     });
