@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.2.2] - 2026-06-26
+
+### Changed
+
+- Preserve dependency constraint operator (^^/\~/exact) through publish
+- gg\_multi: changed references to git
+
 ## [9.2.1] - 2026-06-25
 
 ### Changed
@@ -587,6 +594,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[9.2.2]: https://github.com/ggsuite/gg_one/compare/9.2.1...9.2.2
 [9.2.1]: https://github.com/ggsuite/gg_one/compare/9.2.0...9.2.1
 [9.2.0]: https://github.com/ggsuite/gg_one/compare/9.1.1...9.2.0
 [9.1.1]: https://github.com/ggsuite/gg_one/compare/9.1.0...9.1.1

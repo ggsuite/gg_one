@@ -32,6 +32,10 @@ class CanCommit extends CommandCluster {
       checks.pubGetOffline,
       checks.analyze,
       checks.format,
+      // Bridge repos are built before their tests run, because their Dart side
+      // and their tests consume the compiled TypeScript output (dist/). A
+      // no-op for every other project type.
+      checks.build,
       checks.tests,
       checks.packageJsonScripts,
     ];
