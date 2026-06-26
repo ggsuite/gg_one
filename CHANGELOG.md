@@ -5,6 +5,7 @@
 ### Changed
 
 - Preserve dependency constraint operator (^^/\~/exact) through publish
+- gg\_multi: changed references to git
 
 ## [9.2.1] - 2026-06-25
 
