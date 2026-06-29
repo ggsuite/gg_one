@@ -148,15 +148,10 @@ void main() {
   });
 
   group('TypeScriptFormatter', () {
-    test('runs "eslint --fix" locally', () async {
-      when(
-        () => processWrapper.run(
-          any(),
-          any(),
-          workingDirectory: any(named: 'workingDirectory'),
-          runInShell: any(named: 'runInShell'),
-        ),
-      ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
+    test('skips formatting when no "format" script exists (local)', () async {
+      File(
+        '${tmpDir.path}/package.json',
+      ).writeAsStringSync('{"scripts":{"lint":"eslint"}}');
 
       final formatter = TypeScriptFormatter(
         processWrapper: processWrapper,
@@ -165,30 +160,26 @@ void main() {
       );
       await formatter.run(directory: tmpDir, ggLog: messages.add);
 
-      final captured = verify(
-        () => processWrapper.run(
-          captureAny(),
-          captureAny(),
-          workingDirectory: captureAny(named: 'workingDirectory'),
-          runInShell: any(named: 'runInShell'),
-        ),
-      ).captured;
-      expect(captured[0], 'pnpm');
-      expect(captured[1], ['exec', 'eslint', '--fix']);
-      expect(captured[2], tmpDir.path);
-      expect(messages[0], contains('⌛️ Running "eslint"'));
-      expect(messages[1], contains('✅ Running "eslint"'));
-    });
-
-    test('runs "eslint" (no --fix) on GitHub', () async {
-      when(
+      // No tool is invoked — gg never calls eslint (or anything) directly.
+      verifyNever(
         () => processWrapper.run(
           any(),
           any(),
           workingDirectory: any(named: 'workingDirectory'),
           runInShell: any(named: 'runInShell'),
         ),
-      ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
+      );
+      expect(
+        messages.last,
+        contains('No "format" script — skipping TypeScript formatting'),
+      );
+    });
+
+    test('skips formatting when no "format:check" script exists '
+        '(GitHub)', () async {
+      File(
+        '${tmpDir.path}/package.json',
+      ).writeAsStringSync('{"scripts":{"lint":"eslint"}}');
 
       final formatter = TypeScriptFormatter(
         processWrapper: processWrapper,
@@ -197,19 +188,25 @@ void main() {
       );
       await formatter.run(directory: tmpDir, ggLog: messages.add);
 
-      final captured = verify(
+      verifyNever(
         () => processWrapper.run(
-          captureAny(),
-          captureAny(),
+          any(),
+          any(),
           workingDirectory: any(named: 'workingDirectory'),
           runInShell: any(named: 'runInShell'),
         ),
-      ).captured;
-      expect(captured[0], 'npx');
-      expect(captured[1], ['eslint']);
+      );
+      expect(
+        messages.last,
+        contains('No "format:check" script — skipping TypeScript formatting'),
+      );
     });
 
-    test('throws and echoes tool output when eslint exits non-zero', () async {
+    test('throws and echoes tool output when the format script exits '
+        'non-zero', () async {
+      File(
+        '${tmpDir.path}/package.json',
+      ).writeAsStringSync('{"scripts":{"format":"prettier --write ."}}');
       when(
         () => processWrapper.run(
           any(),
@@ -218,7 +215,7 @@ void main() {
           runInShell: any(named: 'runInShell'),
         ),
       ).thenAnswer(
-        (_) async => ProcessResult(1, 1, 'src/foo.ts: 2 problems', ''),
+        (_) async => ProcessResult(1, 1, 'src/foo.ts: 2 problems', 'boom'),
       );
 
       final formatter = TypeScriptFormatter(
@@ -238,6 +235,7 @@ void main() {
         ),
       );
       expect(messages, contains('src/foo.ts: 2 problems'));
+      expect(messages, contains('boom'));
     });
 
     test('runs the package.json "format" script locally', () async {
@@ -308,6 +306,9 @@ void main() {
 
     test('detects the package manager from the directory by default', () async {
       File('${tmpDir.path}/pnpm-lock.yaml').writeAsStringSync('');
+      File(
+        '${tmpDir.path}/package.json',
+      ).writeAsStringSync('{"scripts":{"format":"prettier --write ."}}');
       when(
         () => processWrapper.run(
           any(),
@@ -332,6 +333,7 @@ void main() {
         ),
       ).captured;
       expect(captured[0], 'pnpm');
+      expect(captured[1], ['run', 'format']);
     });
 
     test('defaults processWrapper and isGitHub when not provided', () {
