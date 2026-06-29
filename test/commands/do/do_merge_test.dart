@@ -331,6 +331,148 @@ void main() {
       );
     });
 
+    test(
+      'removes .gg/.ticket.json and its gitignore line before merge',
+      () async {
+        when(
+          () => mockGgState.readSuccess(
+            directory: d,
+            key: 'doMerge',
+            ggLog: ggLog,
+          ),
+        ).thenAnswer((_) async => false);
+
+        // The ticket marker and a whitelisting .gitignore as written by do add.
+        final ggDir = Directory('${d.path}/.gg')..createSync();
+        final ticketJson = File('${ggDir.path}/.ticket.json')
+          ..writeAsStringSync('{"issue_id":"x"}');
+        final gitignore = File('${d.path}/.gitignore')
+          ..writeAsStringSync('.gg\n!.gg/.gg.json\n!.gg/.ticket.json\n');
+
+        stubGitCommands();
+
+        when(
+          () => mockProcessWrapper.run(
+            'git',
+            ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+            runInShell: true,
+            workingDirectory: any(named: 'workingDirectory'),
+          ),
+        ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+        when(
+          () => mockProcessWrapper.run(
+            'git',
+            ['add', '.gitignore'],
+            runInShell: true,
+            workingDirectory: any(named: 'workingDirectory'),
+          ),
+        ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+        when(
+          () => mockProcessWrapper.run(
+            'git',
+            ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+            runInShell: true,
+            workingDirectory: any(named: 'workingDirectory'),
+          ),
+        ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+        when(
+          () => mockGgMergeDoMerge.get(
+            directory: d,
+            ggLog: ggLog,
+            automerge: false,
+            local: false,
+            verbose: false,
+          ),
+        ).thenAnswer((_) async => true);
+        when(
+          () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+        ).thenAnswer((_) async {});
+
+        await doMerge.get(directory: d, ggLog: ggLog);
+
+        // git rm is mocked, so the command deletes the leftover file itself,
+        // and the whitelist line is dropped from .gitignore.
+        expect(ticketJson.existsSync(), isFalse);
+        expect(gitignore.readAsStringSync(), '.gg\n!.gg/.gg.json\n');
+        verify(
+          () => mockProcessWrapper.run(
+            'git',
+            ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+            runInShell: true,
+            workingDirectory: d.path,
+          ),
+        ).called(1);
+        verify(
+          () => mockProcessWrapper.run(
+            'git',
+            ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+            runInShell: true,
+            workingDirectory: d.path,
+          ),
+        ).called(1);
+        expect(
+          messages,
+          contains(yellow('Removed .gg/.ticket.json before merge.')),
+        );
+      },
+    );
+
+    test('deletes a still-present ticket.json when git rm leaves it', () async {
+      when(
+        () =>
+            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
+      ).thenAnswer((_) async => false);
+
+      final ggDir = Directory('${d.path}/.gg')..createSync();
+      final ticketJson = File('${ggDir.path}/.ticket.json')
+        ..writeAsStringSync('{"issue_id":"x"}');
+      // No .gitignore here, so only the file-removal branch runs.
+
+      stubGitCommands();
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: false,
+          local: false,
+          verbose: false,
+        ),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+      ).thenAnswer((_) async {});
+
+      await doMerge.get(directory: d, ggLog: ggLog);
+
+      // git rm is mocked and leaves the file; the command deletes it itself.
+      expect(ticketJson.existsSync(), isFalse);
+      verifyNever(
+        () => mockProcessWrapper.run(
+          'git',
+          ['add', '.gitignore'],
+          runInShell: any(named: 'runInShell'),
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      );
+    });
+
     test('should not perform merge if already done', () async {
       when(
         () =>
