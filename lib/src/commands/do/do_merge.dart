@@ -138,65 +138,40 @@ class DoMerge extends DirCommand<void> {
     await _state.writeSuccess(directory: directory, key: stateKey);
   }
 
-  /// Drops the `.gg/.ticket.json` marker and its `.gitignore` whitelist line
-  /// before merging, so the file never reaches the main branch. The removal is
-  /// committed onto the feature branch. A no-op when the marker is absent.
+  /// Removes the `.gg/.ticket.json` marker (force-added by `gg do add`) before
+  /// merging and commits the removal onto the feature branch, so the marker
+  /// never reaches the main branch. A no-op when the marker is absent.
   Future<void> _removeTicketJson({
     required Directory directory,
     required GgLog ggLog,
     required bool verbose,
   }) async {
     final ticketJson = File(p.join(directory.path, '.gg', '.ticket.json'));
-    final gitignore = File(p.join(directory.path, '.gitignore'));
+    if (!ticketJson.existsSync()) {
+      return;
+    }
 
-    var changed = false;
-
+    await _runGitCommand(
+      directory: directory,
+      arguments: const ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+      actionDescription: 'remove .gg/.ticket.json',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+    // `git rm` removes a tracked file; delete a still-present (untracked) copy
+    // explicitly so the worktree is clean either way.
     if (ticketJson.existsSync()) {
-      await _runGitCommand(
-        directory: directory,
-        arguments: const ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
-        actionDescription: 'remove .gg/.ticket.json',
-        ggLog: ggLog,
-        verbose: verbose,
-      );
-      // `git rm` removes a tracked file; delete a still-present (untracked)
-      // copy explicitly so the worktree is clean either way.
-      if (ticketJson.existsSync()) {
-        ticketJson.deleteSync();
-      }
-      changed = true;
+      ticketJson.deleteSync();
     }
 
-    if (gitignore.existsSync()) {
-      final lines = gitignore.readAsLinesSync();
-      final kept = lines.where((l) => l.trim() != '!.gg/.ticket.json').toList();
-      if (kept.length != lines.length) {
-        gitignore.writeAsStringSync('${kept.join('\n')}\n');
-        await _runGitCommand(
-          directory: directory,
-          arguments: const ['add', '.gitignore'],
-          actionDescription: 'stage .gitignore',
-          ggLog: ggLog,
-          verbose: verbose,
-        );
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      await _runGitCommand(
-        directory: directory,
-        arguments: const [
-          'commit',
-          '-m',
-          'Remove .gg/.ticket.json before merge',
-        ],
-        actionDescription: 'commit removal of .gg/.ticket.json',
-        ggLog: ggLog,
-        verbose: verbose,
-      );
-      ggLog(yellow('Removed .gg/.ticket.json before merge.'));
-    }
+    await _runGitCommand(
+      directory: directory,
+      arguments: const ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+      actionDescription: 'commit removal of .gg/.ticket.json',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+    ggLog(yellow('Removed .gg/.ticket.json before merge.'));
   }
 
   /// Fetches and pulls the main branch before performing the merge.

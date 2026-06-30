@@ -9,50 +9,42 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_git/gg_git.dart' as gg_git;
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_process/gg_process.dart';
 
 /// Checks out the branch belonging to a ticket in the current repository.
 ///
-/// `gg do checkout <ticket>` fetches first so a branch that only lives on the
-/// remote can be checked out as a tracking branch, then switches to it.
+/// `gg do checkout <ticket>` fetches first (via gg_git) so a branch that only
+/// lives on the remote can be checked out as a tracking branch, then switches
+/// to it.
 class DoCheckout extends DirCommand<void> {
   /// Constructor
   DoCheckout({
     required super.ggLog,
     super.name = 'checkout',
     super.description = 'Check out the branch belonging to a ticket.',
-    GgProcessWrapper processWrapper = const GgProcessWrapper(),
-  }) : _processWrapper = processWrapper {
-    argParser.addFlag(
-      'verbose',
-      abbr: 'v',
-      help: 'Prints each executed command before running it.',
-      defaultsTo: false,
-      negatable: false,
-    );
-  }
+    gg_git.Fetch? fetch,
+    gg_git.Checkout? checkout,
+  }) : _fetch = fetch ?? gg_git.Fetch(ggLog: ggLog),
+       _checkout = checkout ?? gg_git.Checkout(ggLog: ggLog);
 
-  final GgProcessWrapper _processWrapper;
+  final gg_git.Fetch _fetch;
+  final gg_git.Checkout _checkout;
 
   @override
   Future<void> exec({
     required Directory directory,
     required GgLog ggLog,
     String? branch,
-    bool? verbose,
-  }) =>
-      get(directory: directory, ggLog: ggLog, branch: branch, verbose: verbose);
+  }) => get(directory: directory, ggLog: ggLog, branch: branch);
 
   @override
   Future<void> get({
     required Directory directory,
     required GgLog ggLog,
     String? branch,
-    bool? verbose,
   }) async {
     branch ??= _branchFromArgs;
-    verbose ??= argResults?['verbose'] as bool? ?? false;
 
     if (branch.isEmpty) {
       throw UsageException('Missing ticket/branch name.', usage);
@@ -60,21 +52,8 @@ class DoCheckout extends DirCommand<void> {
 
     // Fetch first so a branch that only exists on the remote can be checked
     // out as a tracking branch.
-    await _runGitCommand(
-      directory: directory,
-      arguments: const ['fetch'],
-      actionDescription: 'fetch',
-      ggLog: ggLog,
-      verbose: verbose,
-    );
-
-    await _runGitCommand(
-      directory: directory,
-      arguments: ['checkout', branch],
-      actionDescription: 'checkout $branch',
-      ggLog: ggLog,
-      verbose: verbose,
-    );
+    await _fetch.get(directory: directory, ggLog: ggLog);
+    await _checkout.get(directory: directory, ggLog: ggLog, branch: branch);
 
     ggLog(green('Checked out $branch.'));
   }
@@ -82,33 +61,6 @@ class DoCheckout extends DirCommand<void> {
   String get _branchFromArgs {
     final rest = argResults?.rest ?? const <String>[];
     return rest.isEmpty ? '' : rest.first;
-  }
-
-  /// Runs a git command and throws when it fails. Returns stdout on success.
-  Future<String> _runGitCommand({
-    required Directory directory,
-    required List<String> arguments,
-    required String actionDescription,
-    required GgLog ggLog,
-    required bool verbose,
-  }) async {
-    if (verbose) {
-      ggLog('\$ git ${arguments.join(' ')}');
-    }
-    final result = await _processWrapper.run(
-      'git',
-      arguments,
-      runInShell: true,
-      workingDirectory: directory.path,
-    );
-
-    if (result.exitCode != 0) {
-      final stderr = result.stderr.toString().trim();
-      final stdout = result.stdout.toString().trim();
-      final details = stderr.isNotEmpty ? stderr : stdout;
-      throw Exception('Failed to $actionDescription: $details');
-    }
-    return result.stdout.toString();
   }
 }
 
