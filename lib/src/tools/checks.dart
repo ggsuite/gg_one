@@ -25,6 +25,7 @@ class Checks {
     Tests? tests,
     CheckPackageJsonScripts? packageJsonScripts,
     Pana? pana,
+    NpmLoggedIn? npmLoggedIn,
     IsPushed? isPushed,
     IsCommitted? isCommitted,
     IsVersioned? isVersioned,
@@ -38,6 +39,7 @@ class Checks {
        packageJsonScripts =
            packageJsonScripts ?? CheckPackageJsonScripts(ggLog: ggLog),
        pana = pana ?? Pana(ggLog: ggLog),
+       npmLoggedIn = npmLoggedIn ?? NpmLoggedIn(ggLog: ggLog),
        isPushed = isPushed ?? IsPushed(ggLog: ggLog),
        isCommitted = isCommitted ?? IsCommitted(ggLog: ggLog),
        isVersioned = isVersioned ?? IsVersioned(ggLog: ggLog),
@@ -70,6 +72,9 @@ class Checks {
   /// The pana command
   final Pana pana;
 
+  /// The npm-logged-in command (npm-published TypeScript packages only)
+  final NpmLoggedIn npmLoggedIn;
+
   /// The isPushed command
   final IsPushed isPushed;
 
@@ -100,6 +105,7 @@ class Checks {
       tests,
       packageJsonScripts,
       pana,
+      npmLoggedIn,
       isPushed,
       isCommitted,
       isVersioned,

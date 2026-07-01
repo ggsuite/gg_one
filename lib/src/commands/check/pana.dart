@@ -46,20 +46,24 @@ class Pana extends DirCommand<void> {
     publishedOnly ??=
         _publishedOnlyFromArgs ?? _publishedOnlyFromConstructor ?? false;
 
+    // Pana only applies to packages published to pub.dev. For npm (TypeScript)
+    // or `none` (private) targets there is nothing to analyze, so make the
+    // skip explicit instead of logging a misleading "Running pana".
+    if (publishedOnly) {
+      final target = await _publishTo.fromDirectory(directory);
+      if (target != 'pub.dev') {
+        GgStatusPrinter<void>(
+          ggLog: ggLog,
+          message: 'Skipping pana ($target target)',
+        ).logStatus(GgStatusPrinterStatus.success);
+        return;
+      }
+    }
+
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
       message: 'Running pana',
     );
-
-    // Pana will only run if the package is to be published to pub.dev
-    if (publishedOnly) {
-      final isPublished =
-          await _publishTo.fromDirectory(directory) == 'pub.dev';
-      if (!isPublished) {
-        statusPrinter.logStatus(GgStatusPrinterStatus.success);
-        return;
-      }
-    }
 
     // Announce the command
     statusPrinter.logStatus(GgStatusPrinterStatus.running);

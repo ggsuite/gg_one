@@ -24,6 +24,7 @@ void main() {
 
   // ...........................................................................
   late Pana pana;
+  late NpmLoggedIn npmLoggedIn;
   late DidCommit didCommit;
   late IsVersionPrepared isVersionPrepared;
   late HasRightFormat hasRightFormat;
@@ -34,6 +35,11 @@ void main() {
       _,
     ) async {
       messages.add('pana');
+    });
+    when(() => npmLoggedIn.exec(directory: d, ggLog: messages.add)).thenAnswer((
+      _,
+    ) async {
+      messages.add('npmLoggedIn');
     });
     when(() => didCommit.exec(directory: d, ggLog: messages.add)).thenAnswer((
       _,
@@ -59,6 +65,7 @@ void main() {
   // ...........................................................................
   setUp(() async {
     pana = MockPana();
+    npmLoggedIn = MockNpmLoggedIn();
     didCommit = MockDidCommit();
     isVersionPrepared = MockIsVersionPrepared();
     hasRightFormat = MockHasRightFormat();
@@ -66,6 +73,7 @@ void main() {
     canPublish = CanPublish(
       ggLog: ggLog,
       pana: pana,
+      npmLoggedIn: npmLoggedIn,
       didCommit: didCommit,
       isVersionPrepared: isVersionPrepared,
     );
@@ -98,6 +106,7 @@ void main() {
         expect(messages[count++], contains('✅ CHANGELOG.md has right format'));
         expect(messages[count++], 'didCommit');
         expect(messages[count++], 'pana');
+        expect(messages[count++], 'npmLoggedIn');
       });
     });
 

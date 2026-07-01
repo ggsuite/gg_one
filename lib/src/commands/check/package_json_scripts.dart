@@ -17,7 +17,7 @@ import 'package:mocktail/mocktail.dart' as mocktail;
 /// The npm scripts every TypeScript project must declare in its package.json.
 const List<String> requiredNpmScripts = <String>['test', 'build', 'lint'];
 
-/// The publish-lifecycle script that must run `test`. npm's modern name is
+/// The publish-lifecycle script that must reach `build`. npm's modern name is
 /// `prepublishOnly`; the deprecated `prepublish` is accepted as an equivalent.
 /// Exactly one of these must be present (unless the package is private).
 const List<String> prepublishScriptNames = <String>[
@@ -25,20 +25,28 @@ const List<String> prepublishScriptNames = <String>[
   'prepublish',
 ];
 
-/// The script that the `test` script itself must run, so that building always
-/// happens as part of testing.
-const String testMustRunScript = 'build';
+/// The script that the `build` script must run, so the test suite always runs
+/// as part of a build.
+const String buildMustRunScript = 'test';
 
-/// The script that the prepublish-lifecycle script must run. It is enough for
-/// `prepublishOnly` to run `test`, because `test` in turn runs
-/// [testMustRunScript] (`build`).
-const String prepublishMustRunScript = 'test';
+/// The script that the publish-lifecycle script must run, so a fresh build
+/// (which in turn runs the tests) always precedes a publish.
+const String prepublishMustRunScript = 'build';
 
-/// Checks that a TypeScript project's `package.json` declares every npm
-/// script gg relies on, that its `test` script runs `build`, and that its
-/// `prepublishOnly` script runs `test` — forming a `prepublishOnly` → `test`
-/// → `build` chain. Packages marked `"private": true` are never published and
-/// are therefore exempt from the `prepublishOnly` requirement.
+/// Checks that a TypeScript project's `package.json` declares every npm script
+/// gg relies on and wires them into the expected publish chain
+/// (`prepublishOnly` → `build` → `test`):
+///
+/// * `test`, `build` and `lint` scripts must all be present.
+/// * The `build` script must run `test`, so the tests always run as part of a
+///   build — except in cross-language bridges, whose build produces the Dart
+///   and TypeScript artifacts and runs its tests separately.
+/// * `prepublishOnly` (or the deprecated `prepublish`) must be present and run
+///   `build`.
+///
+/// Packages marked `"private": true` are never published and are therefore
+/// exempt from the `prepublishOnly` requirement (the `build` → `test` rule
+/// still applies to private pure-TypeScript packages).
 ///
 /// Dart and Flutter projects are skipped. Cross-language bridge repos are
 /// checked as TypeScript (see [checkProjectType]).
@@ -110,14 +118,15 @@ class CheckPackageJsonScripts extends DirCommand<void> {
       );
     }
 
-    // The `test` script must run `build`, so that building always happens as
-    // part of testing. This applies to every TypeScript project, including
-    // private ones.
-    final testScript = scripts['test']!;
-    if (!_referencesScript(testScript, testMustRunScript)) {
+    // The `build` script must run `test`, so the tests always run as part of a
+    // build. Cross-language bridges are exempt: their build produces the Dart
+    // and TypeScript artifacts and runs its tests separately.
+    final buildScript = scripts['build']!;
+    if (!isBridgeProject(directory) &&
+        !_referencesScript(buildScript, buildMustRunScript)) {
       throw Exception(
-        'The "test" script must run $testMustRunScript '
-        '(its command is "$testScript").',
+        'The "build" script must run $buildMustRunScript '
+        '(its command is "$buildScript").',
       );
     }
 
@@ -140,7 +149,7 @@ class CheckPackageJsonScripts extends DirCommand<void> {
       );
     }
 
-    // … and it must run `test` (which in turn runs `build`).
+    // … and it must run `build` (which in turn runs `test`).
     final prepublish = scripts[prepublishName]!;
     if (!_referencesScript(prepublish, prepublishMustRunScript)) {
       throw Exception(

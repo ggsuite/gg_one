@@ -16,7 +16,7 @@ void main() {
   group('Checks', () {
     group('all', () {
       test('should provide a list of all checks', () {
-        expect(checks.all, hasLength(12));
+        expect(checks.all, hasLength(13));
         expect(checks.all, [
           checks.pubGetOffline,
           checks.analyze,
@@ -25,6 +25,7 @@ void main() {
           checks.tests,
           checks.packageJsonScripts,
           checks.pana,
+          checks.npmLoggedIn,
           checks.isPushed,
           checks.isCommitted,
           checks.isVersioned,

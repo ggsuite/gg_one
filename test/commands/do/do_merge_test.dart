@@ -104,6 +104,14 @@ void main() {
       mainBranch: mockMainBranch,
       processWrapper: mockProcessWrapper,
     );
+
+    // Default: any state write succeeds (doMerge + doCommit).
+    when(
+      () => mockGgState.writeSuccess(
+        directory: any(named: 'directory'),
+        key: any(named: 'key'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   tearDown(() async {
@@ -195,6 +203,7 @@ void main() {
           verbose: false,
         ),
         () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+        () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
       ]);
     });
 
@@ -328,6 +337,73 @@ void main() {
           '\$ git pull',
           '\$ git checkout feature/x',
         ]),
+      );
+    });
+
+    test('removes and commits the ticket marker before merge', () async {
+      when(
+        () =>
+            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
+      ).thenAnswer((_) async => false);
+
+      // The marker as force-added by do add.
+      final ggDir = Directory('${d.path}/.gg')..createSync();
+      final ticketJson = File('${ggDir.path}/.ticket.json')
+        ..writeAsStringSync('{"issue_id":"x"}');
+
+      stubGitCommands();
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: false,
+          local: false,
+          verbose: false,
+        ),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+      ).thenAnswer((_) async {});
+
+      await doMerge.get(directory: d, ggLog: ggLog);
+
+      // git rm is mocked, so the command deletes the leftover file itself.
+      expect(ticketJson.existsSync(), isFalse);
+      verify(
+        () => mockProcessWrapper.run(
+          'git',
+          ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).called(1);
+      verify(
+        () => mockProcessWrapper.run(
+          'git',
+          ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).called(1);
+      expect(
+        messages,
+        contains(yellow('Removed .gg/.ticket.json before merge.')),
       );
     });
 
