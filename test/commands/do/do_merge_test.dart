@@ -104,6 +104,14 @@ void main() {
       mainBranch: mockMainBranch,
       processWrapper: mockProcessWrapper,
     );
+
+    // Default: any state write succeeds (doMerge + doCommit).
+    when(
+      () => mockGgState.writeSuccess(
+        directory: any(named: 'directory'),
+        key: any(named: 'key'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   tearDown(() async {
@@ -195,6 +203,7 @@ void main() {
           verbose: false,
         ),
         () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+        () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
       ]);
     });
 

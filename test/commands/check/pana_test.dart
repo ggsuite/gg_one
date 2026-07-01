@@ -158,8 +158,9 @@ void main() {
           // Run pana
           await runner.run(['pana', '--input', d.path, '--published-only']);
 
-          // Check result
-          expect(messages[0], contains('✅ Running pana'));
+          // Pana is skipped (not published to pub.dev) and says so explicitly.
+          expect(messages[0], contains('✅ Skipping pana'));
+          expect(messages[0], contains('none'));
         });
       });
 

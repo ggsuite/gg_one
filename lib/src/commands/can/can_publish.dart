@@ -23,12 +23,14 @@ class CanPublish extends CommandCluster {
     Pana? pana,
     HasRightFormat? changeLogHasRightFormat,
     IsFeatureBranch? isFeatureBranch,
+    NpmLoggedIn? npmLoggedIn,
   }) : super(
          commands: [
            isFeatureBranch ?? IsFeatureBranch(ggLog: ggLog),
            changeLogHasRightFormat ?? HasRightFormat(ggLog: ggLog),
            didCommit ?? DidCommit(ggLog: ggLog),
            pana ?? Pana(ggLog: ggLog, publishedOnly: true),
+           npmLoggedIn ?? NpmLoggedIn(ggLog: ggLog),
          ],
        );
 }

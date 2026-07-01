@@ -95,6 +95,10 @@ class DoPublish extends DirCommand<void> {
   /// The key used to save the merge state.
   final String stateKeyDoMerge = 'doMerge';
 
+  /// The key used to save the "all changes committed" state (checked by the
+  /// pre-push hook via »gg did commit«).
+  final String stateKeyDoCommit = 'doCommit';
+
   @override
   Future<void> exec({
     required Directory directory,
@@ -233,6 +237,12 @@ class DoPublish extends DirCommand<void> {
 
     // Save state
     await _state.writeSuccess(directory: directory, key: stateKey);
+
+    // The merge/version commits produced a fully-committed, gg-verified HEAD on
+    // the main branch. Record it as »doCommit« too, so the pre-push hook (which
+    // runs »gg did commit«) accepts the push instead of rejecting the merge
+    // commit.
+    await _state.writeSuccess(directory: directory, key: stateKeyDoCommit);
 
     await _doPush.gitPush(directory: directory, force: false);
 

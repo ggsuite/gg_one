@@ -19,6 +19,7 @@ export 'src/commands/check.dart';
 export 'src/commands/check/analyze.dart';
 export 'src/commands/check/build.dart';
 export 'src/commands/check/format.dart';
+export 'src/commands/check/npm_logged_in.dart';
 export 'src/commands/check/package_json_scripts.dart';
 export 'src/commands/check/pana.dart';
 export 'src/commands/check/pub_get_offline.dart';

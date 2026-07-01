@@ -136,6 +136,11 @@ class DoMerge extends DirCommand<void> {
 
     // Save state
     await _state.writeSuccess(directory: directory, key: stateKey);
+
+    // A merge produces a fully-committed, gg-verified HEAD, so it also
+    // satisfies »gg did commit«. Record that too, otherwise the pre-push hook
+    // (which runs »gg did commit«) rejects the merge commit when it is pushed.
+    await _state.writeSuccess(directory: directory, key: 'doCommit');
   }
 
   /// Removes the `.gg/.ticket.json` marker (force-added by `gg do add`) before

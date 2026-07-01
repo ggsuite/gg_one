@@ -27,10 +27,10 @@ void main() {
   });
 
   const validScripts = <String, String>{
-    'test': 'npm run build && vitest run',
-    'build': 'tsc',
+    'test': 'vitest run && npm run lint',
+    'build': 'npm run test && tsc',
     'lint': 'eslint',
-    'prepublish': 'npm run test',
+    'prepublish': 'npm run build',
   };
 
   // Writes a TypeScript project (package.json + tsconfig.json) declaring the
@@ -65,16 +65,20 @@ void main() {
     });
 
     group('succeeds', () {
-      test('when all required scripts are present, test runs build and '
-          'prepublish runs test', () async {
+      test('when all required scripts are present, build runs test and '
+          'prepublish runs build', () async {
         writeTsProject(validScripts);
         await run();
         expect(messages.any((m) => m.contains('✅')), isTrue);
       });
 
-      test('for a bridge, treated as TypeScript', () async {
-        // A bridge ships pubspec.yaml AND package.json + tsconfig.json.
-        writeTsProject(validScripts);
+      test('for a bridge whose build does not run test (exempt)', () async {
+        // A bridge (pubspec.yaml + package.json + tsconfig.json) is exempt from
+        // the build -> test rule; its build produces the Dart+TS artifacts and
+        // tests separately. prepublishOnly -> build still applies.
+        final scripts = Map<String, String>.from(validScripts)
+          ..['build'] = 'tsc';
+        writeTsProject(scripts);
         File('${tmpDir.path}/pubspec.yaml').writeAsStringSync('name: b\n');
         await run();
         expect(messages.any((m) => m.contains('✅')), isTrue);
@@ -84,15 +88,15 @@ void main() {
           '(npm\'s modern name)', () async {
         final scripts = Map<String, String>.from(validScripts)
           ..remove('prepublish')
-          ..['prepublishOnly'] = 'npm run test';
+          ..['prepublishOnly'] = 'npm run build';
         writeTsProject(scripts);
         await run();
         expect(messages.any((m) => m.contains('✅')), isTrue);
       });
 
-      test('for a private package without any prepublish script', () async {
-        // Private packages are never published, so prepublishOnly is not
-        // required — but the test -> build rule still applies.
+      test('for a private package without a prepublish script', () async {
+        // Private packages are never published, so no prepublish script is
+        // required — but the build -> test rule still applies.
         final scripts = Map<String, String>.from(validScripts)
           ..remove('prepublish');
         writeTsProject(scripts, private: true);
@@ -133,9 +137,9 @@ void main() {
         );
       });
 
-      test('when prepublish does not run test', () async {
+      test('when the build script does not run test', () async {
         final scripts = Map<String, String>.from(validScripts)
-          ..['prepublish'] = 'npm run build';
+          ..['build'] = 'tsc';
         writeTsProject(scripts);
         await expectLater(
           run(),
@@ -143,33 +147,18 @@ void main() {
             isA<Exception>().having(
               (e) => e.toString(),
               'message',
-              allOf(contains('prepublish'), contains('test')),
+              allOf(contains('"build" script'), contains('test')),
             ),
           ),
         );
       });
 
-      test('when the test script does not run build', () async {
-        final scripts = Map<String, String>.from(validScripts)
-          ..['test'] = 'vitest run';
-        writeTsProject(scripts);
-        await expectLater(
-          run(),
-          throwsA(
-            isA<Exception>().having(
-              (e) => e.toString(),
-              'message',
-              allOf(contains('"test" script'), contains('build')),
-            ),
-          ),
-        );
-      });
-
-      test('when a private test script does not run build', () async {
-        // The test -> build rule applies even to private packages.
+      test('when the build script does not run test, even for a private '
+          'package', () async {
+        // The build -> test rule applies to private packages too.
         final scripts = Map<String, String>.from(validScripts)
           ..remove('prepublish')
-          ..['test'] = 'vitest run';
+          ..['build'] = 'tsc';
         writeTsProject(scripts, private: true);
         await expectLater(
           run(),
@@ -177,7 +166,23 @@ void main() {
             isA<Exception>().having(
               (e) => e.toString(),
               'message',
-              allOf(contains('"test" script'), contains('build')),
+              allOf(contains('"build" script'), contains('test')),
+            ),
+          ),
+        );
+      });
+
+      test('when the prepublish script does not run build', () async {
+        final scripts = Map<String, String>.from(validScripts)
+          ..['prepublish'] = 'npm run test';
+        writeTsProject(scripts);
+        await expectLater(
+          run(),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              allOf(contains('prepublish'), contains('build')),
             ),
           ),
         );

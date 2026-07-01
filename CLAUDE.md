@@ -26,7 +26,7 @@ dart format .
 
 Commands are organized into five top-level groups, each in `lib/src/commands/`:
 
-- **`check/`** — static verification: `analyze`, `format`, `pana`
+- **`check/`** — static verification: `analyze`, `format`, `pana`, `package_json_scripts` (TypeScript npm scripts), `npm_logged_in` (npm auth before publish)
 - **`can/`** — readiness checks before an action: `can_commit`, `can_push`, `can_merge`, `can_publish`, `can_upgrade`, `can_checkout`
 - **`did/`** — historical checks (was something done?): `did_commit`, `did_push`, `did_merge`, `did_publish`, `did_upgrade`
 - **`do/`** — actions that execute with validation: `do_commit`, `do_push`, `do_merge`, `do_publish`, `do_upgrade`, `do_maintain`, `do_checkout`, `create/`
