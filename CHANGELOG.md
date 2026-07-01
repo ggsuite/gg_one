@@ -1,33 +1,16 @@
 # Changelog
 
-## \[Unreleased\]
-
-### Added
-
-- Add 'npm-logged-in' check to 'can publish': for npm-target TypeScript
-packages it runs `<pm> whoami` up front, so a missing/expired npm token
-fails with a clear "not logged in to the npm registry" error instead of a
-cryptic `404` in the middle of `pnpm publish`. pub.dev and private
-packages are skipped.
+## [9.4.0] - 2026-07-01
 
 ### Changed
 
-- package-json-scripts: enforce the npm-script chain `prepublishOnly` →
-`build` → `test`. The `build` script must run `test` (the old `test` →
-`build` rule is removed), and `prepublishOnly` must run `build`.
-Cross-language bridges are exempt from the `build` → `test` rule — they
-build the Dart+TS artifacts and run their tests separately.
-- pana now logs "Skipping pana (<target> target)" for non-pub.dev packages
-(npm/private) instead of a misleading "Running pana", which was shown even
-though pana was skipped.
-
-### Fixed
-
-- `do merge` and `do publish` now also record the `doCommit` state after the
-merge, so the merge commit satisfies `gg did commit`. Without this, the
-pre-push hook (`verify_push.dart`, which runs `gg did commit`) rejected
-`do publish`'s own push of the merge commit to `main` with "Not committed
-yet".
+- npm-logged-in: resolve the package's actual publish registry
+(`publishConfig.registry` → `@scope:registry` → default `registry`) and run
+`whoami` against that registry, instead of always checking npmjs.org. This
+makes the check work for Azure DevOps, GitHub Packages and other private
+registries. Registries without reliable `whoami` support (e.g. Azure
+DevOps) are skipped gracefully instead of failing the check — the auth is
+verified for real at publish time.
 
 ## [9.3.0] - 2026-07-01
 
@@ -630,6 +613,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[9.4.0]: https://github.com/ggsuite/gg_one/compare/9.3.0...9.4.0
 [9.3.0]: https://github.com/ggsuite/gg_one/compare/9.2.2...9.3.0
 [9.2.2]: https://github.com/ggsuite/gg_one/compare/9.2.1...9.2.2
 [9.2.1]: https://github.com/ggsuite/gg_one/compare/9.2.0...9.2.1
