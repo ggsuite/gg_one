@@ -9,30 +9,51 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_publish/gg_publish.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
 
+class _FakeDirectory extends Fake implements Directory {}
+
 void main() {
   final messages = <String>[];
   late GgProcessWrapper processWrapper;
+  late PublishTo publishTo;
   late NpmLoggedIn npmLoggedIn;
   late CommandRunner<void> runner;
   late Directory d;
 
-  // Writes a TypeScript package (package.json + tsconfig.json). When [private]
-  // is true, the package.json sets `"private": true` (publish target `none`).
-  // A pnpm-lock.yaml makes pnpm the detected package manager.
-  void writeTsProject({bool private = false}) {
-    final privateField = private ? '"private": true, ' : '';
-    File(
-      join(d.path, 'package.json'),
-    ).writeAsStringSync('{"name": "ts", $privateField"version": "1.0.0"}');
-    File(join(d.path, 'tsconfig.json')).writeAsStringSync('{}');
+  setUpAll(() {
+    registerFallbackValue(_FakeDirectory());
+  });
+
+  // Writes package.json with [content] plus a pnpm-lock.yaml so pnpm is the
+  // detected package manager.
+  void writePackageJson(String content) {
+    File(join(d.path, 'package.json')).writeAsStringSync(content);
     File(join(d.path, 'pnpm-lock.yaml')).writeAsStringSync('');
   }
 
+  // Forces the publish target (bypasses reading pubspec/package.json), so the
+  // registry-resolution path runs under our control.
+  void stubTarget(String target) {
+    when(() => publishTo.fromDirectory(any())).thenAnswer((_) async => target);
+  }
+
+  void stubConfig(String key, {String? value, int exitCode = 0}) {
+    when(
+      () => processWrapper.run(
+        'pnpm',
+        ['config', 'get', key],
+        workingDirectory: d.path,
+        runInShell: true,
+      ),
+    ).thenAnswer((_) async => ProcessResult(0, exitCode, value ?? '', ''));
+  }
+
   void stubWhoami({
+    String? registry,
     required int exitCode,
     String stdout = '',
     String stderr = '',
@@ -40,7 +61,7 @@ void main() {
     when(
       () => processWrapper.run(
         'pnpm',
-        const ['whoami'],
+        <String>['whoami', if (registry != null) '--registry=$registry'],
         workingDirectory: d.path,
         runInShell: true,
       ),
@@ -52,9 +73,11 @@ void main() {
   setUp(() {
     messages.clear();
     processWrapper = MockGgProcessWrapper();
+    publishTo = MockPublishTo();
     npmLoggedIn = NpmLoggedIn(
       ggLog: messages.add,
       processWrapper: processWrapper,
+      publishTo: publishTo,
     );
     runner = CommandRunner<void>('test', 'test')..addCommand(npmLoggedIn);
     d = Directory.systemTemp.createTempSync('npm_logged_in_test');
@@ -66,65 +89,247 @@ void main() {
 
   group('NpmLoggedIn', () {
     group('skips (no npm authentication needed)', () {
-      test('for a Dart package (pub.dev target)', () async {
-        File(join(d.path, 'pubspec.yaml')).writeAsStringSync('name: x\n');
+      test('for a pub.dev target', () async {
+        stubTarget('pub.dev');
         await run();
-        // A single skip message, and whoami is never invoked.
         expect(messages.single, contains('✅ Skipping npm auth check'));
         expect(messages.single, contains('pub.dev'));
       });
 
-      test('for a private TypeScript package (none target)', () async {
-        writeTsProject(private: true);
+      test('for a none (private) target', () async {
+        stubTarget('none');
         await run();
         expect(messages.single, contains('✅ Skipping npm auth check'));
         expect(messages.single, contains('none'));
       });
     });
 
-    group('for an npm package', () {
-      test('succeeds when whoami succeeds', () async {
-        writeTsProject();
-        stubWhoami(exitCode: 0, stdout: 'goeran');
+    group('resolves the target registry', () {
+      test('from publishConfig.registry in package.json', () async {
+        stubTarget('npm');
+        writePackageJson(
+          '{"name": "@org/x", "publishConfig": '
+          '{"registry": "https://pkgs.dev.azure.com/feed/"}}',
+        );
+        stubWhoami(
+          registry: 'https://pkgs.dev.azure.com/feed/',
+          exitCode: 0,
+          stdout: 'user',
+        );
         await run();
-        expect(messages.any((m) => m.contains('⌛️ Logged in to npm')), isTrue);
-        expect(messages.any((m) => m.contains('✅ Logged in to npm')), isTrue);
+        expect(
+          messages.any(
+            (m) =>
+                m.contains('✅ Logged in to https://pkgs.dev.azure.com/feed/'),
+          ),
+          isTrue,
+        );
+        verify(
+          () => processWrapper.run(
+            'pnpm',
+            ['whoami', '--registry=https://pkgs.dev.azure.com/feed/'],
+            workingDirectory: d.path,
+            runInShell: true,
+          ),
+        ).called(1);
       });
 
-      test('throws with the stderr detail when whoami fails', () async {
-        writeTsProject();
-        stubWhoami(exitCode: 1, stderr: '401 Unauthorized');
-        await expectLater(
-          run(),
-          throwsA(
-            isA<Exception>().having(
-              (e) => e.toString(),
-              'message',
-              allOf(
-                contains('Not logged in'),
-                contains('pnpm whoami failed: 401 Unauthorized'),
-                contains('pnpm login'),
+      test('from the scope registry (@scope:registry)', () async {
+        stubTarget('npm');
+        writePackageJson('{"name": "@org/x"}');
+        stubConfig('@org:registry', value: 'https://scoped.example/');
+        stubWhoami(
+          registry: 'https://scoped.example/',
+          exitCode: 0,
+          stdout: 'u',
+        );
+        await run();
+        expect(
+          messages.any(
+            (m) => m.contains('✅ Logged in to https://scoped.example/'),
+          ),
+          isTrue,
+        );
+      });
+
+      test(
+        'falls back to the default registry when the scope has none',
+        () async {
+          stubTarget('npm');
+          writePackageJson('{"name": "@org/x"}');
+          stubConfig('@org:registry', value: 'undefined');
+          stubConfig('registry', value: 'https://registry.npmjs.org/');
+          stubWhoami(
+            registry: 'https://registry.npmjs.org/',
+            exitCode: 0,
+            stdout: 'u',
+          );
+          await run();
+          expect(
+            messages.any(
+              (m) => m.contains('✅ Logged in to https://registry.npmjs.org/'),
+            ),
+            isTrue,
+          );
+        },
+      );
+
+      test('uses the default registry for an unscoped package', () async {
+        stubTarget('npm');
+        writePackageJson('{"name": "x"}');
+        stubConfig('registry', value: 'https://registry.npmjs.org/');
+        stubWhoami(
+          registry: 'https://registry.npmjs.org/',
+          exitCode: 0,
+          stdout: 'u',
+        );
+        await run();
+        expect(
+          messages.any(
+            (m) => m.contains('✅ Logged in to https://registry.npmjs.org/'),
+          ),
+          isTrue,
+        );
+      });
+
+      test('runs a bare whoami when no registry is configured', () async {
+        stubTarget('npm');
+        writePackageJson('{"name": "x"}');
+        stubConfig('registry', value: 'undefined');
+        stubWhoami(registry: null, exitCode: 0, stdout: 'u');
+        await run();
+        expect(
+          messages.any((m) => m.contains('✅ Logged in to the npm registry')),
+          isTrue,
+        );
+        verify(
+          () => processWrapper.run(
+            'pnpm',
+            const ['whoami'],
+            workingDirectory: d.path,
+            runInShell: true,
+          ),
+        ).called(1);
+      });
+
+      test('treats a failing config lookup as no registry', () async {
+        stubTarget('npm');
+        writePackageJson('{"name": "x"}');
+        stubConfig('registry', exitCode: 1);
+        stubWhoami(registry: null, exitCode: 0, stdout: 'u');
+        await run();
+        expect(
+          messages.any((m) => m.contains('✅ Logged in to the npm registry')),
+          isTrue,
+        );
+      });
+    });
+
+    group('tolerates a package.json it cannot read', () {
+      // The target is forced via the injected PublishTo, so registry
+      // resolution still runs even when package.json is missing/unparseable.
+      test('when package.json is absent', () async {
+        stubTarget('npm');
+        File(join(d.path, 'pnpm-lock.yaml')).writeAsStringSync('');
+        stubConfig('registry', value: 'https://registry.npmjs.org/');
+        stubWhoami(
+          registry: 'https://registry.npmjs.org/',
+          exitCode: 0,
+          stdout: 'u',
+        );
+        await run();
+        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+      });
+
+      test('when package.json is malformed', () async {
+        stubTarget('npm');
+        writePackageJson('not json');
+        stubConfig('registry', value: 'https://registry.npmjs.org/');
+        stubWhoami(
+          registry: 'https://registry.npmjs.org/',
+          exitCode: 0,
+          stdout: 'u',
+        );
+        await run();
+        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+      });
+
+      test('when package.json is not a JSON object', () async {
+        stubTarget('npm');
+        writePackageJson('[1, 2, 3]');
+        stubConfig('registry', value: 'https://registry.npmjs.org/');
+        stubWhoami(
+          registry: 'https://registry.npmjs.org/',
+          exitCode: 0,
+          stdout: 'u',
+        );
+        await run();
+        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+      });
+
+      test('when publishConfig has no registry field', () async {
+        stubTarget('npm');
+        writePackageJson('{"name": "x", "publishConfig": {}}');
+        stubConfig('registry', value: 'https://registry.npmjs.org/');
+        stubWhoami(
+          registry: 'https://registry.npmjs.org/',
+          exitCode: 0,
+          stdout: 'u',
+        );
+        await run();
+        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+      });
+    });
+
+    group('auth outcomes', () {
+      test(
+        'throws for a clear auth failure (401), naming the registry',
+        () async {
+          stubTarget('npm');
+          writePackageJson('{"name": "x"}');
+          stubConfig('registry', value: 'https://registry.npmjs.org/');
+          stubWhoami(
+            registry: 'https://registry.npmjs.org/',
+            exitCode: 1,
+            stderr: '401 Unauthorized',
+          );
+          await expectLater(
+            run(),
+            throwsA(
+              isA<Exception>().having(
+                (e) => e.toString(),
+                'message',
+                allOf(
+                  contains('Not logged in to https://registry.npmjs.org/'),
+                  contains('401 Unauthorized'),
+                  contains('pnpm login --registry=https://registry.npmjs.org/'),
+                ),
               ),
             ),
-          ),
-        );
-        expect(messages.any((m) => m.contains('❌ Logged in to npm')), isTrue);
-      });
+          );
+          expect(messages.any((m) => m.contains('❌ Logged in')), isTrue);
+        },
+      );
 
-      test('falls back to stdout when stderr is empty', () async {
-        writeTsProject();
-        stubWhoami(exitCode: 1, stdout: 'ERR whoami on stdout');
-        await expectLater(
-          run(),
-          throwsA(
-            isA<Exception>().having(
-              (e) => e.toString(),
-              'message',
-              contains('ERR whoami on stdout'),
-            ),
-          ),
-        );
-      });
+      test(
+        'skips (no false-fail) when the registry does not support whoami',
+        () async {
+          stubTarget('npm');
+          writePackageJson('{"name": "x"}');
+          stubConfig('registry', value: 'https://pkgs.dev.azure.com/feed/');
+          stubWhoami(
+            registry: 'https://pkgs.dev.azure.com/feed/',
+            exitCode: 1,
+            stdout: 'Unknown command: whoami',
+          );
+          await run();
+          expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+          expect(
+            messages.any((m) => m.contains('Could not verify auth')),
+            isTrue,
+          );
+        },
+      );
     });
 
     test('example provides a real instance', () {

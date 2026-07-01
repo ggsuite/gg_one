@@ -29,6 +29,12 @@ pre-push hook (`verify_push.dart`, which runs `gg did commit`) rejected
 `do publish`'s own push of the merge commit to `main` with "Not committed
 yet".
 
+## [Unreleased]
+
+### Changed
+
+- feat(npm-logged-in): resolve the package's actual publish registry (publishConfig.registry -&gt; @scope:registry -&gt; default) and run whoami against it instead of always npmjs.org; skip gracefully for registries without whoami support (e.g. Azure DevOps) instead of false-failing
+
 ## [9.3.0] - 2026-07-01
 
 ### Changed
@@ -630,6 +636,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/9.3.0...HEAD
 [9.3.0]: https://github.com/ggsuite/gg_one/compare/9.2.2...9.3.0
 [9.2.2]: https://github.com/ggsuite/gg_one/compare/9.2.1...9.2.2
 [9.2.1]: https://github.com/ggsuite/gg_one/compare/9.2.0...9.2.1
