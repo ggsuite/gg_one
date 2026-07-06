@@ -1,5 +1,13 @@
 # Changelog
 
+## [9.5.0] - 2026-07-06
+
+### Changed
+
+- feat: merge via auto-complete pull request on protected main (Azure) and wait until merged
+- docs(gg\_one): document protected-main pull-request publish flow
+- gg\_multi: changed references to git
+
 ## [9.4.0] - 2026-07-01
 
 ### Changed
@@ -613,6 +621,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[9.5.0]: https://github.com/ggsuite/gg_one/compare/9.4.0...9.5.0
 [9.4.0]: https://github.com/ggsuite/gg_one/compare/9.3.0...9.4.0
 [9.3.0]: https://github.com/ggsuite/gg_one/compare/9.2.2...9.3.0
 [9.2.2]: https://github.com/ggsuite/gg_one/compare/9.2.1...9.2.2

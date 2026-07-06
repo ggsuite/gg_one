@@ -230,6 +230,18 @@ void main() {
       ], workingDirectory: d.path),
     ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
 
+    // Default: a non-Azure remote → local merge flow (no pull request).
+    when(
+      () => processWrapper.run('git', [
+        'config',
+        '--get',
+        'remote.origin.url',
+      ], workingDirectory: d.path),
+    ).thenAnswer(
+      (_) async =>
+          ProcessResult(0, 0, 'https://github.com/inlavigo/gg.git', ''),
+    );
+
     publishedVersion = MockPublishedVersion();
 
     isVersionPrepared = IsVersionPrepared(
@@ -1494,6 +1506,134 @@ void main() {
         }
 
         expect(exception, contains('disk full'));
+      });
+    });
+
+    group('merge strategy detection', () {
+      test('uses the local merge flow when origin has no remote', () async {
+        // git config exits non-zero → no provider → local merge.
+        when(
+          () => processWrapper.run('git', [
+            'config',
+            '--get',
+            'remote.origin.url',
+          ], workingDirectory: d.path),
+        ).thenAnswer((_) async => ProcessResult(1, 1, '', ''));
+
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+        publishedVersionValue = Version(1, 2, 3);
+        mockPublishedVersion();
+
+        await DirectJson.writeFile(
+          file: File(join(d.path, '.gg', '.gg.json')),
+          path: 'doPublish/success/hash',
+          value: needsChangeHash,
+        );
+
+        messages.clear();
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+        );
+
+        expect(messages.join('\n'), contains('✅ Tag 1.2.4 added.'));
+      });
+
+      test('merges via a pull request on a protected (Azure) remote', () async {
+        final mockDoMerge = MockDoMerge();
+        when(
+          () => mockDoMerge.get(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+            automerge: any(named: 'automerge'),
+            local: any(named: 'local'),
+            message: any(named: 'message'),
+            verbose: any(named: 'verbose'),
+            viaPullRequest: any(named: 'viaPullRequest'),
+          ),
+        ).thenAnswer((_) async {});
+
+        // Azure remote → pull-request flow.
+        when(
+          () => processWrapper.run('git', [
+            'config',
+            '--get',
+            'remote.origin.url',
+          ], workingDirectory: d.path),
+        ).thenAnswer(
+          (_) async => ProcessResult(
+            0,
+            0,
+            'https://dev.azure.com/org/proj/_git/repo',
+            '',
+          ),
+        );
+
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+        publishedVersionValue = Version(1, 2, 3);
+        mockPublishedVersion();
+
+        await DirectJson.writeFile(
+          file: File(join(d.path, '.gg', '.gg.json')),
+          path: 'doPublish/success/hash',
+          value: needsChangeHash,
+        );
+
+        final azurePublish = DoPublish(
+          ggLog: ggLog,
+          publish: publish,
+          prepareNextVersion: PrepareNextVersion(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          canPublish: canPublish,
+          isPublished: IsPublished(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          versionSelector: versionSelector,
+          publishedVersion: publishedVersion,
+          processWrapper: processWrapper,
+          localBranch: localBranch,
+          confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+          editMessage: defaultEditMessage,
+          doMerge: mockDoMerge,
+        );
+
+        messages.clear();
+        // Delete requested, but the PR flow must skip it (the provider deletes
+        // the source branch on auto-complete).
+        await azurePublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: true,
+        );
+
+        // The merge went through the pull-request path.
+        verify(
+          () => mockDoMerge.get(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+            automerge: any(named: 'automerge'),
+            local: any(named: 'local'),
+            message: any(named: 'message'),
+            verbose: any(named: 'verbose'),
+            viaPullRequest: true,
+          ),
+        ).called(1);
+
+        // The direct main push / branch deletion were skipped.
+        verifyNever(
+          () => processWrapper.run('git', [
+            'push',
+            'origin',
+            '--delete',
+            'feat_abc',
+          ], workingDirectory: d.path),
+        );
       });
     });
 

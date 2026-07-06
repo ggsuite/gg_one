@@ -24,10 +24,12 @@ class DoMerge extends DirCommand<void> {
     super.description = 'Performs the merge operation.',
     GgState? state,
     gg_merge.DoMerge? doMerge,
+    gg_merge.WaitForMerge? waitForMerge,
     gg_publish.MainBranch? mainBranch,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
   }) : _state = state ?? GgState(ggLog: ggLog),
        _doMerge = doMerge ?? gg_merge.DoMerge(ggLog: ggLog),
+       _waitForMerge = waitForMerge ?? gg_merge.WaitForMerge(ggLog: ggLog),
        _mainBranch = mainBranch ?? gg_publish.MainBranch(ggLog: ggLog),
        _processWrapper = processWrapper {
     argParser.addFlag(
@@ -43,6 +45,14 @@ class DoMerge extends DirCommand<void> {
       help: 'Perform a local merge instead of remote PR/MR.',
       negatable: true,
       defaultsTo: true,
+    );
+    argParser.addFlag(
+      'via-pull-request',
+      help:
+          'Merge through an auto-complete pull request and wait until it is '
+          'merged (for protected branches, e.g. Azure DevOps).',
+      negatable: true,
+      defaultsTo: false,
     );
     argParser.addOption(
       'message',
@@ -60,6 +70,7 @@ class DoMerge extends DirCommand<void> {
 
   final GgState _state;
   final gg_merge.DoMerge _doMerge;
+  final gg_merge.WaitForMerge _waitForMerge;
   final gg_publish.MainBranch _mainBranch;
   final GgProcessWrapper _processWrapper;
 
@@ -74,6 +85,7 @@ class DoMerge extends DirCommand<void> {
     bool? local,
     String? message,
     bool? verbose,
+    bool? viaPullRequest,
   }) => get(
     directory: directory,
     ggLog: ggLog,
@@ -81,6 +93,7 @@ class DoMerge extends DirCommand<void> {
     local: local,
     message: message,
     verbose: verbose,
+    viaPullRequest: viaPullRequest,
   );
 
   @override
@@ -91,11 +104,13 @@ class DoMerge extends DirCommand<void> {
     bool? local,
     String? message,
     bool? verbose,
+    bool? viaPullRequest,
   }) async {
     automerge ??= argResults?['automerge'] as bool? ?? false;
     local ??= argResults?['local'] as bool? ?? false;
     message ??= argResults?['message'] as String?;
     verbose ??= argResults?['verbose'] as bool? ?? false;
+    viaPullRequest ??= argResults?['via-pull-request'] as bool? ?? false;
 
     // Check state
     final isDone = await _state.readSuccess(
@@ -117,22 +132,32 @@ class DoMerge extends DirCommand<void> {
       verbose: verbose,
     );
 
-    // Update local main branch via fetch + pull
-    await _fetchAndPullMain(
-      directory: directory,
-      ggLog: ggLog,
-      verbose: verbose,
-    );
+    if (viaPullRequest) {
+      // Protected branches (e.g. Azure DevOps) reject a direct push to main;
+      // merge through an auto-complete pull request and wait for it instead.
+      await _mergeViaPullRequest(
+        directory: directory,
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+    } else {
+      // Update local main branch via fetch + pull
+      await _fetchAndPullMain(
+        directory: directory,
+        ggLog: ggLog,
+        verbose: verbose,
+      );
 
-    // Perform merge using gg_merge
-    await _doMerge.get(
-      directory: directory,
-      ggLog: ggLog,
-      automerge: automerge,
-      local: local,
-      message: message,
-      verbose: verbose,
-    );
+      // Perform merge using gg_merge
+      await _doMerge.get(
+        directory: directory,
+        ggLog: ggLog,
+        automerge: automerge,
+        local: local,
+        message: message,
+        verbose: verbose,
+      );
+    }
 
     // Save state
     await _state.writeSuccess(directory: directory, key: stateKey);
@@ -177,6 +202,66 @@ class DoMerge extends DirCommand<void> {
       verbose: verbose,
     );
     ggLog(yellow('Removed .gg/.ticket.json before merge.'));
+  }
+
+  /// Merges the feature branch through an auto-complete pull request and blocks
+  /// until the provider merged it. Used for protected main branches (e.g. Azure
+  /// DevOps `TF402455`) where a direct push to main is rejected. Afterwards the
+  /// local main branch is updated to the merged state so a version tag can be
+  /// placed on it.
+  Future<void> _mergeViaPullRequest({
+    required Directory directory,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    // Refresh remote-tracking refs so the merge pre-conditions are accurate.
+    await _fetchAndPullMain(
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    // Push the feature branch (incl. version bump + changelog) so the pull
+    // request contains everything before it is created.
+    await _runGitCommand(
+      directory: directory,
+      arguments: const ['push'],
+      actionDescription: 'push feature branch before creating the pull request',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    // Create the auto-complete pull request on the provider (GitHub/Azure).
+    await _doMerge.get(
+      directory: directory,
+      ggLog: ggLog,
+      automerge: true,
+      local: false,
+      verbose: verbose,
+    );
+
+    // Block until the provider merged the pull request.
+    await _waitForMerge.get(directory: directory, ggLog: ggLog);
+
+    // Bring local main to the merged state so the version tag lands on it.
+    final mainBranchName = await _mainBranch.get(
+      directory: directory,
+      ggLog: <String>[].add,
+    );
+    await _runGitCommand(
+      directory: directory,
+      arguments: ['checkout', mainBranchName],
+      actionDescription: 'checkout $mainBranchName',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+    await _runGitCommand(
+      directory: directory,
+      arguments: const ['pull'],
+      actionDescription: 'pull on $mainBranchName',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
   }
 
   /// Fetches and pulls the main branch before performing the merge.

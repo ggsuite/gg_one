@@ -13,6 +13,7 @@ import 'package:gg_changelog/gg_changelog.dart' as changelog;
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:gg_version/gg_version.dart';
@@ -223,6 +224,12 @@ class DoPublish extends DirCommand<void> {
       );
     }
 
+    // Protected main branches (e.g. Azure DevOps) reject a direct push to main
+    // and require a pull request. Detect that up front and merge via an
+    // auto-complete PR (waiting until it is merged) instead of a local merge
+    // followed by a direct push to main.
+    final viaPullRequest = await _shouldMergeViaPullRequest(directory);
+
     final didMerge = await _state.readSuccess(
       directory: directory,
       key: stateKeyDoMerge,
@@ -230,7 +237,12 @@ class DoPublish extends DirCommand<void> {
     );
 
     if (!didMerge) {
-      await _merge(directory: directory, message: message, verbose: isVerbose);
+      await _merge(
+        directory: directory,
+        message: message,
+        verbose: isVerbose,
+        viaPullRequest: viaPullRequest,
+      );
 
       await _state.writeSuccess(directory: directory, key: stateKeyDoMerge);
     }
@@ -244,19 +256,23 @@ class DoPublish extends DirCommand<void> {
     // commit.
     await _state.writeSuccess(directory: directory, key: stateKeyDoCommit);
 
-    await _doPush.gitPush(directory: directory, force: false);
+    // In the pull-request flow the provider already updated main and deleted
+    // the source branch, so skip the direct main push and branch deletion here.
+    if (!viaPullRequest) {
+      await _doPush.gitPush(directory: directory, force: false);
 
-    final shouldDelete = await _resolveDeleteFeatureBranch(
-      branchName: branchName,
-      deleteFeatureBranch: deleteFeatureBranch,
-    );
-
-    if (shouldDelete) {
-      await _deleteFeatureBranch(
-        directory: directory,
+      final shouldDelete = await _resolveDeleteFeatureBranch(
         branchName: branchName,
-        verbose: isVerbose,
+        deleteFeatureBranch: deleteFeatureBranch,
       );
+
+      if (shouldDelete) {
+        await _deleteFeatureBranch(
+          directory: directory,
+          branchName: branchName,
+          verbose: isVerbose,
+        );
+      }
     }
 
     await _publishGit(directory: directory, ggLog: ggLog);
@@ -361,20 +377,41 @@ class DoPublish extends DirCommand<void> {
     );
   }
 
-  /// Perform the local merge and push commits afterwards.
+  /// Performs the merge. On protected branches ([viaPullRequest] true) this
+  /// merges through an auto-complete pull request and waits until it is merged;
+  /// otherwise it does a local merge into main.
   Future<void> _merge({
     required Directory directory,
     required String? message,
     required bool verbose,
+    required bool viaPullRequest,
   }) async {
     await _doMerge.get(
       directory: directory,
       ggLog: verbose ? ggLog : <String>[].add,
       automerge: false,
-      local: true,
+      local: !viaPullRequest,
       message: message,
       verbose: verbose,
+      viaPullRequest: viaPullRequest,
     );
+  }
+
+  /// Returns whether the merge must go through a pull request because the main
+  /// branch is protected. Uses the git provider of `origin`: Azure DevOps
+  /// enforces pull requests for `main` (`TF402455`). A missing/unknown remote
+  /// falls back to the local merge.
+  Future<bool> _shouldMergeViaPullRequest(Directory directory) async {
+    final result = await _processWrapper.run('git', [
+      'config',
+      '--get',
+      'remote.origin.url',
+    ], workingDirectory: directory.path);
+    if (result.exitCode != 0) {
+      return false;
+    }
+    final url = result.stdout.toString().trim();
+    return gg_merge.providerFromRemoteUrl(url) == gg_merge.GitProvider.azure;
   }
 
   /// Adds the version tag for [directory] so `do_push --tags` carries it.

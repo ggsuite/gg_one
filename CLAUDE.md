@@ -32,6 +32,7 @@ Commands are organized into five top-level groups, each in `lib/src/commands/`:
 - **`do/`** — actions that execute with validation: `do_commit`, `do_push`, `do_merge`, `do_publish`, `do_upgrade`, `do_maintain`, `do_checkout`, `create/`
   - `do_checkout <ticket>` fetches and checks out a ticket's branch (delegating to `gg_git`'s `Fetch` + `Checkout`).
   - `do_merge` drops the `.gg/.ticket.json` ticket marker (and its `.gitignore` whitelist) before merging, so it never lands on the main branch.
+  - `do_merge`/`do_publish` detect a protected main branch (Azure DevOps `origin` → `TF402455`) and, instead of a local merge + direct push to main, merge through an auto-complete pull request (`gg_merge`'s `MergeGit`) and wait for it (`gg_merge`'s `WaitForMerge`, unbounded poll). Afterwards only tags are pushed (`git push --tags` is not blocked by the branch policy). Non-protected remotes keep the local-merge flow.
 - **`info/`** — informational queries
 
 All commands extend `DirCommand<T>` from `gg_args`. The primary logic lives in `get()`, and `exec()` simply delegates to it. `ggLog` (a `GgLog` function alias) is constructor-injected everywhere for testability and output capture.

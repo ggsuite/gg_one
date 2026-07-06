@@ -27,6 +27,7 @@ void main() {
   final ggLog = messages.add;
   late DoMerge doMerge;
   late MockGgMergeDoMerge mockGgMergeDoMerge;
+  late MockGgMergeWaitForMerge mockWaitForMerge;
   late MockGgState mockGgState;
   late MockMainBranch mockMainBranch;
   late MockGgProcessWrapper mockProcessWrapper;
@@ -94,12 +95,14 @@ void main() {
     await initGit(d);
     await addAndCommitSampleFile(d);
     mockGgMergeDoMerge = MockGgMergeDoMerge();
+    mockWaitForMerge = MockGgMergeWaitForMerge();
     mockGgState = MockGgState();
     mockMainBranch = MockMainBranch();
     mockProcessWrapper = MockGgProcessWrapper();
     doMerge = DoMerge(
       ggLog: ggLog,
       doMerge: mockGgMergeDoMerge,
+      waitForMerge: mockWaitForMerge,
       state: mockGgState,
       mainBranch: mockMainBranch,
       processWrapper: mockProcessWrapper,
@@ -420,6 +423,123 @@ void main() {
       verifyZeroInteractions(mockProcessWrapper);
     });
 
+    test('merges via a pull request and waits for it, then updates '
+        'main', () async {
+      when(
+        () =>
+            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
+      ).thenAnswer((_) async => false);
+
+      stubGitCommands();
+
+      // Feature-branch push before creating the pull request.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['push'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      // Remote PR creation (auto-complete).
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+        ),
+      ).thenAnswer((_) async => true);
+
+      // Wait until merged.
+      when(
+        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+      ).thenAnswer((_) async => true);
+
+      when(
+        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+      ).thenAnswer((_) async {});
+
+      await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+
+      verifyInOrder([
+        // _fetchAndPullMain refreshes the remote-tracking refs.
+        () => mockProcessWrapper.run(
+          'git',
+          ['rev-parse', '--abbrev-ref', 'HEAD'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          ['checkout', 'main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          ['fetch'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          ['pull'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          ['checkout', 'feature/x'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        // Push the feature branch, then create + wait for the PR.
+        () => mockProcessWrapper.run(
+          'git',
+          ['push'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+        ),
+        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        // Bring local main to the merged state.
+        () => mockProcessWrapper.run(
+          'git',
+          ['checkout', 'main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          ['pull'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+        () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
+      ]);
+
+      // The local merge path must not run in the pull-request flow.
+      verifyNever(
+        () => mockGgMergeDoMerge.get(
+          directory: any(named: 'directory'),
+          ggLog: any(named: 'ggLog'),
+          automerge: any(named: 'automerge'),
+          local: true,
+          verbose: any(named: 'verbose'),
+        ),
+      );
+    });
+
     group('exec', () {
       test('should call get with provided parameters', () async {
         when(
@@ -468,6 +588,8 @@ void main() {
 }
 
 class MockGgMergeDoMerge extends Mock implements gg_merge.DoMerge {}
+
+class MockGgMergeWaitForMerge extends Mock implements gg_merge.WaitForMerge {}
 
 class MockGgState extends Mock implements GgState {}
 
