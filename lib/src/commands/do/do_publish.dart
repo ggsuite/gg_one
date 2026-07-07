@@ -7,13 +7,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_changelog/gg_changelog.dart' as changelog;
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:gg_version/gg_version.dart';
@@ -259,7 +259,12 @@ class DoPublish extends DirCommand<void> {
     // In the pull-request flow the provider already updated main and deleted
     // the source branch, so skip the direct main push and branch deletion here.
     if (!viaPullRequest) {
-      await _doPush.gitPush(directory: directory, force: false);
+      await _doPush.get(
+        directory: directory,
+        force: false,
+        // Consider logging
+        ggLog: (_) {},
+      );
 
       final shouldDelete = await _resolveDeleteFeatureBranch(
         branchName: branchName,
@@ -276,7 +281,12 @@ class DoPublish extends DirCommand<void> {
     }
 
     await _publishGit(directory: directory, ggLog: ggLog);
-    await _doPush.gitPush(directory: directory, force: false, pushTags: true);
+    await _doPush.get(
+      directory: directory,
+      force: false,
+      // Consider logging
+      ggLog: (_) {},
+    );
   }
 
   final Publish _publishToPubDev;

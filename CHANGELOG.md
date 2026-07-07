@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Fix broken github pipelines error - didPush state was not set on publishing
+
 ## [9.5.0] - 2026-07-06
 
 ### Changed
@@ -621,6 +627,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/9.5.0...HEAD
 [9.5.0]: https://github.com/ggsuite/gg_one/compare/9.4.0...9.5.0
 [9.4.0]: https://github.com/ggsuite/gg_one/compare/9.3.0...9.4.0
 [9.3.0]: https://github.com/ggsuite/gg_one/compare/9.2.2...9.3.0
