@@ -1,0 +1,14 @@
+{
+  "issue_id": "configure_publish_and_continue",
+  "description": "Neues gg do configure-publish erzeugt .gg/.gg-publish.json interaktiv; do publish nutzt sie auch ohne --config, schreibt pro Repo den Publish-Fortschritt und kann nach Fehlern via --continue konsistent fortsetzen.",
+  "repositories": [
+    {
+      "name": "gg_one",
+      "url": "git@github.com:ggsuite/gg_one.git"
+    },
+    {
+      "name": "gg_multi",
+      "url": "git@github.com:ggsuite/gg_multi.git"
+    }
+  ]
+}
