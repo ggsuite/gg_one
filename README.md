@@ -157,9 +157,10 @@ and carries two kinds of runtime markers, one per level:
   (`pending` / `published` / `failed`) inside `repos.<name>` — which
   repos are already done.
 - **Repo level** (`gg one do publish`): a top-level `done_steps` list
-  (`prepare_version`, `publish_registry`, `merge`,
-  `delete_feature_branch`, `tag`) plus the feature `branch` — which
-  steps within one repo are already done.
+  (`prepare_version`, `publish_registry`, `merge`, `tag`) plus the
+  feature `branch` — which steps within one repo are already done. The
+  pushes and the feature-branch deletion are idempotent and always
+  re-run on a resume.
 
 Each level only reads its own markers. `PublishConfig` (in
 `lib/src/tools/publish_config.dart`) also serializes back out

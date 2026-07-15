@@ -86,6 +86,26 @@ class DoConfigurePublish extends DirCommand<void> {
     String? mergeMessage,
   }) async {
     await check(directory: directory);
+
+    // Never clobber the progress of an unfinished publish — rewriting the
+    // file would silently discard `done_steps`, and the next publish would
+    // re-run steps that already happened (e.g. bump and release a second
+    // version on top of the already-published one).
+    final file = configFileFor(directory);
+    if (file.existsSync()) {
+      final existing = PublishConfig.load(
+        configArg: file.path,
+        fallbackDir: directory.path,
+      );
+      if (existing.hasStepProgress) {
+        throw Exception(
+          'An unfinished publish left progress in ${file.path}. '
+          'Resume it with "gg do publish --continue", or discard it with '
+          '"gg do publish --reconfigure".',
+        );
+      }
+    }
+
     await _ensureIgnored.ensure(directory: directory);
 
     final increment =
@@ -110,7 +130,6 @@ class DoConfigurePublish extends DirCommand<void> {
       versionIncrement: increment,
       mergeMessage: message,
     );
-    final file = configFileFor(directory);
     await config.save(file: file);
     ggLog(green('Wrote publish configuration to ${file.path}'));
     return config;

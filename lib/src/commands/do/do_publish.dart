@@ -45,6 +45,7 @@ class DoPublish extends DirCommand<void> {
     AddTypeScriptVersionTag? addTypeScriptVersionTag,
     Commit? commit,
     DoPush? doPush,
+    DidCommit? didCommit,
     PrepareNextVersion? prepareNextVersion,
     FromPubspec? fromPubspec,
     IsPublished? isPublished,
@@ -70,6 +71,7 @@ class DoPublish extends DirCommand<void> {
            ),
        _commit = commit ?? Commit(ggLog: ggLog),
        _doPush = doPush ?? DoPush(ggLog: ggLog),
+       _didCommit = didCommit ?? DidCommit(ggLog: ggLog),
        _prepareNextVersion =
            prepareNextVersion ?? PrepareNextVersion(ggLog: ggLog),
        _fromPubspec = fromPubspec ?? FromPubspec(ggLog: ggLog),
@@ -231,9 +233,12 @@ class DoPublish extends DirCommand<void> {
 
     // The feature branch is persisted in the runtime file: a resumed run may
     // find HEAD on the default branch already (the merge happened), so it
-    // must not be re-read from HEAD then.
+    // must not be re-read from HEAD then. Only a RESUMED run may trust the
+    // persisted value — a leftover file from a run that failed before its
+    // first step (e.g. in canPublish) must not pin a stale branch that a
+    // later publish of a different branch would then delete.
     final featureBranch =
-        runtimeConfig?.branch ??
+        (resuming ? runtimeConfig?.branch : null) ??
         await _localBranch.get(directory: directory, ggLog: <String>[].add);
 
     // Step 5: Persist the resolved config (+ carried-over progress) as the
@@ -251,15 +256,44 @@ class DoPublish extends DirCommand<void> {
       await progress.save(file: runtimeFile);
     }
 
-    // Step 6: Validate. Skipped when resuming — after a partial publish
-    // (version bumped, possibly merged) the checks would fail although the
-    // remaining steps are perfectly resumable.
+    // Step 6: Validate. The full `can publish` is skipped when resuming —
+    // after a partial publish (version bumped, possibly merged) its checks
+    // would fail although the remaining steps are perfectly resumable. But
+    // commits added AFTER the failed run must not be published unvalidated:
+    // »did commit« is hash-keyed and survives gg's own bookkeeping commits,
+    // so it fails exactly when raw new commits sneaked in.
     if (resuming) {
       ggLog(
         yellow('Resuming the unfinished publish — "can publish" is skipped.'),
       );
+      final didCommit = await _didCommit.get(
+        directory: directory,
+        ggLog: <String>[].add,
+      );
+      if (!didCommit) {
+        throw Exception(
+          'The repository changed since the failed publish. Run '
+          '"gg do commit" first, then resume with '
+          '"gg do publish --continue".',
+        );
+      }
     } else {
       await _canPublish.exec(directory: directory, ggLog: ggLog);
+    }
+
+    // Protected main branches (e.g. Azure DevOps) reject a direct push to main
+    // and require a pull request. Detect that up front and merge via an
+    // auto-complete PR (waiting until it is merged) instead of a local merge
+    // followed by a direct push to main.
+    final viaPullRequest = await _shouldMergeViaPullRequest(directory);
+
+    // A resumed run whose merge already happened may still sit on the
+    // feature branch (gg_multi checks it out again after a failure). Move to
+    // the default branch BEFORE the first push, so no push resurrects the
+    // possibly already-deleted remote feature branch and push/tag target the
+    // release commit.
+    if (resuming && progress.isStepDone('merge') && !viaPullRequest) {
+      await _checkoutDefaultBranch(directory);
     }
 
     await _doPush.gitPush(directory: directory, force: false);
@@ -301,13 +335,8 @@ class DoPublish extends DirCommand<void> {
       await markStepDone('publish_registry');
     }
 
-    // Protected main branches (e.g. Azure DevOps) reject a direct push to main
-    // and require a pull request. Detect that up front and merge via an
-    // auto-complete PR (waiting until it is merged) instead of a local merge
-    // followed by a direct push to main.
-    final viaPullRequest = await _shouldMergeViaPullRequest(directory);
-
-    // Step 9: Merge into the default branch.
+    // Step 9: Merge into the default branch. (When the step is already done
+    // on a resumed run, the default branch was checked out before Step 6.)
     if (!progress.isStepDone('merge')) {
       await _merge(
         directory: directory,
@@ -316,12 +345,6 @@ class DoPublish extends DirCommand<void> {
         viaPullRequest: viaPullRequest,
       );
       await markStepDone('merge');
-    } else if (!viaPullRequest) {
-      // The merge commit lives on the default branch, but a resumed run may
-      // still sit on the feature branch (gg_multi checks it out again after
-      // a failure). Move to the default branch so the following push and tag
-      // target the release commit.
-      await _checkoutDefaultBranch(directory);
     }
 
     // Save state
@@ -343,15 +366,16 @@ class DoPublish extends DirCommand<void> {
         deleteFeatureBranch: deleteFeatureBranch,
       );
 
-      // Step 10: Delete the feature branch. Tracked, because re-deleting an
-      // already-deleted remote branch fails on a resumed run.
-      if (shouldDelete && !progress.isStepDone('delete_feature_branch')) {
+      // Step 10: Delete the feature branch. Idempotent instead of tracked:
+      // a resumed multi-flow run re-pushes the branch before delegating
+      // here, so the deletion must re-run — and deleting an already-gone
+      // remote ref is tolerated inside _deleteFeatureBranch.
+      if (shouldDelete) {
         await _deleteFeatureBranch(
           directory: directory,
           branchName: featureBranch,
           verbose: isVerbose,
         );
-        await markStepDone('delete_feature_branch');
       }
     }
 
@@ -375,6 +399,7 @@ class DoPublish extends DirCommand<void> {
   final AddTypeScriptVersionTag _addTypeScriptVersionTag;
   final DoPush _doPush;
   final Commit _commit;
+  final DidCommit _didCommit;
   final PrepareNextVersion _prepareNextVersion;
   final FromPubspec _fromPubspec;
   final changelog.Release _releaseChangelog;
@@ -736,7 +761,8 @@ class DoPublish extends DirCommand<void> {
     return _confirmDeleteFeatureBranch(branchName);
   }
 
-  /// Deletes the provided feature branch on the remote.
+  /// Deletes the provided feature branch on the remote. Idempotent: an
+  /// already-deleted remote ref (a resumed run) is tolerated.
   Future<void> _deleteFeatureBranch({
     required Directory directory,
     required String branchName,
@@ -751,9 +777,12 @@ class DoPublish extends DirCommand<void> {
     );
 
     if (result.exitCode != 0) {
-      throw Exception(
-        'git push origin --delete $branchName failed: ${result.stderr}',
-      );
+      final stderr = result.stderr.toString();
+      if (stderr.contains('remote ref does not exist')) {
+        ggLog(yellow('Remote feature branch $branchName was already deleted.'));
+        return;
+      }
+      throw Exception('git push origin --delete $branchName failed: $stderr');
     }
 
     ggLog(green('Deleted remote feature branch $branchName.'));

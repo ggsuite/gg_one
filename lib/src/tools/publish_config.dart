@@ -21,13 +21,12 @@ const Set<String> allowedPublishStatuses = {'pending', 'published', 'failed'};
 
 /// Allowed entries of the repo-level `done_steps` progress list written into
 /// `<repo>/.gg/.gg-publish.json` while `gg do publish` runs. Steps not listed
-/// here (the feature/main/tag pushes) are idempotent and always re-run on a
-/// `--continue`, so they are not tracked.
+/// here (the feature/main/tag pushes and the feature-branch deletion) are
+/// idempotent and always re-run on a `--continue`, so they are not tracked.
 const Set<String> allowedPublishSteps = {
   'prepare_version',
   'publish_registry',
   'merge',
-  'delete_feature_branch',
   'tag',
 };
 

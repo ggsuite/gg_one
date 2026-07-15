@@ -793,12 +793,13 @@ void main() {
       });
     });
 
-    test('allowedPublishSteps covers exactly the five tracked steps', () {
+    test('allowedPublishSteps covers exactly the four tracked steps', () {
+      // The feature-branch deletion is idempotent and re-runs on resume,
+      // so it is deliberately not a tracked step.
       expect(allowedPublishSteps, {
         'prepare_version',
         'publish_registry',
         'merge',
-        'delete_feature_branch',
         'tag',
       });
     });

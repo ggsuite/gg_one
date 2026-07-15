@@ -12,13 +12,18 @@ before the unattended publish. The command also makes sure
 `.gg/.gg-publish.json` is listed in `.gitignore` (appending and
 committing the entry once per repo).
 - `do publish --continue` / `--reconfigure`: per-step publish progress
-(done\_steps: prepare\_version, publish\_registry, merge,
-delete\_feature\_branch, tag) is recorded in `.gg/.gg-publish.json` and a
-failed publish resumes at the first open step — including the version
-tag, which the old hash-based state could silently skip. A leftover
-progress file makes a plain re-run refuse until `--continue` or
-`--reconfigure` is chosen. The file stores the feature branch and is
-deleted after a fully successful publish.
+(done\_steps: prepare\_version, publish\_registry, merge, tag) is
+recorded in `.gg/.gg-publish.json` and a failed publish resumes at the
+first open step — including the version tag, which the old hash-based
+state could silently skip. A leftover progress file makes a plain
+re-run refuse until `--continue` or `--reconfigure` is chosen. The file
+stores the feature branch (trusted only when resuming) and is deleted
+after a fully successful publish. On resume, the hash-keyed
+`did commit` check still runs, so raw commits added after the failure
+are never published unvalidated; the feature-branch deletion is
+idempotent and re-runs; when the merge is already done, the default
+branch is checked out before the first push. `do configure-publish`
+refuses to overwrite a file that carries `done_steps` (code review).
 - `DoPublish.exec` accepts `resume:` so `gg_multi do publish --continue`
 resumes each repo at its open step.
 - `PublishConfig`: done\_steps + branch runtime fields with
@@ -35,6 +40,10 @@ hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
 doPublish/doCommit are still written for `did publish` and the
 pre-push hook.
 - Tidy CHANGELOGs: single Unreleased section and chronological order
+
+### Fixed
+
+- Code-review fixes: resume-safe branch handling, progress guards for configure/--config, did-commit check and idempotent branch deletion on resume
 
 ## [9.5.0] - 2026-07-06
 

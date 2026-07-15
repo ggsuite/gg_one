@@ -1965,20 +1965,37 @@ void main() {
       });
 
       test(
-        'the delete_feature_branch step is not repeated on resume',
+        'a resumed delete tolerates an already-deleted remote branch',
         () async {
+          // The delete re-runs on resume (a multi-flow resume may have
+          // re-pushed the branch); a remote ref that is already gone must
+          // not fail the run.
           runtimeFile.writeAsStringSync('''
 {
   "version_increment": "patch",
   "merge_message": "m",
   "branch": "feat_other",
-  "done_steps":
-    ["prepare_version", "publish_registry", "merge",
-     "delete_feature_branch"]
+  "done_steps": ["prepare_version", "publish_registry", "merge"]
 }
 ''');
           stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
           stubGit(['checkout', 'main']);
+          when(
+            () => processWrapper.run('git', [
+              'push',
+              'origin',
+              '--delete',
+              'feat_other',
+            ], workingDirectory: d.path),
+          ).thenAnswer(
+            (_) async => ProcessResult(
+              0,
+              1,
+              '',
+              "error: unable to delete 'feat_other': "
+                  'remote ref does not exist',
+            ),
+          );
 
           final resumePublish = makeResumePublish();
           await resumePublish.exec(
@@ -1988,6 +2005,53 @@ void main() {
             deleteFeatureBranch: true,
           );
 
+          expect(
+            messages.join('\n'),
+            contains('Remote feature branch feat_other was already deleted.'),
+          );
+        },
+      );
+
+      test(
+        'a fresh run ignores the branch of a leftover config-only file',
+        () async {
+          // A run that failed before its first step (e.g. in canPublish)
+          // leaves a config-only file with a recorded branch. A later fresh
+          // publish of a DIFFERENT branch must not delete that stale branch.
+          mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+          await DirectJson.writeFile(
+            file: File(join(d.path, '.gg', '.gg.json')),
+            path: 'doPublish/success/hash',
+            value: needsChangeHash,
+          );
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_other"
+}
+''');
+
+          final freshPublish = makeResumePublish(
+            editMessage: (_) async =>
+                fail('Editor must not open when the config file exists.'),
+          );
+          await freshPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: true,
+          );
+
+          // HEAD's branch (feat_abc) is deleted — not the stale feat_other.
+          verify(
+            () => processWrapper.run('git', [
+              'push',
+              'origin',
+              '--delete',
+              'feat_abc',
+            ], workingDirectory: d.path),
+          ).called(1);
           verifyNever(
             () => processWrapper.run('git', [
               'push',
@@ -1995,6 +2059,43 @@ void main() {
               '--delete',
               'feat_other',
             ], workingDirectory: d.path),
+          );
+        },
+      );
+
+      test(
+        'a resume aborts when raw commits were added after the failure',
+        () async {
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_abc",
+  "done_steps": ["prepare_version"]
+}
+''');
+          // A raw git commit (not via gg do commit) invalidates the
+          // hash-keyed doCommit marker.
+          await addAndCommitSampleFile(
+            d,
+            fileName: 'sneaked_in.txt',
+            content: 'unvalidated',
+          );
+
+          await expectLater(
+            () => makeResumePublish().exec(
+              directory: d,
+              ggLog: ggLog,
+              resume: true,
+              deleteFeatureBranch: false,
+            ),
+            throwsA(
+              isA<Exception>().having(
+                (e) => e.toString(),
+                'message',
+                contains('The repository changed since the failed publish'),
+              ),
+            ),
           );
         },
       );

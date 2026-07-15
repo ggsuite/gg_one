@@ -207,6 +207,50 @@ void main() {
       });
     });
 
+    test('refuses to clobber the progress of an unfinished publish', () async {
+      final file = DoConfigurePublish.configFileFor(d)
+        ..createSync(recursive: true);
+      file.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "done_steps": ["prepare_version", "publish_registry"]
+}
+''');
+
+      await expectLater(
+        () => makeCommand().configure(directory: d, ggLog: ggLog),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('unfinished publish left progress'),
+          ),
+        ),
+      );
+      // The file is untouched — the progress survives.
+      final reloaded = reload();
+      expect(reloaded.doneSteps, ['prepare_version', 'publish_registry']);
+    });
+
+    test('overwrites a progress-free config file without complaint', () async {
+      final file = DoConfigurePublish.configFileFor(d)
+        ..createSync(recursive: true);
+      file.writeAsStringSync(
+        '{"version_increment":"patch","merge_message":"old"}',
+      );
+
+      final config = await makeCommand().configure(
+        directory: d,
+        ggLog: ggLog,
+        versionIncrement: 'minor',
+        mergeMessage: 'new',
+      );
+
+      expect(config.mergeMessage, 'new');
+      expect(reload().mergeMessage, 'new');
+    });
+
     test('CLI run resolves the directory and honours -m', () async {
       final runner = CommandRunner<void>('gg', 'gg')
         ..addCommand(makeCommand(increments: [2]));
