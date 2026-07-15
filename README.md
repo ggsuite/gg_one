@@ -76,14 +76,38 @@ Automate your testing process by setting up the gg_one GitHub Action, like here:
 ## Publish a single package with `gg one do publish`
 
 `gg one do publish` walks a single repo through the publish pipeline:
-`can publish` → version bump → CHANGELOG release → merge feature branch
-into `main` → push → publish to pub.dev (skipped when
-`publish_to: none` is set in `pubspec.yaml`).
+`can publish` → version bump → CHANGELOG release → publish to pub.dev
+(skipped when `publish_to: none` is set in `pubspec.yaml`) → merge
+feature branch into `main` → push → tag.
 
-By default the command is interactive: it asks for a merge message and
-which part of the version to bump (`patch` / `minor` / `major`). For
-scripted releases and CI you can predeclare both via a JSON config
-file:
+All interactive decisions are made **up front**: when the command is
+started without a resolved configuration it runs
+`gg one do configure-publish`, which asks for the version increment
+(`patch` / `minor` / `major`) and the merge message and writes them to
+`<repo>/.gg/.gg-publish.json`. Pass `-m <message>` to skip the
+merge-message prompt. You can also run `gg one do configure-publish`
+on its own to prepare the file ahead of time. The file is gitignored
+automatically (the `.gitignore` entry is appended and committed once
+per repo).
+
+### Resuming a failed publish
+
+While the publish runs, its per-step progress (`done_steps`) is
+recorded in the same `.gg/.gg-publish.json`; the file is deleted after
+a fully successful publish. If a step fails partway through — even the
+final version tag — fix the cause and resume with:
+
+```bash
+gg one do publish --continue
+```
+
+Already-completed steps are skipped; the idempotent pushes always
+re-run. A leftover progress file makes a plain re-run refuse until you
+choose `--continue` (resume) or `--reconfigure` (discard the config and
+progress and be asked again).
+
+For scripted releases and CI you can predeclare increment + message via
+a JSON config file instead:
 
 ```bash
 gg one do publish --config .gg-publish.json
@@ -126,8 +150,30 @@ cat .gg/release.json
 gg one do publish --config release.json   # finds it under .gg/
 ```
 
-The same `.gg-publish.json` schema is shared with `gg multi do publish`,
-which additionally honours a per-repo `repos.<name>` override block.
+The same `.gg-publish.json` **schema** is shared with `gg multi do publish`
+and carries two kinds of runtime markers, one per level:
+
+- **Ticket level** (`gg multi do publish`): a per-repo `status` field
+  (`pending` / `published` / `failed`) inside `repos.<name>` — which
+  repos are already done.
+- **Repo level** (`gg one do publish`): a top-level `done_steps` list
+  (`prepare_version`, `publish_registry`, `merge`, `tag`) plus the
+  feature `branch` — which steps within one repo are already done. The
+  pushes and the feature-branch deletion are idempotent and always
+  re-run on a resume.
+
+Each level only reads its own markers. `PublishConfig` (in
+`lib/src/tools/publish_config.dart`) also serializes back out
+(`toJson` / `save`), so the file can be generated as well as read.
+
+Note the two entry points read *different* config fields: single-repo
+`--config` uses the **top-level** `version_increment` / `merge_message`
+and ignores `repos`, whereas a file produced by
+`gg multi do configure-publish` puts every value in per-repo
+`repos.<name>` blocks with no top-level defaults. Such a generated file
+therefore drives `gg multi do publish` but is **not** directly
+consumable by single-repo `gg one do publish --config` — add top-level
+fields if you want to reuse it for a single repo.
 See the [`gg_multi` README](../gg_multi/README.md) for the multi-repo
 form.
 

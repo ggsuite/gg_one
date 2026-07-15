@@ -43,6 +43,7 @@ class GgState {
     '.gg/',
     '.gg.json',
     '.gg/.gg.json',
+    '.gg/.gg-publish.json',
     'CHANGELOG.md',
     '.kidney_status',
   ];
