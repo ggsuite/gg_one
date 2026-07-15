@@ -64,14 +64,18 @@ void main() {
   }
 
   // Builds the DoConfigurePublish that »do publish« runs when it is started
-  // without a resolved configuration. Uses the mocked version selector and a
-  // non-interactive merge-message editor.
-  DoConfigurePublish makeConfigurePublish({EditMessage? editMessage}) =>
-      DoConfigurePublish(
-        ggLog: ggLog,
-        versionSelector: versionSelector,
-        editMessage: editMessage ?? defaultEditMessage,
-      );
+  // without a resolved configuration. Uses the mocked version selector and
+  // non-interactive prompts.
+  DoConfigurePublish makeConfigurePublish({
+    EditMessage? editMessage,
+    ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
+  }) => DoConfigurePublish(
+    ggLog: ggLog,
+    versionSelector: versionSelector,
+    editMessage: editMessage ?? defaultEditMessage,
+    confirmDeleteFeatureBranch:
+        confirmDeleteFeatureBranch ?? defaultConfirmDeleteFeatureBranch,
+  );
 
   // DoMerge variant for the bare test repo.
   DoMerge noPubGetDoMerge() => DoMerge(
@@ -871,18 +875,77 @@ void main() {
             },
           );
 
+          test('asks whether to delete the feature branch when not specified — '
+              'up front, inside configure-publish', () async {
+            mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+            await DirectJson.writeFile(
+              file: File(join(d.path, '.gg', '.gg.json')),
+              path: 'doPublish/success/hash',
+              value: needsChangeHash,
+            );
+
+            var promptBranchName = '';
+            final doPublishWithPrompt = DoPublish(
+              ggLog: ggLog,
+              publish: publish,
+              prepareNextVersion: PrepareNextVersion(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              canPublish: canPublish,
+              isPublished: IsPublished(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              // The decision is asked by configure-publish — before the
+              // publish pipeline starts, never between its steps.
+              configurePublish: makeConfigurePublish(
+                confirmDeleteFeatureBranch: (branchName) {
+                  promptBranchName = branchName;
+                  return true;
+                },
+              ),
+              publishedVersion: publishedVersion,
+              processWrapper: processWrapper,
+              localBranch: localBranch,
+              confirmDeleteFeatureBranch: (_) =>
+                  fail('DoPublish itself must not prompt here.'),
+              doMerge: noPubGetDoMerge(),
+            );
+
+            await doPublishWithPrompt.exec(
+              directory: d,
+              ggLog: ggLog,
+              askBeforePublishing: false,
+            );
+
+            expect(promptBranchName, 'feat_abc');
+            verify(
+              () => processWrapper.run('git', [
+                'push',
+                'origin',
+                '--delete',
+                'feat_abc',
+              ], workingDirectory: d.path),
+            ).called(1);
+          });
+
           test(
-            'asks whether to delete the feature branch when not specified',
+            'asks up front when the config file lacks delete_feature_branch',
             () async {
               mockPublishIsSuccessful(
                 success: true,
                 askBeforePublishing: false,
               );
-
               await DirectJson.writeFile(
                 file: File(join(d.path, '.gg', '.gg.json')),
                 path: 'doPublish/success/hash',
                 value: needsChangeHash,
+              );
+              // Config-only runtime file without the new field.
+              File(join(d.path, '.gg', '.gg-publish.json')).writeAsStringSync(
+                '{"version_increment":"patch","merge_message":"msg"}',
               );
 
               var promptBranchName = '';
@@ -898,7 +961,10 @@ void main() {
                   ggLog: ggLog,
                   publishedVersion: publishedVersion,
                 ),
-                configurePublish: makeConfigurePublish(),
+                configurePublish: makeConfigurePublish(
+                  editMessage: (_) async =>
+                      fail('Config exists — configure must not run.'),
+                ),
                 publishedVersion: publishedVersion,
                 processWrapper: processWrapper,
                 localBranch: localBranch,
@@ -926,6 +992,58 @@ void main() {
               ).called(1);
             },
           );
+
+          test('reads delete_feature_branch from the config file', () async {
+            mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+            await DirectJson.writeFile(
+              file: File(join(d.path, '.gg', '.gg.json')),
+              path: 'doPublish/success/hash',
+              value: needsChangeHash,
+            );
+            File(join(d.path, '.gg', '.gg-publish.json')).writeAsStringSync(
+              '{"version_increment":"patch","merge_message":"msg",'
+              '"delete_feature_branch":true}',
+            );
+
+            final headlessPublish = DoPublish(
+              ggLog: ggLog,
+              publish: publish,
+              prepareNextVersion: PrepareNextVersion(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              canPublish: canPublish,
+              isPublished: IsPublished(
+                ggLog: ggLog,
+                publishedVersion: publishedVersion,
+              ),
+              configurePublish: makeConfigurePublish(
+                editMessage: (_) async =>
+                    fail('Config exists — configure must not run.'),
+              ),
+              publishedVersion: publishedVersion,
+              processWrapper: processWrapper,
+              localBranch: localBranch,
+              confirmDeleteFeatureBranch: (_) =>
+                  fail('The config decides — no prompt allowed.'),
+              doMerge: noPubGetDoMerge(),
+            );
+
+            await headlessPublish.exec(
+              directory: d,
+              ggLog: ggLog,
+              askBeforePublishing: false,
+            );
+
+            verify(
+              () => processWrapper.run('git', [
+                'push',
+                'origin',
+                '--delete',
+                'feat_abc',
+              ], workingDirectory: d.path),
+            ).called(1);
+          });
 
           test('uses CLI delete-feature-branch flag when provided', () async {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
@@ -995,8 +1113,9 @@ void main() {
             );
             final cfgPath = join(cfgDir.path, 'release.json');
             await File(cfgPath).writeAsString(
-              '{"version_increment":"patch",'
-              '"merge_message":"from .gg-publish.json"}',
+              '{"version_increment":"patch", '
+              '"merge_message":"from .gg-publish.json", '
+              '"delete_feature_branch":false}',
             );
 
             // Editor must stay shut when --config supplies both fields.
@@ -1023,7 +1142,10 @@ void main() {
               publishedVersion: publishedVersion,
               processWrapper: processWrapper,
               localBranch: localBranch,
-              confirmDeleteFeatureBranch: (_) => false,
+              // delete_feature_branch comes from the --config file — no
+              // prompt and no CLI flag needed.
+              confirmDeleteFeatureBranch: (_) =>
+                  fail('The --config file decides — no prompt allowed.'),
               doMerge: noPubGetDoMerge(),
             );
 
@@ -1037,7 +1159,6 @@ void main() {
               '--config',
               cfgPath,
               '--no-ask-before-publishing',
-              '--no-delete-feature-branch',
             ]);
 
             // Reaching here proves the load+resolve path ran successfully.
@@ -1673,6 +1794,7 @@ void main() {
       DoPublish makeResumePublish({
         AddVersionTag? addVersionTag,
         EditMessage? editMessage,
+        ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
       }) => DoPublish(
         ggLog: ggLog,
         publish: publish,
@@ -1694,7 +1816,8 @@ void main() {
         publishedVersion: publishedVersion,
         processWrapper: processWrapper,
         localBranch: localBranch,
-        confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+        confirmDeleteFeatureBranch:
+            confirmDeleteFeatureBranch ?? defaultConfirmDeleteFeatureBranch,
         doMerge: noPubGetDoMerge(),
       );
 
@@ -1884,6 +2007,7 @@ void main() {
   "version_increment": "patch",
   "merge_message": "m",
   "branch": "feat_abc",
+  "delete_feature_branch": false,
   "done_steps": ["prepare_version"]
 }
 ''');
@@ -1892,7 +2016,13 @@ void main() {
           publishedVersionValue = Version(1, 2, 3);
           mockPublishedVersion();
 
-          final resumePublish = makeResumePublish();
+          // No deleteFeatureBranch parameter: with increment + message given
+          // as parameters, the open delete decision comes from the runtime
+          // file — no prompt.
+          final resumePublish = makeResumePublish(
+            confirmDeleteFeatureBranch: (_) =>
+                fail('The stored decision applies — no prompt.'),
+          );
           await resumePublish.exec(
             directory: d,
             ggLog: ggLog,
@@ -1900,7 +2030,6 @@ void main() {
             message: 'Resumed merge',
             versionIncrement: 'patch',
             askBeforePublishing: false,
-            deleteFeatureBranch: false,
           );
 
           expect(
@@ -1963,6 +2092,42 @@ void main() {
           ], workingDirectory: d.path),
         );
       });
+
+      test(
+        'a resume reuses the stored delete decision without a prompt',
+        () async {
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_other",
+  "delete_feature_branch": true,
+  "done_steps": ["prepare_version", "publish_registry", "merge"]
+}
+''');
+          stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
+          stubGit(['checkout', 'main']);
+          stubGit(['push', 'origin', '--delete', 'feat_other']);
+
+          final runner = CommandRunner<void>('gg', 'gg')
+            ..addCommand(
+              makeResumePublish(
+                confirmDeleteFeatureBranch: (_) =>
+                    fail('The stored decision applies — no prompt on resume.'),
+              ),
+            );
+          await runner.run(['publish', '-i', d.path, '--continue']);
+
+          verify(
+            () => processWrapper.run('git', [
+              'push',
+              'origin',
+              '--delete',
+              'feat_other',
+            ], workingDirectory: d.path),
+          ).called(1);
+        },
+      );
 
       test(
         'a resumed delete tolerates an already-deleted remote branch',

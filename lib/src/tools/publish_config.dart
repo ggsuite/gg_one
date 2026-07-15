@@ -56,6 +56,7 @@ class PublishConfig {
     this.versionIncrement,
     this.mergeMessage,
     this.deleteTicket,
+    this.deleteFeatureBranch,
     this.branch,
     Map<String, RepoOverride>? repos,
     List<String>? doneSteps,
@@ -70,6 +71,11 @@ class PublishConfig {
 
   /// Top-level `delete_ticket`; bypasses the interactive prompt when set.
   final bool? deleteTicket;
+
+  /// Top-level `delete_feature_branch` (single-repo): bypasses the
+  /// interactive delete-feature-branch prompt when set, so a `--config` /
+  /// `.gg/.gg-publish.json` driven publish is fully headless.
+  final bool? deleteFeatureBranch;
 
   /// Per-repo overrides keyed by repository name.
   final Map<String, RepoOverride> repos;
@@ -185,6 +191,11 @@ class PublishConfig {
       key: 'delete_ticket',
       where: found.path,
     );
+    final deleteFeatureBranch = _readBool(
+      decoded,
+      key: 'delete_feature_branch',
+      where: found.path,
+    );
 
     final repos = <String, RepoOverride>{};
     final rawRepos = decoded['repos'];
@@ -230,6 +241,7 @@ class PublishConfig {
       versionIncrement: increment,
       mergeMessage: message,
       deleteTicket: deleteTicket,
+      deleteFeatureBranch: deleteFeatureBranch,
       branch: branch,
       repos: repos,
       doneSteps: doneSteps,
@@ -327,6 +339,8 @@ class PublishConfig {
     if (versionIncrement != null) 'version_increment': versionIncrement,
     if (mergeMessage != null) 'merge_message': mergeMessage,
     if (deleteTicket != null) 'delete_ticket': deleteTicket,
+    if (deleteFeatureBranch != null)
+      'delete_feature_branch': deleteFeatureBranch,
     if (branch != null) 'branch': branch,
     if (doneSteps.isNotEmpty) 'done_steps': doneSteps,
     if (repos.isNotEmpty)
@@ -366,6 +380,7 @@ class PublishConfig {
       versionIncrement: versionIncrement,
       mergeMessage: mergeMessage,
       deleteTicket: deleteTicket,
+      deleteFeatureBranch: deleteFeatureBranch,
       branch: branch,
       repos: updated,
       doneSteps: doneSteps,
@@ -391,6 +406,7 @@ class PublishConfig {
       versionIncrement: versionIncrement,
       mergeMessage: mergeMessage,
       deleteTicket: deleteTicket,
+      deleteFeatureBranch: deleteFeatureBranch,
       branch: branch,
       repos: repos,
       doneSteps: [...doneSteps, step],

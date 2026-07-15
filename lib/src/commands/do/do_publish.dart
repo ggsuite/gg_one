@@ -16,22 +16,19 @@ import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:gg_version/gg_version.dart';
-import 'package:interact/interact.dart';
 import 'package:path/path.dart';
 import 'package:pub_semver/pub_semver.dart';
 
-/// Typedef for confirming feature branch deletion.
-typedef ConfirmDeleteFeatureBranch = bool Function(String branchName);
-
 /// Publishes the current directory.
 ///
-/// All interactive decisions (version increment, merge message) are resolved
-/// up front — from explicit parameters, `--config`, an existing
-/// `.gg/.gg-publish.json` or an automatic `do configure-publish`. While the
-/// publish runs, its per-step progress is recorded in
-/// `<repo>/.gg/.gg-publish.json` (see [allowedPublishSteps]); a failed run
-/// can be resumed with `--continue` and skips the steps already done. The
-/// file is deleted after a fully successful publish.
+/// All interactive decisions (version increment, merge message, feature
+/// branch deletion) are resolved up front — from explicit parameters,
+/// `--config`, an existing `.gg/.gg-publish.json` or an automatic
+/// `do configure-publish` — so no prompt ever sits between the irreversible
+/// publish steps. While the publish runs, its per-step progress is recorded
+/// in `<repo>/.gg/.gg-publish.json` (see [allowedPublishSteps]); a failed
+/// run can be resumed with `--continue` and skips the steps already done.
+/// The file is deleted after a fully successful publish.
 class DoPublish extends DirCommand<void> {
   /// Constructor
   DoPublish({
@@ -83,7 +80,8 @@ class DoPublish extends DirCommand<void> {
        _processWrapper = processWrapper,
        _localBranch = localBranch ?? LocalBranch(ggLog: ggLog),
        _confirmDeleteFeatureBranch =
-           confirmDeleteFeatureBranch ?? _defaultConfirmDeleteFeatureBranch,
+           confirmDeleteFeatureBranch ??
+           DoConfigurePublish.defaultConfirmDeleteFeatureBranch,
        _configurePublish = configurePublish ?? DoConfigurePublish(ggLog: ggLog),
        _ensureIgnored =
            ensureIgnored ?? EnsurePublishConfigIgnored(ggLog: ggLog) {
@@ -198,11 +196,18 @@ class DoPublish extends DirCommand<void> {
     // Step 3: Make the runtime file invisible to git before it is written.
     await _ensureIgnored.ensure(directory: directory);
 
-    // Step 4: Resolve version increment + merge message. Precedence:
-    // explicit parameters (the gg_multi flow) > --config > the runtime
-    // .gg/.gg-publish.json > an interactive `do configure-publish`.
+    // Step 4: Resolve version increment, merge message and the
+    // delete-feature-branch decision. Precedence: explicit parameters (the
+    // gg_multi flow) / CLI flags > --config > the runtime
+    // .gg/.gg-publish.json > an interactive `do configure-publish`. Every
+    // interactive decision happens HERE — never between the irreversible
+    // publish steps.
     String? resolvedIncrement = versionIncrement;
     String? resolvedMessage = message;
+    bool? resolvedDelete = deleteFeatureBranch;
+    if (resolvedDelete == null && _deleteFeatureBranchWasProvided) {
+      resolvedDelete = _deleteFeatureBranchFromArgs;
+    }
     if (resolvedIncrement == null || resolvedMessage == null) {
       if (configArg != null) {
         final config = PublishConfig.load(
@@ -212,22 +217,30 @@ class DoPublish extends DirCommand<void> {
         final resolved = config.resolveSingle(configPath: configArg);
         resolvedIncrement ??= resolved.versionIncrement;
         resolvedMessage ??= resolved.mergeMessage;
+        resolvedDelete ??= config.deleteFeatureBranch;
       } else if (runtimeConfig != null) {
         final resolved = runtimeConfig.resolveSingle(
           configPath: runtimeFile.path,
         );
         resolvedIncrement ??= resolved.versionIncrement;
         resolvedMessage ??= resolved.mergeMessage;
+        resolvedDelete ??= runtimeConfig.deleteFeatureBranch;
       } else {
         final config = await _configurePublish.configure(
           directory: directory,
           ggLog: ggLog,
           versionIncrement: resolvedIncrement,
           mergeMessage: resolvedMessage,
+          deleteFeatureBranch: resolvedDelete,
         );
         resolvedIncrement = config.versionIncrement;
         resolvedMessage = config.mergeMessage;
+        resolvedDelete ??= config.deleteFeatureBranch;
       }
+    } else {
+      // Increment + message came as parameters, only the delete decision may
+      // be open — read it from the config file when one is present.
+      resolvedDelete ??= runtimeConfig?.deleteFeatureBranch;
     }
     _explicitVersionIncrement = resolvedIncrement;
 
@@ -241,11 +254,19 @@ class DoPublish extends DirCommand<void> {
         (resuming ? runtimeConfig?.branch : null) ??
         await _localBranch.get(directory: directory, ggLog: <String>[].add);
 
+    // A config source that predates the delete_feature_branch field (or an
+    // explicit --config without it) leaves the decision open — ask NOW,
+    // before anything irreversible runs. In non-interactive environments the
+    // default prompt fails fast instead of hanging.
+    resolvedDelete ??= _confirmDeleteFeatureBranch(featureBranch);
+
     // Step 5: Persist the resolved config (+ carried-over progress) as the
-    // runtime file — the resume anchor for this run.
+    // runtime file — the resume anchor for this run. The delete decision is
+    // stored too, so a resumed run never has to re-ask.
     var progress = PublishConfig(
       versionIncrement: resolvedIncrement,
       mergeMessage: resolvedMessage,
+      deleteFeatureBranch: resolvedDelete,
       branch: featureBranch,
       doneSteps: resuming ? runtimeConfig!.doneSteps : null,
     );
@@ -361,16 +382,12 @@ class DoPublish extends DirCommand<void> {
     if (!viaPullRequest) {
       await _doPush.gitPush(directory: directory, force: false);
 
-      final shouldDelete = await _resolveDeleteFeatureBranch(
-        branchName: featureBranch,
-        deleteFeatureBranch: deleteFeatureBranch,
-      );
-
-      // Step 10: Delete the feature branch. Idempotent instead of tracked:
-      // a resumed multi-flow run re-pushes the branch before delegating
-      // here, so the deletion must re-run — and deleting an already-gone
-      // remote ref is tolerated inside _deleteFeatureBranch.
-      if (shouldDelete) {
+      // Step 10: Delete the feature branch. The decision was resolved up
+      // front (Step 4). Idempotent instead of tracked: a resumed multi-flow
+      // run re-pushes the branch before delegating here, so the deletion
+      // must re-run — and deleting an already-gone remote ref is tolerated
+      // inside _deleteFeatureBranch.
+      if (resolvedDelete) {
         await _deleteFeatureBranch(
           directory: directory,
           branchName: featureBranch,
@@ -745,22 +762,6 @@ class DoPublish extends DirCommand<void> {
   bool _supportsChangeLog(Directory directory) =>
       checkProjectType(directory).isDartFamily;
 
-  /// Resolves whether the feature branch should be deleted after publishing.
-  Future<bool> _resolveDeleteFeatureBranch({
-    required String branchName,
-    required bool? deleteFeatureBranch,
-  }) async {
-    if (deleteFeatureBranch != null) {
-      return deleteFeatureBranch;
-    }
-
-    if (_deleteFeatureBranchWasProvided) {
-      return _deleteFeatureBranchFromArgs;
-    }
-
-    return _confirmDeleteFeatureBranch(branchName);
-  }
-
   /// Deletes the provided feature branch on the remote. Idempotent: an
   /// already-deleted remote ref (a resumed run) is tolerated.
   Future<void> _deleteFeatureBranch({
@@ -822,18 +823,6 @@ class DoPublish extends DirCommand<void> {
       argResults?.wasParsed('delete-feature-branch') ?? false;
 
   String? get _messageFromArgs => argResults?['message'] as String?;
-
-  // coverage:ignore-start
-  static bool _defaultConfirmDeleteFeatureBranch(String branchName) {
-    final selection = Select(
-      prompt: 'Delete feature branch $branchName on origin?',
-      options: const <String>['Yes', 'No'],
-      initialIndex: 1,
-    ).interact();
-
-    return selection == 0;
-  }
-  // coverage:ignore-end
 
   void _addArgs() {
     argParser.addFlag(

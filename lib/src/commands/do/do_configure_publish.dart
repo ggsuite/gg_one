@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_version/gg_version.dart';
 import 'package:interact/interact.dart';
@@ -17,10 +18,14 @@ import 'package:pub_semver/pub_semver.dart';
 
 import '../../tools/ensure_publish_config_ignored.dart';
 import '../../tools/publish_config.dart';
+import '../../tools/terminal_guard.dart';
 import '../../tools/version_selector.dart';
 
 /// Typedef for editing the merge message interactively.
 typedef EditMessage = Future<String?> Function(String initialMessage);
+
+/// Typedef for confirming feature branch deletion.
+typedef ConfirmDeleteFeatureBranch = bool Function(String branchName);
 
 /// Interactively builds the `.gg/.gg-publish.json` publish configuration for
 /// the current repository: version increment (patch/minor/major) plus merge
@@ -39,11 +44,16 @@ class DoConfigurePublish extends DirCommand<void> {
     VersionSelector? versionSelector,
     FromPubspec? fromPubspec,
     EditMessage? editMessage,
+    ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
+    LocalBranch? localBranch,
     EnsurePublishConfigIgnored? ensureIgnored,
     // coverage:ignore-start
   }) : _versionSelector = versionSelector ?? VersionSelector(),
        _fromPubspec = fromPubspec ?? FromPubspec(ggLog: ggLog),
        _editMessage = editMessage ?? _defaultEditMessage,
+       _confirmDeleteFeatureBranch =
+           confirmDeleteFeatureBranch ?? defaultConfirmDeleteFeatureBranch,
+       _localBranch = localBranch ?? LocalBranch(ggLog: ggLog),
        _ensureIgnored =
            ensureIgnored ?? EnsurePublishConfigIgnored(ggLog: ggLog) {
     // coverage:ignore-end
@@ -53,6 +63,8 @@ class DoConfigurePublish extends DirCommand<void> {
   final VersionSelector _versionSelector;
   final FromPubspec _fromPubspec;
   final EditMessage _editMessage;
+  final ConfirmDeleteFeatureBranch _confirmDeleteFeatureBranch;
+  final LocalBranch _localBranch;
   final EnsurePublishConfigIgnored _ensureIgnored;
 
   /// Returns the `.gg/.gg-publish.json` file for [repoDir].
@@ -61,10 +73,15 @@ class DoConfigurePublish extends DirCommand<void> {
 
   @override
   Future<void> get({required Directory directory, required GgLog ggLog}) async {
+    final deleteWasParsed =
+        argResults?.wasParsed('delete-feature-branch') ?? false;
     await configure(
       directory: directory,
       ggLog: ggLog,
       mergeMessage: argResults?['message'] as String?,
+      deleteFeatureBranch: deleteWasParsed
+          ? (argResults?['delete-feature-branch'] as bool?)
+          : null,
     );
   }
 
@@ -74,16 +91,20 @@ class DoConfigurePublish extends DirCommand<void> {
   /// `.gitignore` (and that change committed) so the runtime file never
   /// shows up as an untracked file.
   ///
-  /// [versionIncrement] and [mergeMessage] are presets (e.g. from `-m` or a
-  /// programmatic caller): a preset value is used as-is and its prompt is
-  /// skipped. A missing merge message is asked for with the `.ticket`
-  /// description as the initial value; an empty answer falls back to the
-  /// description and finally to `Publish <dirname>`, so it is never empty.
+  /// [versionIncrement], [mergeMessage] and [deleteFeatureBranch] are presets
+  /// (e.g. from `-m`/`--delete-feature-branch` or a programmatic caller): a
+  /// preset value is used as-is and its prompt is skipped. A missing merge
+  /// message is asked for with the `.ticket` description as the initial
+  /// value; an empty answer falls back to the description and finally to
+  /// `Publish <dirname>`, so it is never empty. The delete-feature-branch
+  /// decision is asked HERE — before the publish starts — so no interactive
+  /// prompt sits between the irreversible publish steps anymore.
   Future<PublishConfig> configure({
     required Directory directory,
     required GgLog ggLog,
     String? versionIncrement,
     String? mergeMessage,
+    bool? deleteFeatureBranch,
   }) async {
     await check(directory: directory);
 
@@ -126,9 +147,16 @@ class DoConfigurePublish extends DirCommand<void> {
       }
     }
 
+    final delete =
+        deleteFeatureBranch ??
+        _confirmDeleteFeatureBranch(
+          await _localBranch.get(directory: directory, ggLog: <String>[].add),
+        );
+
     final config = PublishConfig(
       versionIncrement: increment,
       mergeMessage: message,
+      deleteFeatureBranch: delete,
     );
     await config.save(file: file);
     ggLog(green('Wrote publish configuration to ${file.path}'));
@@ -184,11 +212,32 @@ class DoConfigurePublish extends DirCommand<void> {
   /// Opens an interactive editor for the merge message.
   // coverage:ignore-start
   static Future<String?> _defaultEditMessage(String initialMessage) async {
+    throwWhenNotATerminal(
+      'the merge message prompt',
+      'pass -m <message> or provide a .gg/.gg-publish.json (--config)',
+    );
     return Input(
       prompt: 'Edit merge message',
       defaultValue: initialMessage,
       initialText: initialMessage,
     ).interact();
+  }
+
+  /// Asks whether the feature branch should be deleted after publishing.
+  /// Shared default for `configure-publish` and `do publish`.
+  static bool defaultConfirmDeleteFeatureBranch(String branchName) {
+    throwWhenNotATerminal(
+      'the delete-feature-branch prompt',
+      'pass --delete-feature-branch / --no-delete-feature-branch or set '
+          'delete_feature_branch in .gg/.gg-publish.json',
+    );
+    final selection = Select(
+      prompt: 'Delete feature branch $branchName on origin?',
+      options: const <String>['Yes', 'No'],
+      initialIndex: 1,
+    ).interact();
+
+    return selection == 0;
   }
   // coverage:ignore-end
 
@@ -199,6 +248,14 @@ class DoConfigurePublish extends DirCommand<void> {
       help:
           'The merge message to write into the configuration. When given, '
           'the interactive merge-message prompt is skipped.',
+    );
+    argParser.addFlag(
+      'delete-feature-branch',
+      help:
+          'Whether the feature branch is deleted on origin after '
+          'publishing. When given, the interactive prompt is skipped.',
+      defaultsTo: false,
+      negatable: true,
     );
   }
 }

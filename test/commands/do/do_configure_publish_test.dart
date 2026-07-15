@@ -59,6 +59,7 @@ void main() {
     List<int> increments = const [0],
     _StubAdapter? adapter,
     EditMessage? editMessage,
+    ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
   }) => DoConfigurePublish(
     ggLog: ggLog,
     versionSelector: VersionSelector(
@@ -70,6 +71,7 @@ void main() {
           capturedInitials.add(initial);
           return initial;
         },
+    confirmDeleteFeatureBranch: confirmDeleteFeatureBranch ?? (_) => false,
   );
 
   PublishConfig reload() => PublishConfig.load(
@@ -103,6 +105,59 @@ void main() {
         expect(messages.join('\n'), contains('Wrote publish configuration'));
       },
     );
+
+    group('delete-feature-branch decision', () {
+      test('asks with the current branch name and stores the answer', () async {
+        var promptedBranch = '';
+        final config = await makeCommand(
+          confirmDeleteFeatureBranch: (branch) {
+            promptedBranch = branch;
+            return true;
+          },
+        ).configure(directory: d, ggLog: ggLog, mergeMessage: 'msg');
+
+        // initLocalGit starts on the default branch.
+        expect(promptedBranch, isNotEmpty);
+        expect(config.deleteFeatureBranch, isTrue);
+        expect(reload().deleteFeatureBranch, isTrue);
+      });
+
+      test('a preset skips the prompt', () async {
+        final config =
+            await makeCommand(
+              confirmDeleteFeatureBranch: (_) =>
+                  fail('Prompt must not run for a preset decision.'),
+            ).configure(
+              directory: d,
+              ggLog: ggLog,
+              mergeMessage: 'msg',
+              deleteFeatureBranch: false,
+            );
+
+        expect(config.deleteFeatureBranch, isFalse);
+      });
+
+      test('CLI --delete-feature-branch flows into the config', () async {
+        final runner = CommandRunner<void>('gg', 'gg')
+          ..addCommand(
+            makeCommand(
+              confirmDeleteFeatureBranch: (_) =>
+                  fail('Prompt must not run when the flag is given.'),
+            ),
+          );
+
+        await runner.run([
+          'configure-publish',
+          '-i',
+          d.path,
+          '-m',
+          'CLI message',
+          '--delete-feature-branch',
+        ]);
+
+        expect(reload().deleteFeatureBranch, isTrue);
+      });
+    });
 
     test('a preset merge message skips the message prompt', () async {
       final command = makeCommand(

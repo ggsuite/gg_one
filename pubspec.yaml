@@ -1,6 +1,6 @@
 name: gg_one
 description: A collection of checks and actions like analyzing, linting, testing, code coverage, committing, pushing, publishing.
-version: 10.0.0
+version: 10.1.0
 repository: https://github.com/ggsuite/gg_one.git
 
 environment:

@@ -56,6 +56,7 @@ export 'src/tools/ensure_publish_config_ignored.dart';
 export 'src/tools/gg_state.dart';
 export 'src/tools/publish_config.dart';
 export 'src/tools/repository_url.dart';
+export 'src/tools/terminal_guard.dart';
 export 'src/tools/version_selector.dart';
 // Project-type detection and package-manager handling now live in gg_lang
 // (the shared language catalog). Re-exported here so existing gg_one

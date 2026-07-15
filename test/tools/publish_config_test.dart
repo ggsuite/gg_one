@@ -774,6 +774,44 @@ void main() {
         },
       );
 
+      test('delete_feature_branch round-trips and survives copies', () async {
+        final cfg = PublishConfig(
+          versionIncrement: 'patch',
+          mergeMessage: 'm',
+          deleteFeatureBranch: true,
+        ).withStepDone('merge').withRepoStatus('foo', 'published');
+        expect(cfg.deleteFeatureBranch, isTrue);
+        expect(cfg.toJson()['delete_feature_branch'], isTrue);
+        // Omitted when unset.
+        expect(
+          PublishConfig().toJson().containsKey('delete_feature_branch'),
+          isFalse,
+        );
+
+        final file = File(p.join(tmp.path, 'dfb.json'));
+        await cfg.save(file: file);
+        final reloaded = PublishConfig.load(
+          configArg: file.path,
+          fallbackDir: tmp.path,
+        );
+        expect(reloaded.deleteFeatureBranch, isTrue);
+      });
+
+      test('rejects a non-boolean delete_feature_branch', () async {
+        await writeConfig('cfg.json', '{"delete_feature_branch": "yes"}');
+        expect(
+          () =>
+              PublishConfig.load(configArg: 'cfg.json', fallbackDir: tmp.path),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('"delete_feature_branch" must be a boolean'),
+            ),
+          ),
+        );
+      });
+
       test('done_steps round-trips through toJson/save/load', () async {
         final cfg = PublishConfig(
           versionIncrement: 'minor',

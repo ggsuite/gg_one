@@ -9,6 +9,8 @@ import 'package:interact/interact.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+import 'terminal_guard.dart';
+
 /// Abstraction over interactive selection used by [VersionSelector].
 abstract class InteractAdapter {
   /// Lets the user choose one of the given [options] and returns the index.
@@ -23,6 +25,11 @@ class DefaultInteractAdapter implements InteractAdapter {
     required String message,
     required List<String> options,
   }) async {
+    throwWhenNotATerminal(
+      'the version-increment prompt',
+      'provide version_increment via .gg/.gg-publish.json '
+          '(gg do configure-publish) or --config',
+    );
     final select = Select(prompt: message, options: options);
 
     final result = select.interact(); // coverage:ignore-line

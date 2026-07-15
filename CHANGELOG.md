@@ -1,5 +1,24 @@
 # Changelog
 
+## [10.1.0] - 2026-07-16
+
+### Added
+
+- delete\_feature\_branch (bool, optional) in `.gg-publish.json`: replaces
+the interactive delete-feature-branch prompt, so a config-driven publish
+is fully headless. `do configure-publish` now asks the question up front
+(presettable via `--delete-feature-branch`) and `do publish` persists
+the decision in the runtime file — a resumed run never re-asks, and no
+prompt sits between the irreversible publish steps anymore.
+- All default prompts (version increment, merge message, branch/ticket
+deletion) fail fast with an actionable error when stdin is not a
+terminal (new throwWhenNotATerminal in `tools/terminal_guard.dart`),
+instead of hanging forever in CI or piped shells.
+
+### Changed
+
+- Tidy CHANGELOG Unreleased sections
+
 ## [10.0.0] - 2026-07-15
 
 ### Added
@@ -666,6 +685,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[10.1.0]: https://github.com/ggsuite/gg_one/compare/10.0.0...10.1.0
 [10.0.0]: https://github.com/ggsuite/gg_one/compare/9.5.0...10.0.0
 [9.5.0]: https://github.com/ggsuite/gg_one/compare/9.4.0...9.5.0
 [9.4.0]: https://github.com/ggsuite/gg_one/compare/9.3.0...9.4.0

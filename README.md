@@ -120,13 +120,17 @@ gg one do publish --config .gg-publish.json
 ```jsonc
 {
   "version_increment": "patch",                // "patch" | "minor" | "major"
-  "merge_message": "Release: API cleanup"
+  "merge_message": "Release: API cleanup",
+  "delete_feature_branch": true                // optional
 }
 ```
 
-Both fields are mandatory when `--config` is given — a missing field
-causes a `FormatException` instead of silently dropping back to a
-prompt.
+`version_increment` and `merge_message` are mandatory when `--config` is
+given — a missing field causes a `FormatException` instead of silently
+dropping back to a prompt. `delete_feature_branch` is optional and
+replaces the interactive delete prompt, making a config-driven publish
+fully headless. All prompts fail fast with an actionable message when
+stdin is not a terminal (CI, pipes), instead of hanging forever.
 
 ### Where the config is looked up
 
