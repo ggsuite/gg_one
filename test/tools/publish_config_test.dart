@@ -4,6 +4,7 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:gg_one/gg_one.dart';
@@ -511,6 +512,295 @@ void main() {
 
     test('allowedVersionIncrements covers exactly patch/minor/major', () {
       expect(allowedVersionIncrements, equals({'patch', 'minor', 'major'}));
+    });
+
+    test('allowedPublishStatuses covers exactly pending/published/failed', () {
+      expect(
+        allowedPublishStatuses,
+        equals({'pending', 'published', 'failed'}),
+      );
+    });
+
+    group('status parsing in load()', () {
+      test('parses a valid per-repo status', () async {
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "x",
+  "repos": {
+    "foo": {
+      "version_increment": "minor",
+      "merge_message": "m",
+      "status": "published"
+    }
+  }
+}
+''');
+        final cfg = PublishConfig.load(
+          configArg: 'release.json',
+          fallbackDir: tmp.path,
+        );
+        expect(cfg.repos['foo']!.status, 'published');
+      });
+
+      test('rejects an unknown status with an enumerating error', () async {
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "x",
+  "repos": {
+    "foo": { "status": "halfway" }
+  }
+}
+''');
+        expect(
+          () => PublishConfig.load(
+            configArg: 'release.json',
+            fallbackDir: tmp.path,
+          ),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              allOf(
+                contains('status'),
+                contains('pending'),
+                contains('published'),
+                contains('failed'),
+              ),
+            ),
+          ),
+        );
+      });
+    });
+
+    group('toJson()', () {
+      test('emits every set field including per-repo status', () {
+        final cfg = PublishConfig(
+          versionIncrement: 'patch',
+          mergeMessage: 'top',
+          deleteTicket: true,
+          repos: {
+            'foo': RepoOverride(
+              versionIncrement: 'minor',
+              mergeMessage: 'm',
+              status: 'published',
+            ),
+          },
+        );
+        expect(cfg.toJson(), <String, dynamic>{
+          'version_increment': 'patch',
+          'merge_message': 'top',
+          'delete_ticket': true,
+          'repos': <String, dynamic>{
+            'foo': <String, dynamic>{
+              'version_increment': 'minor',
+              'merge_message': 'm',
+              'status': 'published',
+            },
+          },
+        });
+      });
+
+      test('omits null fields and an empty repos section', () {
+        expect(PublishConfig().toJson(), <String, dynamic>{});
+      });
+    });
+
+    group('save()', () {
+      test('round-trips through load() and writes no BOM', () async {
+        final cfg = PublishConfig(
+          deleteTicket: false,
+          repos: {
+            'foo': RepoOverride(
+              versionIncrement: 'major',
+              mergeMessage: 'release foo',
+              status: 'pending',
+            ),
+          },
+        );
+        // Parent `.gg/` does not exist yet — save() must create it.
+        final file = File(p.join(tmp.path, '.gg', '.gg-publish.json'));
+        await cfg.save(file: file);
+        expect(file.existsSync(), isTrue);
+
+        final bytes = await file.readAsBytes();
+        expect(bytes.take(3), isNot(equals(<int>[0xEF, 0xBB, 0xBF])));
+
+        final reloaded = PublishConfig.load(
+          configArg: file.path,
+          fallbackDir: tmp.path,
+        );
+        expect(reloaded.deleteTicket, isFalse);
+        expect(reloaded.repos['foo']!.versionIncrement, 'major');
+        expect(reloaded.repos['foo']!.mergeMessage, 'release foo');
+        expect(reloaded.repos['foo']!.status, 'pending');
+      });
+
+      test('writes into an existing directory too', () async {
+        final cfg = PublishConfig(versionIncrement: 'patch', mergeMessage: 'x');
+        // Parent (tmp) already exists — exercises the no-create branch.
+        final file = File(p.join(tmp.path, '.gg-publish.json'));
+        await cfg.save(file: file);
+        final decoded = jsonDecode(await file.readAsString());
+        expect(decoded['version_increment'], 'patch');
+      });
+    });
+
+    group('withRepoStatus() / statusForRepo()', () {
+      test('sets the status while preserving the repo config values', () {
+        final cfg = PublishConfig(
+          repos: {
+            'foo': RepoOverride(versionIncrement: 'minor', mergeMessage: 'm'),
+          },
+        );
+        final updated = cfg.withRepoStatus('foo', 'published');
+        expect(updated.statusForRepo('foo'), 'published');
+        expect(updated.repos['foo']!.versionIncrement, 'minor');
+        expect(updated.repos['foo']!.mergeMessage, 'm');
+        // Original stays untouched (immutability).
+        expect(cfg.statusForRepo('foo'), isNull);
+      });
+
+      test('adds a marker for a repo that had no override yet', () {
+        final cfg = PublishConfig(versionIncrement: 'patch', mergeMessage: 'x');
+        final updated = cfg.withRepoStatus('newRepo', 'failed');
+        expect(updated.statusForRepo('newRepo'), 'failed');
+        expect(updated.repos['newRepo']!.versionIncrement, isNull);
+      });
+
+      test('statusForRepo returns null for an unknown repo', () {
+        expect(PublishConfig().statusForRepo('nope'), isNull);
+      });
+    });
+
+    group('done_steps parsing in load()', () {
+      test('parses a valid done_steps list and dedupes entries', () async {
+        await writeConfig('cfg.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "done_steps": ["prepare_version", "merge", "prepare_version"]
+}
+''');
+        final cfg = PublishConfig.load(
+          configArg: 'cfg.json',
+          fallbackDir: tmp.path,
+        );
+        expect(cfg.doneSteps, ['prepare_version', 'merge']);
+        expect(cfg.isStepDone('merge'), isTrue);
+        expect(cfg.isStepDone('tag'), isFalse);
+        expect(cfg.hasStepProgress, isTrue);
+      });
+
+      test('rejects a non-list done_steps', () async {
+        await writeConfig('cfg.json', '{"done_steps": "merge"}');
+        expect(
+          () =>
+              PublishConfig.load(configArg: 'cfg.json', fallbackDir: tmp.path),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('must be a list of strings'),
+            ),
+          ),
+        );
+      });
+
+      test('rejects unknown step names with an enumerating error', () async {
+        await writeConfig('cfg.json', '{"done_steps": ["fly_to_moon"]}');
+        expect(
+          () =>
+              PublishConfig.load(configArg: 'cfg.json', fallbackDir: tmp.path),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              allOf(contains('prepare_version'), contains('fly_to_moon')),
+            ),
+          ),
+        );
+      });
+    });
+
+    group('withStepDone() / isStepDone()', () {
+      test('appends steps in completion order and is idempotent', () {
+        final cfg = PublishConfig(versionIncrement: 'patch', mergeMessage: 'm')
+            .withStepDone('prepare_version')
+            .withStepDone('publish_registry')
+            .withStepDone('prepare_version'); // no-op
+        expect(cfg.doneSteps, ['prepare_version', 'publish_registry']);
+        // The original config values survive the copies.
+        expect(cfg.versionIncrement, 'patch');
+        expect(cfg.mergeMessage, 'm');
+      });
+
+      test('throws ArgumentError for an unknown step', () {
+        expect(
+          () => PublishConfig().withStepDone('fly_to_moon'),
+          throwsArgumentError,
+        );
+      });
+
+      test('withRepoStatus preserves doneSteps', () {
+        final cfg = PublishConfig(
+          versionIncrement: 'patch',
+          mergeMessage: 'm',
+        ).withStepDone('merge').withRepoStatus('foo', 'published');
+        expect(cfg.doneSteps, ['merge']);
+      });
+
+      test(
+        'branch round-trips and survives withStepDone/withRepoStatus',
+        () async {
+          final cfg = PublishConfig(
+            versionIncrement: 'patch',
+            mergeMessage: 'm',
+            branch: 'feat_abc',
+          ).withStepDone('merge').withRepoStatus('foo', 'published');
+          expect(cfg.branch, 'feat_abc');
+          expect(cfg.toJson()['branch'], 'feat_abc');
+          // Omitted when unset.
+          expect(PublishConfig().toJson().containsKey('branch'), isFalse);
+
+          final file = File(p.join(tmp.path, 'branch.json'));
+          await cfg.save(file: file);
+          final reloaded = PublishConfig.load(
+            configArg: file.path,
+            fallbackDir: tmp.path,
+          );
+          expect(reloaded.branch, 'feat_abc');
+        },
+      );
+
+      test('done_steps round-trips through toJson/save/load', () async {
+        final cfg = PublishConfig(
+          versionIncrement: 'minor',
+          mergeMessage: 'msg',
+        ).withStepDone('prepare_version');
+        expect(cfg.toJson()['done_steps'], ['prepare_version']);
+        // An empty list is omitted from the JSON.
+        expect(PublishConfig().toJson().containsKey('done_steps'), isFalse);
+
+        final file = File(p.join(tmp.path, 'rt.json'));
+        await cfg.save(file: file);
+        final reloaded = PublishConfig.load(
+          configArg: file.path,
+          fallbackDir: tmp.path,
+        );
+        expect(reloaded.doneSteps, ['prepare_version']);
+      });
+    });
+
+    test('allowedPublishSteps covers exactly the five tracked steps', () {
+      expect(allowedPublishSteps, {
+        'prepare_version',
+        'publish_registry',
+        'merge',
+        'delete_feature_branch',
+        'tag',
+      });
     });
   });
 }

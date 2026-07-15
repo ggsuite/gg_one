@@ -4,7 +4,6 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:gg_one/gg_one.dart';
@@ -24,10 +23,15 @@ import 'package:pub_semver/pub_semver.dart';
 /// Typedef for confirming feature branch deletion.
 typedef ConfirmDeleteFeatureBranch = bool Function(String branchName);
 
-/// Typedef for editing the merge message interactively.
-typedef EditMessage = Future<String?> Function(String initialMessage);
-
 /// Publishes the current directory.
+///
+/// All interactive decisions (version increment, merge message) are resolved
+/// up front — from explicit parameters, `--config`, an existing
+/// `.gg/.gg-publish.json` or an automatic `do configure-publish`. While the
+/// publish runs, its per-step progress is recorded in
+/// `<repo>/.gg/.gg-publish.json` (see [allowedPublishSteps]); a failed run
+/// can be resumed with `--continue` and skips the steps already done. The
+/// file is deleted after a fully successful publish.
 class DoPublish extends DirCommand<void> {
   /// Constructor
   DoPublish({
@@ -47,12 +51,12 @@ class DoPublish extends DirCommand<void> {
     changelog.Release? release,
     PublishTo? publishTo,
     DoMerge? doMerge,
-    VersionSelector? versionSelector,
     PublishedVersion? publishedVersion,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
     LocalBranch? localBranch,
     ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
-    EditMessage? editMessage,
+    DoConfigurePublish? configurePublish,
+    EnsurePublishConfigIgnored? ensureIgnored,
     // coverage:ignore-start
   }) : _canPublish = canPublish ?? CanPublish(ggLog: ggLog),
        _publishToPubDev = publish ?? Publish(ggLog: ggLog),
@@ -73,28 +77,20 @@ class DoPublish extends DirCommand<void> {
        _isPublished = isPublished ?? IsPublished(ggLog: ggLog),
        _publishTo = publishTo ?? PublishTo(ggLog: ggLog),
        _doMerge = doMerge ?? DoMerge(ggLog: ggLog),
-       _versionSelector = versionSelector ?? VersionSelector(),
        _publishedVersion = publishedVersion,
        _processWrapper = processWrapper,
        _localBranch = localBranch ?? LocalBranch(ggLog: ggLog),
        _confirmDeleteFeatureBranch =
            confirmDeleteFeatureBranch ?? _defaultConfirmDeleteFeatureBranch,
-       _editMessage = editMessage ?? _defaultEditMessage {
+       _configurePublish = configurePublish ?? DoConfigurePublish(ggLog: ggLog),
+       _ensureIgnored =
+           ensureIgnored ?? EnsurePublishConfigIgnored(ggLog: ggLog) {
     // coverage:ignore-end
     _addArgs();
   }
 
   /// The key used to save the state of the command.
   final String stateKey = 'doPublish';
-
-  /// The key used to save the prepared version state.
-  final String stateKeyDoPrepareVersion = 'doPrepareVersion';
-
-  /// The key used to save the pub.dev publishing state.
-  final String stateKeyDoPublishPubDev = 'doPublishPubDev';
-
-  /// The key used to save the merge state.
-  final String stateKeyDoMerge = 'doMerge';
 
   /// The key used to save the "all changes committed" state (checked by the
   /// pre-push hook via »gg did commit«).
@@ -109,6 +105,7 @@ class DoPublish extends DirCommand<void> {
     bool? deleteFeatureBranch,
     bool? verbose,
     String? versionIncrement,
+    bool? resume,
   }) => get(
     directory: directory,
     ggLog: ggLog,
@@ -117,6 +114,7 @@ class DoPublish extends DirCommand<void> {
     deleteFeatureBranch: deleteFeatureBranch,
     verbose: verbose,
     versionIncrement: versionIncrement,
+    resume: resume,
   );
 
   @override
@@ -128,100 +126,179 @@ class DoPublish extends DirCommand<void> {
     bool? deleteFeatureBranch,
     bool? verbose,
     String? versionIncrement,
+    bool? resume,
   }) async {
     final isVerbose = verbose ?? _verboseFromArgs;
     _publishedVersion ??= PublishedVersion(ggLog: ggLog);
 
-    // Load --config <path> (with .gg/ fallback) for version_increment + msg.
-    if (versionIncrement == null || message == null) {
-      final configArg = argResults?['config'] as String?;
+    // Does directory exist?
+    await check(directory: directory);
+    void noLog(_) {} // coverage:ignore-line
+
+    final cliContinue = argResults?['continue'] as bool? ?? false;
+    final reconfigure = argResults?['reconfigure'] as bool? ?? false;
+    final configArg = argResults?['config'] as String?;
+    message ??= _messageFromArgs;
+
+    if (cliContinue && (configArg != null || reconfigure)) {
+      throw Exception(
+        '--continue cannot be combined with --config or --reconfigure. '
+        'Resume with "--continue" alone, or start a fresh run without it.',
+      );
+    }
+
+    // Step 1: Read the runtime .gg/.gg-publish.json (config + progress).
+    final runtimeFile = DoConfigurePublish.configFileFor(directory);
+    if (cliContinue && !runtimeFile.existsSync()) {
+      throw Exception(
+        'Nothing to continue: ${runtimeFile.path} does not exist. Start a '
+        'normal "gg do publish" first.',
+      );
+    }
+    if (reconfigure && runtimeFile.existsSync()) {
+      // Explicit user choice: discard the previous config and progress.
+      runtimeFile.deleteSync();
+    }
+    final PublishConfig? runtimeConfig = runtimeFile.existsSync()
+        ? PublishConfig.load(
+            configArg: runtimeFile.path,
+            fallbackDir: directory.path,
+          )
+        : null;
+
+    // A resumed run continues at the first step that is not done yet.
+    // gg_multi forwards its own --continue via [resume].
+    final resuming =
+        (cliContinue || (resume ?? false)) &&
+        (runtimeConfig?.hasStepProgress ?? false);
+
+    if (!resuming && (runtimeConfig?.hasStepProgress ?? false)) {
+      throw Exception(
+        'An unfinished publish left progress in ${runtimeFile.path}. '
+        'Resume it with "gg do publish --continue", or discard it with '
+        '"gg do publish --reconfigure".',
+      );
+    }
+
+    // Step 2: Did already publish? Only trusted when no in-flight progress
+    // exists — a leftover progress file means later steps (e.g. the tag)
+    // still have to run.
+    final isDone = await _state.readSuccess(
+      directory: directory,
+      key: stateKey,
+      ggLog: ggLog,
+    );
+    if (isDone && !resuming) {
+      ggLog(yellow('Current state is already published.'));
+      return;
+    }
+
+    // Step 3: Make the runtime file invisible to git before it is written.
+    await _ensureIgnored.ensure(directory: directory);
+
+    // Step 4: Resolve version increment + merge message. Precedence:
+    // explicit parameters (the gg_multi flow) > --config > the runtime
+    // .gg/.gg-publish.json > an interactive `do configure-publish`.
+    String? resolvedIncrement = versionIncrement;
+    String? resolvedMessage = message;
+    if (resolvedIncrement == null || resolvedMessage == null) {
       if (configArg != null) {
         final config = PublishConfig.load(
           configArg: configArg,
           fallbackDir: join(directory.path, '.gg'),
         );
         final resolved = config.resolveSingle(configPath: configArg);
-        versionIncrement ??= resolved.versionIncrement;
-        message ??= resolved.mergeMessage;
+        resolvedIncrement ??= resolved.versionIncrement;
+        resolvedMessage ??= resolved.mergeMessage;
+      } else if (runtimeConfig != null) {
+        final resolved = runtimeConfig.resolveSingle(
+          configPath: runtimeFile.path,
+        );
+        resolvedIncrement ??= resolved.versionIncrement;
+        resolvedMessage ??= resolved.mergeMessage;
+      } else {
+        final config = await _configurePublish.configure(
+          directory: directory,
+          ggLog: ggLog,
+          versionIncrement: resolvedIncrement,
+          mergeMessage: resolvedMessage,
+        );
+        resolvedIncrement = config.versionIncrement;
+        resolvedMessage = config.mergeMessage;
       }
     }
+    _explicitVersionIncrement = resolvedIncrement;
 
-    _explicitVersionIncrement = versionIncrement;
+    // The feature branch is persisted in the runtime file: a resumed run may
+    // find HEAD on the default branch already (the merge happened), so it
+    // must not be re-read from HEAD then.
+    final featureBranch =
+        runtimeConfig?.branch ??
+        await _localBranch.get(directory: directory, ggLog: <String>[].add);
 
-    message = await _resolveMergeMessage(
-      directory: directory,
-      message: message,
+    // Step 5: Persist the resolved config (+ carried-over progress) as the
+    // runtime file — the resume anchor for this run.
+    var progress = PublishConfig(
+      versionIncrement: resolvedIncrement,
+      mergeMessage: resolvedMessage,
+      branch: featureBranch,
+      doneSteps: resuming ? runtimeConfig!.doneSteps : null,
     );
+    await progress.save(file: runtimeFile);
 
-    // Does directory exist?
-    await check(directory: directory);
-    void noLog(_) {} // coverage:ignore-line
-
-    final branchName = await _localBranch.get(
-      directory: directory,
-      ggLog: <String>[].add,
-    );
-
-    // Did already publish?
-    final isDone = await _state.readSuccess(
-      directory: directory,
-      key: stateKey,
-      ggLog: ggLog,
-    );
-
-    if (isDone) {
-      ggLog(yellow('Current state is already published.'));
-      return;
+    Future<void> markStepDone(String step) async {
+      progress = progress.withStepDone(step);
+      await progress.save(file: runtimeFile);
     }
 
-    // Can publish?
-    await _canPublish.exec(directory: directory, ggLog: ggLog);
+    // Step 6: Validate. Skipped when resuming — after a partial publish
+    // (version bumped, possibly merged) the checks would fail although the
+    // remaining steps are perfectly resumable.
+    if (resuming) {
+      ggLog(
+        yellow('Resuming the unfinished publish — "can publish" is skipped.'),
+      );
+    } else {
+      await _canPublish.exec(directory: directory, ggLog: ggLog);
+    }
 
     await _doPush.gitPush(directory: directory, force: false);
 
-    final didPrepareVersion = await _state.readSuccess(
-      directory: directory,
-      key: stateKeyDoPublishPubDev,
-      ggLog: ggLog,
-    );
-
-    if (!didPrepareVersion) {
+    // Step 7: Prepare version + changelog.
+    if (!progress.isStepDone('prepare_version')) {
       await _prepareVersion(directory: directory, ggLog: ggLog, noLog: noLog);
-
-      await _state.writeSuccess(
-        directory: directory,
-        key: stateKeyDoPrepareVersion,
-      );
+      await markStepDone('prepare_version');
     }
 
-    final didPublishPubDev = await _didPublishPubDevOrVersionAlreadyPublished(
-      directory: directory,
-      ggLog: ggLog,
-    );
-
-    if (!didPublishPubDev) {
-      final hashBeforePubDev = await _state.currentHash(
+    // Step 8: Publish to the registry (pub.dev/npm). The registry lookup is
+    // a safety net: a version that is already visible must not be published
+    // again on a resumed run whose marker got lost.
+    if (!progress.isStepDone('publish_registry')) {
+      final alreadyPublished = await _versionAlreadyPublished(
         directory: directory,
         ggLog: ggLog,
       );
 
-      await _publishToPubDevIfNeeded(
-        directory: directory,
-        ggLog: ggLog,
-        askBeforePublishing: askBeforePublishing,
-      );
+      if (!alreadyPublished) {
+        final hashBeforePubDev = await _state.currentHash(
+          directory: directory,
+          ggLog: ggLog,
+        );
 
-      await _commitLockFileIfChanged(
-        directory: directory,
-        ggLog: ggLog,
-        hashBefore: hashBeforePubDev,
-        verbose: isVerbose,
-      );
+        await _publishToPubDevIfNeeded(
+          directory: directory,
+          ggLog: ggLog,
+          askBeforePublishing: askBeforePublishing,
+        );
 
-      await _state.writeSuccess(
-        directory: directory,
-        key: stateKeyDoPublishPubDev,
-      );
+        await _commitLockFileIfChanged(
+          directory: directory,
+          ggLog: ggLog,
+          hashBefore: hashBeforePubDev,
+          verbose: isVerbose,
+        );
+      }
+      await markStepDone('publish_registry');
     }
 
     // Protected main branches (e.g. Azure DevOps) reject a direct push to main
@@ -230,21 +307,21 @@ class DoPublish extends DirCommand<void> {
     // followed by a direct push to main.
     final viaPullRequest = await _shouldMergeViaPullRequest(directory);
 
-    final didMerge = await _state.readSuccess(
-      directory: directory,
-      key: stateKeyDoMerge,
-      ggLog: ggLog,
-    );
-
-    if (!didMerge) {
+    // Step 9: Merge into the default branch.
+    if (!progress.isStepDone('merge')) {
       await _merge(
         directory: directory,
-        message: message,
+        message: resolvedMessage,
         verbose: isVerbose,
         viaPullRequest: viaPullRequest,
       );
-
-      await _state.writeSuccess(directory: directory, key: stateKeyDoMerge);
+      await markStepDone('merge');
+    } else if (!viaPullRequest) {
+      // The merge commit lives on the default branch, but a resumed run may
+      // still sit on the feature branch (gg_multi checks it out again after
+      // a failure). Move to the default branch so the following push and tag
+      // target the release commit.
+      await _checkoutDefaultBranch(directory);
     }
 
     // Save state
@@ -262,21 +339,33 @@ class DoPublish extends DirCommand<void> {
       await _doPush.gitPush(directory: directory, force: false);
 
       final shouldDelete = await _resolveDeleteFeatureBranch(
-        branchName: branchName,
+        branchName: featureBranch,
         deleteFeatureBranch: deleteFeatureBranch,
       );
 
-      if (shouldDelete) {
+      // Step 10: Delete the feature branch. Tracked, because re-deleting an
+      // already-deleted remote branch fails on a resumed run.
+      if (shouldDelete && !progress.isStepDone('delete_feature_branch')) {
         await _deleteFeatureBranch(
           directory: directory,
-          branchName: branchName,
+          branchName: featureBranch,
           verbose: isVerbose,
         );
+        await markStepDone('delete_feature_branch');
       }
     }
 
-    await _publishGit(directory: directory, ggLog: ggLog);
+    // Step 11: Tag the release and push the tags.
+    if (!progress.isStepDone('tag')) {
+      await _publishGit(directory: directory, ggLog: ggLog);
+      await markStepDone('tag');
+    }
     await _doPush.gitPush(directory: directory, force: false, pushTags: true);
+
+    // Step 12: Fully published — the runtime file has served its purpose.
+    if (runtimeFile.existsSync()) {
+      runtimeFile.deleteSync();
+    }
   }
 
   final Publish _publishToPubDev;
@@ -292,31 +381,22 @@ class DoPublish extends DirCommand<void> {
   final IsPublished _isPublished;
   final PublishTo _publishTo;
   final DoMerge _doMerge;
-  final VersionSelector _versionSelector;
   PublishedVersion? _publishedVersion;
   final GgProcessWrapper _processWrapper;
   final LocalBranch _localBranch;
   final ConfirmDeleteFeatureBranch _confirmDeleteFeatureBranch;
-  final EditMessage _editMessage;
+  final DoConfigurePublish _configurePublish;
+  final EnsurePublishConfigIgnored _ensureIgnored;
 
-  /// Pre-resolved version increment; when set, skips the interactive prompt.
+  /// Pre-resolved version increment; always set before the steps run.
   String? _explicitVersionIncrement;
 
-  /// Returns true when pub.dev publishing was already completed or is obsolete.
-  Future<bool> _didPublishPubDevOrVersionAlreadyPublished({
+  /// Returns true when the current version is already visible on the
+  /// registry, i.e. publishing it again is obsolete.
+  Future<bool> _versionAlreadyPublished({
     required Directory directory,
     required GgLog ggLog,
   }) async {
-    final didPublishPubDev = await _state.readSuccess(
-      directory: directory,
-      key: stateKeyDoPublishPubDev,
-      ggLog: ggLog,
-    );
-
-    if (didPublishPubDev) {
-      return true;
-    }
-
     final currentVersion = await _fromPubspec.get(
       directory: directory,
       ggLog: <String>[].add,
@@ -414,6 +494,38 @@ class DoPublish extends DirCommand<void> {
     return gg_merge.providerFromRemoteUrl(url) == gg_merge.GitProvider.azure;
   }
 
+  /// Checks out the default branch (`main`/`master`). Used when a resumed run
+  /// skips the already-done merge step: the release commit to push and tag
+  /// lives on the default branch, not on the feature branch HEAD may be on.
+  Future<void> _checkoutDefaultBranch(Directory directory) async {
+    final current = await _localBranch.get(
+      directory: directory,
+      ggLog: <String>[].add,
+    );
+    for (final candidate in ['main', 'master']) {
+      final exists = await _processWrapper.run('git', [
+        'rev-parse',
+        '--verify',
+        '--quiet',
+        'refs/heads/$candidate',
+      ], workingDirectory: directory.path);
+      if (exists.exitCode != 0) {
+        continue;
+      }
+      if (current != candidate) {
+        final checkout = await _processWrapper.run('git', [
+          'checkout',
+          candidate,
+        ], workingDirectory: directory.path);
+        if (checkout.exitCode != 0) {
+          throw Exception('git checkout $candidate failed: ${checkout.stderr}');
+        }
+        ggLog(yellow('Checked out $candidate to finish the resumed publish.'));
+      }
+      return;
+    }
+  }
+
   /// Adds the version tag for [directory] so `do_push --tags` carries it.
   /// Dart uses `AddVersionTag` (pubspec ↔ CHANGELOG); TS reads
   /// `package.json` via [AddTypeScriptVersionTag] — required for `#semver:`.
@@ -474,16 +586,9 @@ class DoPublish extends DirCommand<void> {
       ggLog: ggLog,
     );
 
-    final VersionIncrement increment;
-    final explicit = _explicitVersionIncrement;
-    if (explicit != null) {
-      // Increment was supplied (via --config or caller); skip prompt.
-      increment = parseVersionIncrement(explicit);
-    } else {
-      increment = await _versionSelector.selectIncrement(
-        currentVersion: currentVersion,
-      );
-    }
+    // The increment is always resolved before the steps run (parameters,
+    // --config, runtime file or `do configure-publish`).
+    final increment = parseVersionIncrement(_explicitVersionIncrement!);
 
     await _prepareNextVersion.exec(
       directory: directory,
@@ -615,45 +720,6 @@ class DoPublish extends DirCommand<void> {
   bool _supportsChangeLog(Directory directory) =>
       checkProjectType(directory).isDartFamily;
 
-  /// Resolves the merge message from parameters, args, or .ticket.
-  Future<String?> _resolveMergeMessage({
-    required Directory directory,
-    required String? message,
-  }) async {
-    if (message != null) {
-      return message;
-    }
-
-    final messageFromArgs = _messageFromArgs;
-    if (messageFromArgs != null) {
-      return messageFromArgs;
-    }
-
-    final initialMessage = await _readTicketDescription(directory) ?? '';
-    return _editMessage(initialMessage);
-  }
-
-  /// Reads the optional description from the .ticket file.
-  Future<String?> _readTicketDescription(Directory directory) async {
-    final ticketFile = File(join(directory.path, '.ticket'));
-    if (!await ticketFile.exists()) {
-      return null;
-    }
-
-    final raw = await ticketFile.readAsString();
-    final decoded = jsonDecode(raw);
-    if (decoded is! Map<String, dynamic>) {
-      return null;
-    }
-
-    final description = decoded['description']?.toString().trim();
-    if (description == null || description.isEmpty) {
-      return null;
-    }
-
-    return description;
-  }
-
   /// Resolves whether the feature branch should be deleted after publishing.
   Future<bool> _resolveDeleteFeatureBranch({
     required String branchName,
@@ -738,15 +804,6 @@ class DoPublish extends DirCommand<void> {
 
     return selection == 0;
   }
-
-  /// Opens an interactive editor for the merge message.
-  static Future<String?> _defaultEditMessage(String initialMessage) async {
-    return Input(
-      prompt: 'Edit merge message',
-      defaultValue: initialMessage,
-      initialText: initialMessage,
-    ).interact();
-  }
   // coverage:ignore-end
 
   void _addArgs() {
@@ -776,7 +833,9 @@ class DoPublish extends DirCommand<void> {
     argParser.addOption(
       'message',
       abbr: 'm',
-      help: 'The merge commit message used for the final merge step.',
+      help:
+          'The merge commit message used for the final merge step. When '
+          'given, the interactive merge-message prompt is skipped.',
     );
 
     argParser.addOption(
@@ -785,6 +844,24 @@ class DoPublish extends DirCommand<void> {
           'Path to a .gg-publish.json file with merge_message and '
           'version_increment. Resolved as-given (CWD), then under '
           '"<repo>/.gg/".',
+    );
+
+    argParser.addFlag(
+      'continue',
+      help:
+          'Resume a previously failed publish from where it stopped, '
+          'reusing .gg/.gg-publish.json and skipping the steps already done.',
+      defaultsTo: false,
+      negatable: false,
+    );
+
+    argParser.addFlag(
+      'reconfigure',
+      help:
+          'Discard an existing .gg/.gg-publish.json (config and progress) '
+          'and configure the publish again.',
+      defaultsTo: false,
+      negatable: true,
     );
 
     argParser.addFlag(

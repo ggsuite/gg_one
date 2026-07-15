@@ -1,5 +1,46 @@
 # Changelog
 
+## \[Unreleased\]
+
+### Added
+
+- `do configure-publish`: new command that interactively writes
+`<repo>/.gg/.gg-publish.json` (version increment + merge message; `-m`
+presets the message). `do publish` runs it automatically when started
+without a resolved configuration, so all interactive decisions happen
+before the unattended publish. The command also makes sure
+`.gg/.gg-publish.json` is listed in `.gitignore` (appending and
+committing the entry once per repo).
+- `do publish --continue` / `--reconfigure`: per-step publish progress
+(`done_steps`: prepare\_version, publish\_registry, merge,
+delete\_feature\_branch, tag) is recorded in `.gg/.gg-publish.json` and a
+failed publish resumes at the first open step — including the version
+tag, which the old hash-based state could silently skip. A leftover
+progress file makes a plain re-run refuse until `--continue` or
+`--reconfigure` is chosen. The file stores the feature branch and is
+deleted after a fully successful publish.
+- `DoPublish.exec` accepts `resume:` so `gg_multi do publish --continue`
+resumes each repo at its open step.
+- `PublishConfig`: `done_steps` + `branch` runtime fields with
+`withStepDone`/`isStepDone`/`hasStepProgress`; new
+`EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
+`.gg/.gg-publish.json` from content hashes.
+
+### Changed
+
+- **Breaking:** `DoPublish` no longer takes `versionSelector` /
+`editMessage` — both prompts live in the injectable
+`DoConfigurePublish` now. The publish-step resume no longer uses the
+hash-keyed `doPrepareVersion`/`doPublishPubDev`/`doMerge` GgState keys;
+`doPublish`/`doCommit` are still written for `did publish` and the
+pre-push hook.
+
+## [Unreleased]
+
+### Added
+
+- Add do configure-publish and step-based resumable publishing via gitignored .gg/.gg-publish.json
+
 ## [9.5.0] - 2026-07-06
 
 ### Changed
@@ -621,6 +662,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/9.5.0...HEAD
 [9.5.0]: https://github.com/ggsuite/gg_one/compare/9.4.0...9.5.0
 [9.4.0]: https://github.com/ggsuite/gg_one/compare/9.3.0...9.4.0
 [9.3.0]: https://github.com/ggsuite/gg_one/compare/9.2.2...9.3.0

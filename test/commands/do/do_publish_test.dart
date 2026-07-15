@@ -20,10 +20,12 @@ import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
+import 'package:gg_version/gg_version.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -60,6 +62,16 @@ void main() {
   bool defaultConfirmDeleteFeatureBranch(String branchName) {
     return false;
   }
+
+  // Builds the DoConfigurePublish that »do publish« runs when it is started
+  // without a resolved configuration. Uses the mocked version selector and a
+  // non-interactive merge-message editor.
+  DoConfigurePublish makeConfigurePublish({EditMessage? editMessage}) =>
+      DoConfigurePublish(
+        ggLog: ggLog,
+        versionSelector: versionSelector,
+        editMessage: editMessage ?? defaultEditMessage,
+      );
 
   // DoMerge variant for the bare test repo.
   DoMerge noPubGetDoMerge() => DoMerge(
@@ -269,12 +281,11 @@ void main() {
         ggLog: ggLog,
         publishedVersion: publishedVersion,
       ),
-      versionSelector: versionSelector,
+      configurePublish: makeConfigurePublish(),
       publishedVersion: publishedVersion,
       processWrapper: processWrapper,
       localBranch: localBranch,
       confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-      editMessage: defaultEditMessage,
       doMerge: noPubGetDoMerge(),
     );
 
@@ -517,11 +528,10 @@ void main() {
               doPublish = DoPublish(
                 ggLog: ggLog,
                 publish: publish,
-                versionSelector: versionSelector,
+                configurePublish: makeConfigurePublish(),
                 processWrapper: processWrapper,
                 localBranch: localBranch,
                 confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-                editMessage: defaultEditMessage,
                 doMerge: noPubGetDoMerge(),
               );
 
@@ -645,15 +655,16 @@ void main() {
                 ggLog: ggLog,
                 publishedVersion: publishedVersion,
               ),
-              versionSelector: versionSelector,
+              configurePublish: makeConfigurePublish(
+                editMessage: (String message) async {
+                  initialMessage = message;
+                  return 'Edited merge message';
+                },
+              ),
               publishedVersion: publishedVersion,
               processWrapper: processWrapper,
               localBranch: localBranch,
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-              editMessage: (message) async {
-                initialMessage = message;
-                return 'Edited merge message';
-              },
               doMerge: noPubGetDoMerge(),
             );
 
@@ -703,15 +714,16 @@ void main() {
                 ggLog: ggLog,
                 publishedVersion: publishedVersion,
               ),
-              versionSelector: versionSelector,
+              configurePublish: makeConfigurePublish(
+                editMessage: (String message) async {
+                  initialMessage = message;
+                  return 'Edited without ticket';
+                },
+              ),
               publishedVersion: publishedVersion,
               processWrapper: processWrapper,
               localBranch: localBranch,
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-              editMessage: (message) async {
-                initialMessage = message;
-                return 'Edited without ticket';
-              },
               doMerge: noPubGetDoMerge(),
             );
 
@@ -759,13 +771,14 @@ void main() {
                 ggLog: ggLog,
                 publishedVersion: publishedVersion,
               ),
-              versionSelector: versionSelector,
+              configurePublish: makeConfigurePublish(
+                editMessage: (_) async {
+                  fail('Editor must not be opened when message is provided.');
+                },
+              ),
               publishedVersion: publishedVersion,
               processWrapper: processWrapper,
               localBranch: localBranch,
-              editMessage: (_) async {
-                fail('Editor must not be opened when message is provided.');
-              },
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
               doMerge: noPubGetDoMerge(),
             );
@@ -885,11 +898,10 @@ void main() {
                   ggLog: ggLog,
                   publishedVersion: publishedVersion,
                 ),
-                versionSelector: versionSelector,
+                configurePublish: makeConfigurePublish(),
                 publishedVersion: publishedVersion,
                 processWrapper: processWrapper,
                 localBranch: localBranch,
-                editMessage: defaultEditMessage,
                 confirmDeleteFeatureBranch: (branchName) {
                   promptBranchName = branchName;
                   return true;
@@ -936,11 +948,10 @@ void main() {
                 ggLog: ggLog,
                 publishedVersion: publishedVersion,
               ),
-              versionSelector: versionSelector,
+              configurePublish: makeConfigurePublish(),
               publishedVersion: publishedVersion,
               processWrapper: processWrapper,
               localBranch: localBranch,
-              editMessage: defaultEditMessage,
               confirmDeleteFeatureBranch: (_) {
                 fail('Prompt must not be used when flag is provided.');
               },
@@ -1001,16 +1012,17 @@ void main() {
                 ggLog: ggLog,
                 publishedVersion: publishedVersion,
               ),
-              versionSelector: versionSelector,
+              configurePublish: makeConfigurePublish(
+                editMessage: (String initial) async {
+                  fail(
+                    'Editor must not be opened when --config supplies the '
+                    'merge_message (got initialMessage="$initial").',
+                  );
+                },
+              ),
               publishedVersion: publishedVersion,
               processWrapper: processWrapper,
               localBranch: localBranch,
-              editMessage: (initial) async {
-                fail(
-                  'Editor must not be opened when --config supplies the '
-                  'merge_message (got initialMessage="$initial").',
-                );
-              },
               confirmDeleteFeatureBranch: (_) => false,
               doMerge: noPubGetDoMerge(),
             );
@@ -1058,11 +1070,10 @@ void main() {
                 ggLog: ggLog,
                 publishedVersion: publishedVersion,
               ),
-              versionSelector: versionSelector,
+              configurePublish: makeConfigurePublish(),
               publishedVersion: publishedVersion,
               processWrapper: processWrapper,
               localBranch: localBranch,
-              editMessage: defaultEditMessage,
               confirmDeleteFeatureBranch: (_) => false,
               doMerge: noPubGetDoMerge(),
             );
@@ -1111,11 +1122,10 @@ void main() {
                   ggLog: ggLog,
                   publishedVersion: publishedVersion,
                 ),
-                versionSelector: versionSelector,
+                configurePublish: makeConfigurePublish(),
                 publishedVersion: publishedVersion,
                 processWrapper: processWrapper,
                 localBranch: localBranch,
-                editMessage: defaultEditMessage,
                 confirmDeleteFeatureBranch: (_) {
                   fail('Prompt must not be used when flag is provided.');
                 },
@@ -1172,15 +1182,16 @@ void main() {
                   ggLog: ggLog,
                   publishedVersion: publishedVersion,
                 ),
-                versionSelector: versionSelector,
+                configurePublish: makeConfigurePublish(
+                  editMessage: (_) async {
+                    fail(
+                      'Editor must not be opened when CLI message is provided.',
+                    );
+                  },
+                ),
                 publishedVersion: publishedVersion,
                 processWrapper: processWrapper,
                 localBranch: localBranch,
-                editMessage: (_) async {
-                  fail(
-                    'Editor must not be opened when CLI message is provided.',
-                  );
-                },
                 confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
                 doMerge: noPubGetDoMerge(),
               );
@@ -1431,12 +1442,11 @@ void main() {
             ggLog: ggLog,
             publishedVersion: publishedVersion,
           ),
-          versionSelector: versionSelector,
+          configurePublish: makeConfigurePublish(),
           publishedVersion: publishedVersion,
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-          editMessage: defaultEditMessage,
           doMerge: noPubGetDoMerge(),
         );
       }
@@ -1593,12 +1603,11 @@ void main() {
             ggLog: ggLog,
             publishedVersion: publishedVersion,
           ),
-          versionSelector: versionSelector,
+          configurePublish: makeConfigurePublish(),
           publishedVersion: publishedVersion,
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-          editMessage: defaultEditMessage,
           doMerge: mockDoMerge,
         );
 
@@ -1637,16 +1646,520 @@ void main() {
       });
     });
 
-    test('should have a code coverage of 100%', () {
-      expect(
-        DoPublish(
+    group('configure + resume', () {
+      late File runtimeFile;
+
+      setUp(() {
+        runtimeFile = File(join(d.path, '.gg', '.gg-publish.json'));
+      });
+
+      void stubGit(List<String> args, {int exitCode = 0}) {
+        when(
+          () => processWrapper.run('git', args, workingDirectory: d.path),
+        ).thenAnswer((_) async => ProcessResult(0, exitCode, '', ''));
+      }
+
+      AddVersionTag mockAddVersionTag() {
+        final tag = _MockAddVersionTag();
+        when(
+          () => tag.exec(
+            directory: any<Directory>(named: 'directory'),
+            ggLog: any<GgLog>(named: 'ggLog'),
+          ),
+        ).thenAnswer((_) async {});
+        return tag;
+      }
+
+      DoPublish makeResumePublish({
+        AddVersionTag? addVersionTag,
+        EditMessage? editMessage,
+      }) => DoPublish(
+        ggLog: ggLog,
+        publish: publish,
+        prepareNextVersion: PrepareNextVersion(
           ggLog: ggLog,
-          versionSelector: versionSelector,
+          publishedVersion: publishedVersion,
+        ),
+        canPublish: canPublish,
+        isPublished: IsPublished(
+          ggLog: ggLog,
+          publishedVersion: publishedVersion,
+        ),
+        addVersionTag: addVersionTag ?? mockAddVersionTag(),
+        configurePublish: makeConfigurePublish(
+          editMessage:
+              editMessage ??
+              (_) async => fail('Editor must not open on a resumed run.'),
+        ),
+        publishedVersion: publishedVersion,
+        processWrapper: processWrapper,
+        localBranch: localBranch,
+        confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+        doMerge: noPubGetDoMerge(),
+      );
+
+      test('--continue without a saved run throws a clear error', () async {
+        final runner = CommandRunner<void>('gg', 'gg')..addCommand(doPublish);
+        await expectLater(
+          () => runner.run(['publish', '-i', d.path, '--continue']),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('Nothing to continue'),
+            ),
+          ),
+        );
+      });
+
+      test('--continue rejects --config and --reconfigure', () async {
+        Matcher throwsCombineError() => throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('cannot be combined'),
+          ),
+        );
+        await expectLater(
+          () => (CommandRunner<void>('gg', 'gg')..addCommand(doPublish)).run([
+            'publish',
+            '-i',
+            d.path,
+            '--continue',
+            '--config',
+            'x.json',
+          ]),
+          throwsCombineError(),
+        );
+        await expectLater(
+          () =>
+              (CommandRunner<void>(
+                'gg',
+                'gg',
+              )..addCommand(makeResumePublish())).run([
+                'publish',
+                '-i',
+                d.path,
+                '--continue',
+                '--reconfigure',
+              ]),
+          throwsCombineError(),
+        );
+      });
+
+      test(
+        'a plain re-run refuses a runtime file that holds progress',
+        () async {
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "done_steps": ["prepare_version"]
+}
+''');
+          await expectLater(
+            () => doPublish.exec(directory: d, ggLog: ggLog),
+            throwsA(
+              isA<Exception>().having(
+                (e) => e.toString(),
+                'message',
+                contains('unfinished publish left progress'),
+              ),
+            ),
+          );
+        },
+      );
+
+      test('reuses an existing config file without prompting', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+        await DirectJson.writeFile(
+          file: File(join(d.path, '.gg', '.gg.json')),
+          path: 'doPublish/success/hash',
+          value: needsChangeHash,
+        );
+        runtimeFile.writeAsStringSync(
+          '{"version_increment":"patch",'
+          '"merge_message":"From runtime file"}',
+        );
+
+        final strictPublish = DoPublish(
+          ggLog: ggLog,
+          publish: publish,
+          prepareNextVersion: PrepareNextVersion(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          canPublish: canPublish,
+          isPublished: IsPublished(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          configurePublish: makeConfigurePublish(
+            editMessage: (_) async =>
+                fail('Editor must not open when the config file exists.'),
+          ),
           publishedVersion: publishedVersion,
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-          editMessage: defaultEditMessage,
+          doMerge: noPubGetDoMerge(),
+        );
+
+        await strictPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+        );
+
+        final headMessage = await HeadMessage(
+          ggLog: ggLog,
+        ).get(directory: d, ggLog: ggLog);
+        expect(headMessage, 'From runtime file');
+        // The runtime file is removed after the successful publish.
+        expect(runtimeFile.existsSync(), isFalse);
+      });
+
+      test('--continue resumes at the open tag step', () async {
+        // prepare/registry/merge already done; HEAD still on feat_abc as
+        // after a gg_multi keep-commits restore.
+        runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_abc",
+  "done_steps": ["prepare_version", "publish_registry", "merge"]
+}
+''');
+        stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
+        stubGit(['checkout', 'main']);
+        final tag = mockAddVersionTag();
+        final resumePublish = makeResumePublish(addVersionTag: tag);
+
+        final runner = CommandRunner<void>('gg', 'gg')
+          ..addCommand(resumePublish);
+        await runner.run([
+          'publish',
+          '-i',
+          d.path,
+          '--continue',
+          '--no-delete-feature-branch',
+        ]);
+
+        final allMessages = messages.join('\n');
+        expect(allMessages, contains('Resuming the unfinished publish'));
+        expect(
+          allMessages,
+          contains('Checked out main to finish the resumed publish.'),
+        );
+        // The registry publish was skipped — the step was already done.
+        verifyNever(
+          () => publish.exec(
+            directory: any<Directory>(named: 'directory'),
+            ggLog: any<GgLog>(named: 'ggLog'),
+            askBeforePublishing: any<bool>(named: 'askBeforePublishing'),
+          ),
+        );
+        // The default branch was checked out and the tag added there.
+        verify(
+          () => processWrapper.run('git', [
+            'checkout',
+            'main',
+          ], workingDirectory: d.path),
+        ).called(1);
+        verify(
+          () => tag.exec(
+            directory: any<Directory>(named: 'directory'),
+            ggLog: any<GgLog>(named: 'ggLog'),
+          ),
+        ).called(1);
+        expect(runtimeFile.existsSync(), isFalse);
+      });
+
+      test(
+        'resume: true (multi flow) skips done steps without CLI flags',
+        () async {
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_abc",
+  "done_steps": ["prepare_version"]
+}
+''');
+          // The un-bumped version equals the registry version — the registry
+          // safety net skips the publish step.
+          publishedVersionValue = Version(1, 2, 3);
+          mockPublishedVersion();
+
+          final resumePublish = makeResumePublish();
+          await resumePublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            resume: true,
+            message: 'Resumed merge',
+            versionIncrement: 'patch',
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+          );
+
+          expect(
+            messages.join('\n'),
+            contains('Resuming the unfinished publish'),
+          );
+          verifyNever(
+            () => publish.exec(
+              directory: any<Directory>(named: 'directory'),
+              ggLog: any<GgLog>(named: 'ggLog'),
+              askBeforePublishing: any<bool>(named: 'askBeforePublishing'),
+            ),
+          );
+          // Explicit parameters win over the runtime file values.
+          final headMessage = await HeadMessage(
+            ggLog: ggLog,
+          ).get(directory: d, ggLog: ggLog);
+          expect(headMessage, 'Resumed merge');
+          expect(runtimeFile.existsSync(), isFalse);
+        },
+      );
+
+      test('the persisted branch wins over HEAD for the delete step', () async {
+        runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_other",
+  "done_steps": ["prepare_version", "publish_registry", "merge"]
+}
+''');
+        stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
+        stubGit(['checkout', 'main']);
+        stubGit(['push', 'origin', '--delete', 'feat_other']);
+
+        final resumePublish = makeResumePublish();
+        await resumePublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          resume: true,
+          deleteFeatureBranch: true,
+        );
+
+        // The branch recorded at publish start is deleted — not the branch
+        // HEAD happens to be on now.
+        verify(
+          () => processWrapper.run('git', [
+            'push',
+            'origin',
+            '--delete',
+            'feat_other',
+          ], workingDirectory: d.path),
+        ).called(1);
+        verifyNever(
+          () => processWrapper.run('git', [
+            'push',
+            'origin',
+            '--delete',
+            'feat_abc',
+          ], workingDirectory: d.path),
+        );
+      });
+
+      test(
+        'the delete_feature_branch step is not repeated on resume',
+        () async {
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_other",
+  "done_steps":
+    ["prepare_version", "publish_registry", "merge",
+     "delete_feature_branch"]
+}
+''');
+          stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
+          stubGit(['checkout', 'main']);
+
+          final resumePublish = makeResumePublish();
+          await resumePublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            resume: true,
+            deleteFeatureBranch: true,
+          );
+
+          verifyNever(
+            () => processWrapper.run('git', [
+              'push',
+              'origin',
+              '--delete',
+              'feat_other',
+            ], workingDirectory: d.path),
+          );
+        },
+      );
+
+      group('default-branch checkout on a resumed merge', () {
+        Future<void> writeMergedRuntimeFile() async {
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_abc",
+  "done_steps": ["prepare_version", "publish_registry", "merge"]
+}
+''');
+        }
+
+        test('falls back to master when main does not exist', () async {
+          await writeMergedRuntimeFile();
+          stubGit([
+            'rev-parse',
+            '--verify',
+            '--quiet',
+            'refs/heads/main',
+          ], exitCode: 1);
+          stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/master']);
+          stubGit(['checkout', 'master']);
+
+          await makeResumePublish().exec(
+            directory: d,
+            ggLog: ggLog,
+            resume: true,
+            deleteFeatureBranch: false,
+          );
+
+          verify(
+            () => processWrapper.run('git', [
+              'checkout',
+              'master',
+            ], workingDirectory: d.path),
+          ).called(1);
+        });
+
+        test('does not check out when already on the default branch', () async {
+          await writeMergedRuntimeFile();
+          stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
+          when(
+            () => localBranch.get(
+              directory: any(named: 'directory'),
+              ggLog: any(named: 'ggLog'),
+            ),
+          ).thenAnswer((_) async => 'main');
+
+          await makeResumePublish().exec(
+            directory: d,
+            ggLog: ggLog,
+            resume: true,
+            deleteFeatureBranch: false,
+          );
+
+          verifyNever(
+            () => processWrapper.run('git', [
+              'checkout',
+              'main',
+            ], workingDirectory: d.path),
+          );
+        });
+
+        test('tolerates a repo without main and master', () async {
+          await writeMergedRuntimeFile();
+          stubGit([
+            'rev-parse',
+            '--verify',
+            '--quiet',
+            'refs/heads/main',
+          ], exitCode: 1);
+          stubGit([
+            'rev-parse',
+            '--verify',
+            '--quiet',
+            'refs/heads/master',
+          ], exitCode: 1);
+
+          await makeResumePublish().exec(
+            directory: d,
+            ggLog: ggLog,
+            resume: true,
+            deleteFeatureBranch: false,
+          );
+
+          expect(runtimeFile.existsSync(), isFalse);
+        });
+
+        test('throws when the checkout fails', () async {
+          await writeMergedRuntimeFile();
+          stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
+          stubGit(['checkout', 'main'], exitCode: 1);
+
+          await expectLater(
+            () => makeResumePublish().exec(
+              directory: d,
+              ggLog: ggLog,
+              resume: true,
+              deleteFeatureBranch: false,
+            ),
+            throwsA(
+              isA<Exception>().having(
+                (e) => e.toString(),
+                'message',
+                contains('git checkout main failed'),
+              ),
+            ),
+          );
+        });
+      });
+
+      test(
+        '--reconfigure discards config and progress and reconfigures',
+        () async {
+          mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+          await DirectJson.writeFile(
+            file: File(join(d.path, '.gg', '.gg.json')),
+            path: 'doPublish/success/hash',
+            value: needsChangeHash,
+          );
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "stale",
+  "done_steps": ["prepare_version"]
+}
+''');
+
+          final reconfigurePublish = makeResumePublish(
+            addVersionTag: AddVersionTag(ggLog: ggLog),
+            editMessage: (_) async => 'Reconfigured',
+          );
+          final runner = CommandRunner<void>('gg', 'gg')
+            ..addCommand(reconfigurePublish);
+          await runner.run([
+            'publish',
+            '-i',
+            d.path,
+            '--reconfigure',
+            '--no-ask-before-publishing',
+            '--no-delete-feature-branch',
+          ]);
+
+          final headMessage = await HeadMessage(
+            ggLog: ggLog,
+          ).get(directory: d, ggLog: ggLog);
+          expect(headMessage, 'Reconfigured');
+          expect(runtimeFile.existsSync(), isFalse);
+        },
+      );
+    });
+
+    test('should have a code coverage of 100%', () {
+      expect(
+        DoPublish(
+          ggLog: ggLog,
+          configurePublish: makeConfigurePublish(),
+          publishedVersion: publishedVersion,
+          processWrapper: processWrapper,
+          localBranch: localBranch,
+          confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
         ),
         isNotNull,
       );
@@ -1659,3 +2172,5 @@ class MockGgProcessWrapper extends Mock implements GgProcessWrapper {}
 class MockLocalBranch extends Mock implements LocalBranch {}
 
 class _MockCommit extends Mock implements Commit {}
+
+class _MockAddVersionTag extends Mock implements AddVersionTag {}

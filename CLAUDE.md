@@ -29,11 +29,17 @@ Commands are organized into five top-level groups, each in `lib/src/commands/`:
 - **`check/`** — static verification: `analyze`, `format`, `pana`, `package_json_scripts` (TypeScript npm scripts), `npm_logged_in` (npm auth before publish)
 - **`can/`** — readiness checks before an action: `can_commit`, `can_push`, `can_merge`, `can_publish`, `can_upgrade`, `can_checkout`
 - **`did/`** — historical checks (was something done?): `did_commit`, `did_push`, `did_merge`, `did_publish`, `did_upgrade`
-- **`do/`** — actions that execute with validation: `do_commit`, `do_push`, `do_merge`, `do_publish`, `do_upgrade`, `do_maintain`, `do_checkout`, `create/`
+- **`do/`** — actions that execute with validation: `do_commit`, `do_push`, `do_merge`, `do_publish`, `do_configure_publish`, `do_upgrade`, `do_maintain`, `do_checkout`, `create/`
   - `do_checkout <ticket>` fetches and checks out a ticket's branch (delegating to `gg_git`'s `Fetch` + `Checkout`).
   - `do_merge` drops the `.gg/.ticket.json` ticket marker (and its `.gitignore` whitelist) before merging, so it never lands on the main branch.
   - `do_merge`/`do_publish` detect a protected main branch (Azure DevOps `origin` → `TF402455`) and, instead of a local merge + direct push to main, merge through an auto-complete pull request (`gg_merge`'s `MergeGit`) and wait for it (`gg_merge`'s `WaitForMerge`, unbounded poll). Afterwards only tags are pushed (`git push --tags` is not blocked by the branch policy). Non-protected remotes keep the local-merge flow.
 - **`info/`** — informational queries
+
+### Publish flow (`do_publish` + `do_configure_publish`)
+
+`do publish` resolves all interactive input **up front**: explicit parameters (the gg_multi flow) > `--config <path>` > an existing `<repo>/.gg/.gg-publish.json` > an automatic interactive `do configure-publish` (which writes that file; `-m` presets the merge message and skips its prompt). While the publish runs, per-step progress is recorded in the same `.gg/.gg-publish.json` (`done_steps`: `prepare_version`, `publish_registry`, `merge`, `delete_feature_branch`, `tag` — the three pushes are idempotent and always re-run). The file also records the feature `branch`, because a resumed run may find HEAD on the default branch already. On full success the file is deleted.
+
+Resume semantics: a leftover file with `done_steps` makes a plain `do publish` **refuse** (resume with `--continue`, discard with `--reconfigure`); `--continue` (or the programmatic `resume: true` that `gg_multi do publish --continue` forwards) skips the done steps, skips `can publish` (the checks would fail on a half-published repo) and — when the merge step is already done — checks out the default branch so push/tag target the release commit. `EnsurePublishConfigIgnored` (in `tools/`) guarantees `.gg/.gg-publish.json` is gitignored before it is first written (appending + committing the `.gitignore` change with a `GgState.updateHash` transplant so recorded check results stay valid). The `doPublish`/`doCommit` GgState keys are still written for `did publish` and the pre-push hook, but the *step* resume no longer relies on content hashes.
 
 All commands extend `DirCommand<T>` from `gg_args`. The primary logic lives in `get()`, and `exec()` simply delegates to it. `ggLog` (a `GgLog` function alias) is constructor-injected everywhere for testability and output capture.
 
