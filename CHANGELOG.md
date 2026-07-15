@@ -1,6 +1,6 @@
 # Changelog
 
-## \[Unreleased\]
+## [Unreleased]
 
 ### Added
 
@@ -12,7 +12,7 @@ before the unattended publish. The command also makes sure
 `.gg/.gg-publish.json` is listed in `.gitignore` (appending and
 committing the entry once per repo).
 - `do publish --continue` / `--reconfigure`: per-step publish progress
-(`done_steps`: prepare\_version, publish\_registry, merge,
+(done\_steps: prepare\_version, publish\_registry, merge,
 delete\_feature\_branch, tag) is recorded in `.gg/.gg-publish.json` and a
 failed publish resumes at the first open step — including the version
 tag, which the old hash-based state could silently skip. A leftover
@@ -21,25 +21,20 @@ progress file makes a plain re-run refuse until `--continue` or
 deleted after a fully successful publish.
 - `DoPublish.exec` accepts `resume:` so `gg_multi do publish --continue`
 resumes each repo at its open step.
-- `PublishConfig`: `done_steps` + `branch` runtime fields with
-`withStepDone`/`isStepDone`/`hasStepProgress`; new
+- `PublishConfig`: done\_steps + branch runtime fields with
+withStepDone/isStepDone/hasStepProgress; new
 `EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
 `.gg/.gg-publish.json` from content hashes.
 
 ### Changed
 
-- **Breaking:** `DoPublish` no longer takes `versionSelector` /
-`editMessage` — both prompts live in the injectable
+- **Breaking:** `DoPublish` no longer takes versionSelector /
+editMessage — both prompts live in the injectable
 `DoConfigurePublish` now. The publish-step resume no longer uses the
-hash-keyed `doPrepareVersion`/`doPublishPubDev`/`doMerge` GgState keys;
-`doPublish`/`doCommit` are still written for `did publish` and the
+hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
+doPublish/doCommit are still written for `did publish` and the
 pre-push hook.
-
-## [Unreleased]
-
-### Added
-
-- Add do configure-publish and step-based resumable publishing via gitignored .gg/.gg-publish.json
+- Tidy CHANGELOGs: single Unreleased section and chronological order
 
 ## [9.5.0] - 2026-07-06
 
