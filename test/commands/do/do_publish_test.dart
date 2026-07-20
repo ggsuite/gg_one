@@ -527,6 +527,46 @@ void main() {
             );
           });
 
+          test('writes the doPush state for the release commit '
+              'and pushes the version tag', () async {
+            mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+            // Mock needing publish
+            await DirectJson.writeFile(
+              file: File(join(d.path, '.gg', '.gg.json')),
+              path: 'doPublish/success/hash',
+              value: needsChangeHash,
+            );
+
+            // The doPush state carries a stale hash from development — as on
+            // a real feature branch, where the last »gg do push« ran before
+            // the release commits existed. Without a fresh doPush state on
+            // the release commit, »gg did push« fails on a CI checkout.
+            await DirectJson.writeFile(
+              file: File(join(d.path, '.gg', '.gg.json')),
+              path: 'doPush/success/hash',
+              value: needsChangeHash,
+            );
+
+            await doPublish.exec(
+              directory: d,
+              ggLog: ggLog,
+              askBeforePublishing: false,
+              deleteFeatureBranch: false,
+            );
+
+            expect(
+              await DidPush(ggLog: ggLog).get(directory: d, ggLog: ggLog),
+              isTrue,
+            );
+
+            // The version tag must arrive on the remote.
+            final remoteTags = await Process.run('git', [
+              'tag',
+            ], workingDirectory: dRemote.path);
+            expect(remoteTags.stdout, contains('1.2.4'));
+          });
+
           group('not to pub.dev', () {
             test('when »publish_to: none« in pubspec.yaml', () async {
               doPublish = DoPublish(

@@ -1,5 +1,11 @@
 # Changelog
 
+## [10.1.1] - 2026-07-20
+
+### Fixed
+
+- Fix broken GitHub pipelines: doPush state was not written on the release commit during publish
+
 ## [10.1.0] - 2026-07-16
 
 ### Added
@@ -685,6 +691,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[10.1.1]: https://github.com/ggsuite/gg_one/compare/10.1.0...10.1.1
 [10.1.0]: https://github.com/ggsuite/gg_one/compare/10.0.0...10.1.0
 [10.0.0]: https://github.com/ggsuite/gg_one/compare/9.5.0...10.0.0
 [9.5.0]: https://github.com/ggsuite/gg_one/compare/9.4.0...9.5.0

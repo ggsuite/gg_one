@@ -380,7 +380,12 @@ class DoPublish extends DirCommand<void> {
     // In the pull-request flow the provider already updated main and deleted
     // the source branch, so skip the direct main push and branch deletion here.
     if (!viaPullRequest) {
-      await _doPush.gitPush(directory: directory, force: false);
+      // Push through DoPush.get, not raw gitPush: it writes the »doPush«
+      // success state into .gg/.gg.json (amended into the release commit)
+      // before pushing, so »gg did push« passes on a fresh CI checkout of
+      // main. The doPush state carried over from the feature branch belongs
+      // to an older hash and would make CI red on every released package.
+      await _doPush.get(directory: directory, force: false, ggLog: noLog);
 
       // Step 10: Delete the feature branch. The decision was resolved up
       // front (Step 4). Idempotent instead of tracked: a resumed multi-flow
