@@ -7,11 +7,17 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:gg_publish/gg_publish.dart' show VersionIncrement;
+import 'package:gg_publish/gg_publish.dart'
+    show ReleaseChannel, VersionIncrement;
 import 'package:path/path.dart' as p;
 
 /// Allowed values for `version_increment` in a `.gg-publish.json` file.
 const Set<String> allowedVersionIncrements = {'patch', 'minor', 'major'};
+
+/// Allowed values for `channel` in a `.gg-publish.json` file. `stable` (the
+/// default when the field is missing) is a regular release; `rc` publishes
+/// the next `X.Y.Z-rc.N` prerelease of the target version.
+const Set<String> allowedReleaseChannels = {'stable', 'rc'};
 
 /// Allowed values for the per-repo `status` progress marker written into a
 /// `.gg-publish.json` file while `gg_multi do publish` runs. `published` means
@@ -55,6 +61,7 @@ class PublishConfig {
   PublishConfig({
     this.versionIncrement,
     this.mergeMessage,
+    this.channel,
     this.deleteTicket,
     this.deleteFeatureBranch,
     this.branch,
@@ -68,6 +75,10 @@ class PublishConfig {
 
   /// Default `merge_message`; null when only per-repo overrides exist.
   final String? mergeMessage;
+
+  /// Default release `channel` (one of [allowedReleaseChannels]); null means
+  /// `stable`.
+  final String? channel;
 
   /// Top-level `delete_ticket`; bypasses the interactive prompt when set.
   final bool? deleteTicket;
@@ -186,6 +197,7 @@ class PublishConfig {
       key: 'merge_message',
       where: found.path,
     );
+    final channel = _readChannel(decoded, key: 'channel', where: found.path);
     final deleteTicket = _readBool(
       decoded,
       key: 'delete_ticket',
@@ -225,6 +237,11 @@ class PublishConfig {
             key: 'merge_message',
             where: '${found.path} repos.$repoName',
           ),
+          channel: _readChannel(
+            inner,
+            key: 'channel',
+            where: '${found.path} repos.$repoName',
+          ),
           status: _readStatus(
             inner,
             key: 'status',
@@ -240,6 +257,7 @@ class PublishConfig {
     return PublishConfig(
       versionIncrement: increment,
       mergeMessage: message,
+      channel: channel,
       deleteTicket: deleteTicket,
       deleteFeatureBranch: deleteFeatureBranch,
       branch: branch,
@@ -333,11 +351,28 @@ class PublishConfig {
     return v;
   }
 
+  static String? _readChannel(
+    Map<String, dynamic> json, {
+    required String key,
+    required String where,
+  }) {
+    final v = _readString(json, key: key, where: where);
+    if (v == null) return null;
+    if (!allowedReleaseChannels.contains(v)) {
+      throw FormatException(
+        '$where: "$key" must be one of '
+        '${allowedReleaseChannels.join(", ")} (was "$v").',
+      );
+    }
+    return v;
+  }
+
   /// This config as a JSON map. Null top-level fields and empty sections are
   /// omitted so the persisted `.gg-publish.json` stays minimal.
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (versionIncrement != null) 'version_increment': versionIncrement,
     if (mergeMessage != null) 'merge_message': mergeMessage,
+    if (channel != null) 'channel': channel,
     if (deleteTicket != null) 'delete_ticket': deleteTicket,
     if (deleteFeatureBranch != null)
       'delete_feature_branch': deleteFeatureBranch,
@@ -366,6 +401,11 @@ class PublishConfig {
   /// has no progress marker yet.
   String? statusForRepo(String repoName) => repos[repoName]?.status;
 
+  /// Returns the effective release channel for [repoName]: the per-repo
+  /// override, else the top-level default, else null (= `stable`).
+  String? channelForRepo(String repoName) =>
+      repos[repoName]?.channel ?? channel;
+
   /// Returns a copy of this config with [repoName]'s progress marker set to
   /// [status], preserving that repo's `version_increment` / `merge_message`.
   PublishConfig withRepoStatus(String repoName, String status) {
@@ -374,11 +414,13 @@ class PublishConfig {
     updated[repoName] = RepoOverride(
       versionIncrement: existing?.versionIncrement,
       mergeMessage: existing?.mergeMessage,
+      channel: existing?.channel,
       status: status,
     );
     return PublishConfig(
       versionIncrement: versionIncrement,
       mergeMessage: mergeMessage,
+      channel: channel,
       deleteTicket: deleteTicket,
       deleteFeatureBranch: deleteFeatureBranch,
       branch: branch,
@@ -405,6 +447,7 @@ class PublishConfig {
     return PublishConfig(
       versionIncrement: versionIncrement,
       mergeMessage: mergeMessage,
+      channel: channel,
       deleteTicket: deleteTicket,
       deleteFeatureBranch: deleteFeatureBranch,
       branch: branch,
@@ -419,13 +462,21 @@ class PublishConfig {
 /// applies. [status] is a runtime progress marker written during a publish run.
 class RepoOverride {
   /// Constructor.
-  RepoOverride({this.versionIncrement, this.mergeMessage, this.status});
+  RepoOverride({
+    this.versionIncrement,
+    this.mergeMessage,
+    this.channel,
+    this.status,
+  });
 
   /// Per-repo `version_increment`, or null to inherit the top-level value.
   final String? versionIncrement;
 
   /// Per-repo `merge_message`, or null to inherit the top-level value.
   final String? mergeMessage;
+
+  /// Per-repo release `channel`, or null to inherit the top-level value.
+  final String? channel;
 
   /// Per-repo publish progress marker (one of [allowedPublishStatuses]), or
   /// null when the repo has not been touched by a publish run yet.
@@ -436,6 +487,7 @@ class RepoOverride {
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (versionIncrement != null) 'version_increment': versionIncrement,
     if (mergeMessage != null) 'merge_message': mergeMessage,
+    if (channel != null) 'channel': channel,
     if (status != null) 'status': status,
   };
 }
@@ -453,4 +505,17 @@ VersionIncrement parseVersionIncrement(String increment) {
       return VersionIncrement.major;
   }
   throw ArgumentError.value(increment, 'increment', 'unknown increment');
+}
+
+/// Maps a release channel string to its [ReleaseChannel] enum value.
+/// Throws [ArgumentError] for unknown strings; validate earlier via
+/// [allowedReleaseChannels].
+ReleaseChannel parseReleaseChannel(String channel) {
+  switch (channel) {
+    case 'stable':
+      return ReleaseChannel.stable;
+    case 'rc':
+      return ReleaseChannel.rc;
+  }
+  throw ArgumentError.value(channel, 'channel', 'unknown channel');
 }

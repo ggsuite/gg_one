@@ -8,7 +8,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:gg_one/gg_one.dart';
-import 'package:gg_publish/gg_publish.dart' show VersionIncrement;
+import 'package:gg_publish/gg_publish.dart'
+    show ReleaseChannel, VersionIncrement;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -828,6 +829,67 @@ void main() {
           fallbackDir: tmp.path,
         );
         expect(reloaded.doneSteps, ['prepare_version']);
+      });
+
+      test('channel round-trips and survives copies', () async {
+        final cfg = PublishConfig(
+          versionIncrement: 'minor',
+          mergeMessage: 'm',
+          channel: 'rc',
+        ).withStepDone('merge').withRepoStatus('foo', 'published');
+        expect(cfg.channel, 'rc');
+        expect(cfg.toJson()['channel'], 'rc');
+        // Omitted when unset.
+        expect(PublishConfig().toJson().containsKey('channel'), isFalse);
+
+        final file = File(p.join(tmp.path, 'ch.json'));
+        await cfg.save(file: file);
+        final reloaded = PublishConfig.load(
+          configArg: file.path,
+          fallbackDir: tmp.path,
+        );
+        expect(reloaded.channel, 'rc');
+      });
+
+      test('per-repo channel overrides the top-level default', () async {
+        await writeConfig(
+          'cfg.json',
+          '{"version_increment": "patch", "merge_message": "m", '
+              '"channel": "stable", '
+              '"repos": {"foo": {"channel": "rc"}, "bar": {}}}',
+        );
+        final cfg = PublishConfig.load(
+          configArg: 'cfg.json',
+          fallbackDir: tmp.path,
+        );
+        expect(cfg.channelForRepo('foo'), 'rc');
+        expect(cfg.channelForRepo('bar'), 'stable');
+        expect(cfg.channelForRepo('unknown'), 'stable');
+        expect(cfg.repos['foo']!.toJson()['channel'], 'rc');
+      });
+
+      test('rejects an unknown channel', () async {
+        await writeConfig('cfg.json', '{"channel": "nightly"}');
+        expect(
+          () =>
+              PublishConfig.load(configArg: 'cfg.json', fallbackDir: tmp.path),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('"channel" must be one of'),
+            ),
+          ),
+        );
+      });
+
+      test('parseReleaseChannel maps strings and rejects unknowns', () {
+        expect(parseReleaseChannel('stable'), ReleaseChannel.stable);
+        expect(parseReleaseChannel('rc'), ReleaseChannel.rc);
+        expect(
+          () => parseReleaseChannel('nightly'),
+          throwsA(isA<ArgumentError>()),
+        );
       });
     });
 

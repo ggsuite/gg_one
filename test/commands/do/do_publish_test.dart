@@ -124,6 +124,70 @@ void main() {
         return VersionIncrement.patch;
       });
 
+  // Runs a full single-repo publish on the rc channel and asserts pubspec.yaml
+  // ends up at the next rc prerelease. [useCliFlag] chooses between the
+  // `--channel rc` CLI flag and a `channel: rc` field in the --config file.
+  Future<void> runRcChannelTest({required bool useCliFlag}) async {
+    mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+    when(
+      () => publishedVersion.allVersions(
+        directory: dMock(),
+        ggLog: any(named: 'ggLog'),
+      ),
+    ).thenAnswer((_) async => [Version.parse('1.2.3')]);
+
+    await DirectJson.writeFile(
+      file: File(join(d.path, '.gg', '.gg.json')),
+      path: 'doPublish/success/hash',
+      value: needsChangeHash,
+    );
+
+    final cfgDir = await Directory.systemTemp.createTemp('publish_config_');
+    final cfgPath = join(cfgDir.path, 'release.json');
+    await File(cfgPath).writeAsString(
+      '{"version_increment":"patch", "merge_message":"rc release"'
+      '${useCliFlag ? '' : ', "channel":"rc"'}, '
+      '"delete_feature_branch":false}',
+    );
+
+    final cliDoPublish = DoPublish(
+      ggLog: ggLog,
+      publish: publish,
+      prepareNextVersion: PrepareNextVersion(
+        ggLog: ggLog,
+        publishedVersion: publishedVersion,
+      ),
+      canPublish: canPublish,
+      isPublished: IsPublished(
+        ggLog: ggLog,
+        publishedVersion: publishedVersion,
+      ),
+      configurePublish: makeConfigurePublish(),
+      publishedVersion: publishedVersion,
+      processWrapper: processWrapper,
+      localBranch: localBranch,
+      confirmDeleteFeatureBranch: (_) => false,
+      doMerge: noPubGetDoMerge(),
+    );
+
+    final runner = CommandRunner<void>('gg', 'gg')..addCommand(cliDoPublish);
+
+    await runner.run(<String>[
+      'publish',
+      '-i',
+      d.path,
+      '--config',
+      cfgPath,
+      if (useCliFlag) ...['--channel', 'rc'],
+      '--no-ask-before-publishing',
+    ]);
+
+    final pubspec = await File(join(d.path, 'pubspec.yaml')).readAsString();
+    expect(pubspec, contains('version: 1.2.4-rc.1'));
+
+    cfgDir.deleteSync(recursive: true);
+  }
+
   // ...........................................................................
   Future<void> makeLastStateSuccessful() async {
     successHash = await LastChangesHash(
@@ -1208,6 +1272,14 @@ void main() {
             );
 
             cfgDir.deleteSync(recursive: true);
+          });
+
+          test('publishes an rc prerelease when --config sets channel: rc', () {
+            return runRcChannelTest(useCliFlag: false);
+          });
+
+          test('publishes an rc prerelease via the --channel rc flag', () {
+            return runRcChannelTest(useCliFlag: true);
           });
 
           test('logs each executed command when --verbose is set', () async {

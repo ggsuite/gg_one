@@ -105,6 +105,7 @@ class DoPublish extends DirCommand<void> {
     bool? deleteFeatureBranch,
     bool? verbose,
     String? versionIncrement,
+    String? channel,
     bool? resume,
   }) => get(
     directory: directory,
@@ -114,6 +115,7 @@ class DoPublish extends DirCommand<void> {
     deleteFeatureBranch: deleteFeatureBranch,
     verbose: verbose,
     versionIncrement: versionIncrement,
+    channel: channel,
     resume: resume,
   );
 
@@ -126,6 +128,7 @@ class DoPublish extends DirCommand<void> {
     bool? deleteFeatureBranch,
     bool? verbose,
     String? versionIncrement,
+    String? channel,
     bool? resume,
   }) async {
     final isVerbose = verbose ?? _verboseFromArgs;
@@ -204,6 +207,7 @@ class DoPublish extends DirCommand<void> {
     // publish steps.
     String? resolvedIncrement = versionIncrement;
     String? resolvedMessage = message;
+    String? resolvedChannel = channel ?? _channelFromArgs;
     bool? resolvedDelete = deleteFeatureBranch;
     if (resolvedDelete == null && _deleteFeatureBranchWasProvided) {
       resolvedDelete = _deleteFeatureBranchFromArgs;
@@ -217,6 +221,7 @@ class DoPublish extends DirCommand<void> {
         final resolved = config.resolveSingle(configPath: configArg);
         resolvedIncrement ??= resolved.versionIncrement;
         resolvedMessage ??= resolved.mergeMessage;
+        resolvedChannel ??= config.channel;
         resolvedDelete ??= config.deleteFeatureBranch;
       } else if (runtimeConfig != null) {
         final resolved = runtimeConfig.resolveSingle(
@@ -224,6 +229,7 @@ class DoPublish extends DirCommand<void> {
         );
         resolvedIncrement ??= resolved.versionIncrement;
         resolvedMessage ??= resolved.mergeMessage;
+        resolvedChannel ??= runtimeConfig.channel;
         resolvedDelete ??= runtimeConfig.deleteFeatureBranch;
       } else {
         final config = await _configurePublish.configure(
@@ -235,14 +241,19 @@ class DoPublish extends DirCommand<void> {
         );
         resolvedIncrement = config.versionIncrement;
         resolvedMessage = config.mergeMessage;
+        resolvedChannel ??= config.channel;
         resolvedDelete ??= config.deleteFeatureBranch;
       }
     } else {
-      // Increment + message came as parameters, only the delete decision may
-      // be open — read it from the config file when one is present.
+      // Increment + message came as parameters, only the channel and delete
+      // decisions may be open — read them from the config file when one is
+      // present.
+      resolvedChannel ??= runtimeConfig?.channel;
       resolvedDelete ??= runtimeConfig?.deleteFeatureBranch;
     }
+    resolvedChannel ??= 'stable';
     _explicitVersionIncrement = resolvedIncrement;
+    _explicitChannel = resolvedChannel;
 
     // The feature branch is persisted in the runtime file: a resumed run may
     // find HEAD on the default branch already (the merge happened), so it
@@ -266,6 +277,7 @@ class DoPublish extends DirCommand<void> {
     var progress = PublishConfig(
       versionIncrement: resolvedIncrement,
       mergeMessage: resolvedMessage,
+      channel: resolvedChannel,
       deleteFeatureBranch: resolvedDelete,
       branch: featureBranch,
       doneSteps: resuming ? runtimeConfig!.doneSteps : null,
@@ -438,6 +450,9 @@ class DoPublish extends DirCommand<void> {
   /// Pre-resolved version increment; always set before the steps run.
   String? _explicitVersionIncrement;
 
+  /// Pre-resolved release channel; always set before the steps run.
+  String? _explicitChannel;
+
   /// Returns true when the current version is already visible on the
   /// registry, i.e. publishing it again is obsolete.
   Future<bool> _versionAlreadyPublished({
@@ -449,6 +464,16 @@ class DoPublish extends DirCommand<void> {
       ggLog: <String>[].add,
     );
     try {
+      // Prereleases never become the registry's "latest" version, so they
+      // must be looked up in the full version list instead.
+      if (currentVersion.preRelease.isNotEmpty) {
+        final allVersions = await _publishedVersion!.allVersions(
+          directory: directory,
+          ggLog: <String>[].add,
+        );
+        return allVersions.contains(currentVersion);
+      }
+
       final publishedVersion = await _publishedVersion!.get(
         directory: directory,
         ggLog: <String>[].add,
@@ -633,14 +658,16 @@ class DoPublish extends DirCommand<void> {
       ggLog: ggLog,
     );
 
-    // The increment is always resolved before the steps run (parameters,
-    // --config, runtime file or `do configure-publish`).
+    // The increment and channel are always resolved before the steps run
+    // (parameters, --config, runtime file or `do configure-publish`).
     final increment = parseVersionIncrement(_explicitVersionIncrement!);
+    final releaseChannel = parseReleaseChannel(_explicitChannel!);
 
     await _prepareNextVersion.exec(
       directory: directory,
       ggLog: ggLog,
       increment: increment,
+      channel: releaseChannel,
       publishedVersion: currentVersion,
     );
 
@@ -829,6 +856,8 @@ class DoPublish extends DirCommand<void> {
 
   String? get _messageFromArgs => argResults?['message'] as String?;
 
+  String? get _channelFromArgs => argResults?['channel'] as String?;
+
   void _addArgs() {
     argParser.addFlag(
       'ask-before-publishing',
@@ -867,6 +896,14 @@ class DoPublish extends DirCommand<void> {
           'Path to a .gg-publish.json file with merge_message and '
           'version_increment. Resolved as-given (CWD), then under '
           '"<repo>/.gg/".',
+    );
+
+    argParser.addOption(
+      'channel',
+      help:
+          'The release channel. "rc" publishes the next X.Y.Z-rc.N '
+          'prerelease of the target version instead of the stable release.',
+      allowed: allowedReleaseChannels,
     );
 
     argParser.addFlag(

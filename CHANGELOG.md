@@ -1,10 +1,15 @@
 # Changelog
 
-## [Unreleased]
+## [10.2.0] - 2026-07-20
+
+### Added
+
+- Add rc prerelease channel to gg do publish (channel field/flag, X.Y.Z-rc.N computation, npm --tag rc, single + multi repo)
 
 ### Changed
 
 - Track .gg/.gg.json again - .gitignore excluded the whole .gg directory, so CI never saw the check states
+- gg\_multi: changed references to git
 
 ## [10.1.1] - 2026-07-20
 
@@ -254,8 +259,6 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 ## [6.0.3] - 2026-03-27
 
-# <<<<<<< Updated upstream
-
 ### Changed
 
 - kidney: changed references to git
@@ -265,8 +268,6 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - bugfix tagging in gg do publish
 
 ## [6.0.2] - 2026-03-27
-
-> > > > > > > Stashed changes
 
 ### Changed
 
@@ -691,13 +692,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
-# <<<<<<< Updated upstream
-
-[Unreleased](https://github.com/inlavigo/gg/compare/6.0.2...HEAD): https://github.com/inlavigo/gg/compare/6.0.1...HEAD
-
-> > > > > > > Stashed changes
-
-[Unreleased]: https://github.com/ggsuite/gg_one/compare/10.1.1...HEAD
+[10.2.0]: https://github.com/ggsuite/gg_one/compare/10.1.1...10.2.0
 [10.1.1]: https://github.com/ggsuite/gg_one/compare/10.1.0...10.1.1
 [10.1.0]: https://github.com/ggsuite/gg_one/compare/10.0.0...10.1.0
 [10.0.0]: https://github.com/ggsuite/gg_one/compare/9.5.0...10.0.0
