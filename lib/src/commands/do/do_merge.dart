@@ -124,6 +124,17 @@ class DoMerge extends DirCommand<void> {
       return;
     }
 
+    // The publish step runs build/test (incl. formatters like
+    // »prettier --write«) after the last commit, and gg writes run state into
+    // the tracked ».gg/.gg.json«. Commit those leftovers first, otherwise the
+    // upcoming »git checkout <main>« aborts with "local changes would be
+    // overwritten by checkout" and the release fails halfway through.
+    await _commitPendingChanges(
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
     // Drop the ticket marker (written by `gg do add`) so it never lands on
     // the main branch.
     await _removeTicketJson(
@@ -166,6 +177,61 @@ class DoMerge extends DirCommand<void> {
     // satisfies »gg did commit«. Record that too, otherwise the pre-push hook
     // (which runs »gg did commit«) rejects the merge commit when it is pushed.
     await _state.writeSuccess(directory: directory, key: 'doCommit');
+  }
+
+  /// Commits pending changes to tracked files on the current (feature) branch
+  /// before the merge switches branches. During a release the publish step
+  /// can leave tracked files dirty after the last commit — e.g. a
+  /// `prettier --write` in the build→test chain reformats `pubspec.yaml`, or
+  /// gg records run state in the tracked `.gg/.gg.json` — which makes
+  /// `git checkout <main>` abort with "local changes would be overwritten by
+  /// checkout". These are post-check release artifacts, so committing them
+  /// keeps the merge robust instead of failing mid-publish. Untracked files
+  /// are deliberately excluded (`--untracked-files=no` / `git add --update`)
+  /// so stray build output is never swept into the commit.
+  Future<void> _commitPendingChanges({
+    required Directory directory,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    final status = await _runGitCommand(
+      directory: directory,
+      arguments: const ['status', '--porcelain', '--untracked-files=no'],
+      actionDescription: 'check for pending changes before merge',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    if (status.trim().isEmpty) {
+      return;
+    }
+
+    await _runGitCommand(
+      directory: directory,
+      arguments: const ['add', '--update'],
+      actionDescription: 'stage pending changes before merge',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    await _runGitCommand(
+      directory: directory,
+      arguments: const [
+        'commit',
+        '-m',
+        'Commit pending changes before merge (e.g. release formatting)',
+      ],
+      actionDescription: 'commit pending changes before merge',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    ggLog(
+      yellow(
+        'Committed pending worktree changes before merge '
+        '(e.g. formatter output or run state).',
+      ),
+    );
   }
 
   /// Removes the `.gg/.ticket.json` marker (force-added by `gg do add`) before

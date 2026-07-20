@@ -87,6 +87,16 @@ void main() {
         workingDirectory: any(named: 'workingDirectory'),
       ),
     ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+    // Clean worktree by default, so no pre-merge commit is created.
+    when(
+      () => mockProcessWrapper.run(
+        'git',
+        ['status', '--porcelain', '--untracked-files=no'],
+        runInShell: true,
+        workingDirectory: any(named: 'workingDirectory'),
+      ),
+    ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
   }
 
   setUp(() async {
@@ -208,6 +218,104 @@ void main() {
         () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
         () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
       ]);
+    });
+
+    test('commits pending worktree changes before merge', () async {
+      when(
+        () =>
+            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
+      ).thenAnswer((_) async => false);
+
+      stubGitCommands();
+
+      // A formatter / gg run left tracked files dirty after the last commit.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['status', '--porcelain', '--untracked-files=no'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, ' M pubspec.yaml\n', ''));
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['add', '--update'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          [
+            'commit',
+            '-m',
+            'Commit pending changes before merge (e.g. release formatting)',
+          ],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: false,
+          local: false,
+          verbose: false,
+        ),
+      ).thenAnswer((_) async => true);
+
+      when(
+        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
+      ).thenAnswer((_) async {});
+
+      await doMerge.get(directory: d, ggLog: ggLog);
+
+      // Staged and committed before the branch switch.
+      verifyInOrder([
+        () => mockProcessWrapper.run(
+          'git',
+          ['status', '--porcelain', '--untracked-files=no'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          ['add', '--update'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          [
+            'commit',
+            '-m',
+            'Commit pending changes before merge (e.g. release formatting)',
+          ],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+        () => mockProcessWrapper.run(
+          'git',
+          ['checkout', 'main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ]);
+      expect(
+        messages,
+        contains(
+          yellow(
+            'Committed pending worktree changes before merge '
+            '(e.g. formatter output or run state).',
+          ),
+        ),
+      );
     });
 
     test('should not checkout when already on main branch', () async {

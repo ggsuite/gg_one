@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.2.2] - 2026-07-20
+
+### Fixed
+
+- Re-release combining the rc prerelease channel (10.2.0) with the do-merge dirty-worktree fix - pub.dev 10.2.1 was published without the rc channel
+
+## [10.2.1] - 2026-07-20
+
+### Changed
+
+- fix(do-merge): commit pending tracked worktree changes before switching branches, so a publish-time formatter (prettier --write reformatting pubspec.yaml) or a gg .gg/.gg.json state write no longer aborts the merge's git checkout <main> with 'local changes would be overwritten'
+
 ## [10.2.0] - 2026-07-20
 
 ### Added
@@ -692,6 +704,8 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
+[10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
+[10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1
 [10.2.0]: https://github.com/ggsuite/gg_one/compare/10.1.1...10.2.0
 [10.1.1]: https://github.com/ggsuite/gg_one/compare/10.1.0...10.1.1
 [10.1.0]: https://github.com/ggsuite/gg_one/compare/10.0.0...10.1.0
