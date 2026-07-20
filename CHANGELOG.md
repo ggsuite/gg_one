@@ -1,6 +1,15 @@
 # Changelog
 
-## [Unreleased]
+## [10.3.0] - 2026-07-20
+
+### Changed
+
+- Accept `test` in a TypeScript package's `prebuild` script as fulfilling the build-must-run-test rule
+- gg\_multi: changed references to git
+
+### Fixed
+
+- Ignore `.gg/*` instead of the whole `.gg` directory, so `.gg/.gg.json` and `.gg/.ticket.json` stay trackable
 
 ### Removed
 
@@ -710,7 +719,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
-[Unreleased]: https://github.com/ggsuite/gg_one/compare/10.2.2...HEAD
+[10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
 [10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
 [10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1
 [10.2.0]: https://github.com/ggsuite/gg_one/compare/10.1.1...10.2.0

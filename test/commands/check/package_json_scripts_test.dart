@@ -84,6 +84,17 @@ void main() {
         expect(messages.any((m) => m.contains('✅')), isTrue);
       });
 
+      test('when not build but prebuild runs test', () async {
+        // npm runs `prebuild` right before `build`, so the tests still run as
+        // part of a build.
+        final scripts = Map<String, String>.from(validScripts)
+          ..['build'] = 'tsc'
+          ..['prebuild'] = 'npm run test';
+        writeTsProject(scripts);
+        await run();
+        expect(messages.any((m) => m.contains('✅')), isTrue);
+      });
+
       test('when the publish-lifecycle script is prepublishOnly '
           '(npm\'s modern name)', () async {
         final scripts = Map<String, String>.from(validScripts)
@@ -148,6 +159,23 @@ void main() {
               (e) => e.toString(),
               'message',
               allOf(contains('"build" script'), contains('test')),
+            ),
+          ),
+        );
+      });
+
+      test('when neither build nor prebuild runs test', () async {
+        final scripts = Map<String, String>.from(validScripts)
+          ..['build'] = 'tsc'
+          ..['prebuild'] = 'rimraf dist';
+        writeTsProject(scripts);
+        await expectLater(
+          run(),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              allOf(contains('"build" script'), contains('prebuild')),
             ),
           ),
         );

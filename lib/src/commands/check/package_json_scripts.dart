@@ -29,6 +29,10 @@ const List<String> prepublishScriptNames = <String>[
 /// as part of a build.
 const String buildMustRunScript = 'test';
 
+/// npm runs this script automatically right before `build`. Running the tests
+/// there satisfies the `build` → `test` rule just as well.
+const String buildPreScript = 'prebuild';
+
 /// The script that the publish-lifecycle script must run, so a fresh build
 /// (which in turn runs the tests) always precedes a publish.
 const String prepublishMustRunScript = 'build';
@@ -39,8 +43,9 @@ const String prepublishMustRunScript = 'build';
 ///
 /// * `test`, `build` and `lint` scripts must all be present.
 /// * The `build` script must run `test`, so the tests always run as part of a
-///   build — except in cross-language bridges, whose build produces the Dart
-///   and TypeScript artifacts and runs its tests separately.
+///   build. A `prebuild` script running `test` counts too, because npm runs it
+///   right before `build`. Cross-language bridges are exempt, as their build
+///   produces the Dart and TypeScript artifacts and runs its tests separately.
 /// * `prepublishOnly` (or the deprecated `prepublish`) must be present and run
 ///   `build`.
 ///
@@ -119,14 +124,17 @@ class CheckPackageJsonScripts extends DirCommand<void> {
     }
 
     // The `build` script must run `test`, so the tests always run as part of a
-    // build. Cross-language bridges are exempt: their build produces the Dart
-    // and TypeScript artifacts and runs its tests separately.
+    // build — either directly or via `prebuild`, which npm executes right
+    // before `build`. Cross-language bridges are exempt: their build produces
+    // the Dart and TypeScript artifacts and runs its tests separately.
     final buildScript = scripts['build']!;
+    final preBuildScript = scripts[buildPreScript] ?? '';
     if (!isBridgeProject(directory) &&
-        !_referencesScript(buildScript, buildMustRunScript)) {
+        !_referencesScript(buildScript, buildMustRunScript) &&
+        !_referencesScript(preBuildScript, buildMustRunScript)) {
       throw Exception(
-        'The "build" script must run $buildMustRunScript '
-        '(its command is "$buildScript").',
+        'The "build" script must run $buildMustRunScript, directly or via '
+        '"$buildPreScript" (its command is "$buildScript").',
       );
     }
 
