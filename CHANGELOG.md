@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Removed
+
+- Remove stale root .ticket marker from main - do merge only drops .gg/.ticket.json, so the old marker leaked through squash merges and preset wrong merge messages
+
 ## [10.2.2] - 2026-07-20
 
 ### Fixed
@@ -704,6 +710,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/10.2.2...HEAD
 [10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
 [10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1
 [10.2.0]: https://github.com/ggsuite/gg_one/compare/10.1.1...10.2.0
