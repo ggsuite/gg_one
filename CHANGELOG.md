@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Track .gg/.gg.json again - .gitignore excluded the whole .gg directory, so CI never saw the check states
+
 ## [10.1.1] - 2026-07-20
 
 ### Fixed
@@ -691,6 +697,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 > > > > > > > Stashed changes
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/10.1.1...HEAD
 [10.1.1]: https://github.com/ggsuite/gg_one/compare/10.1.0...10.1.1
 [10.1.0]: https://github.com/ggsuite/gg_one/compare/10.0.0...10.1.0
 [10.0.0]: https://github.com/ggsuite/gg_one/compare/9.5.0...10.0.0
