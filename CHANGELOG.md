@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Add --pr flag (default on): merge via auto-merge pull request and wait, fall back to local merge on unsupported providers, --no-pr restores local merge
+
 ## [10.3.0] - 2026-07-20
 
 ### Changed
@@ -719,6 +725,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
+[Unreleased]: https://github.com/ggsuite/gg_one/compare/10.3.0...HEAD
 [10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
 [10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
 [10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1

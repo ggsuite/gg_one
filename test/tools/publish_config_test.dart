@@ -813,6 +813,41 @@ void main() {
         );
       });
 
+      test('pr round-trips and survives copies', () async {
+        final cfg = PublishConfig(
+          versionIncrement: 'patch',
+          mergeMessage: 'm',
+          pr: false,
+        ).withStepDone('merge').withRepoStatus('foo', 'published');
+        expect(cfg.pr, isFalse);
+        expect(cfg.toJson()['pr'], isFalse);
+        // Omitted when unset.
+        expect(PublishConfig().toJson().containsKey('pr'), isFalse);
+
+        final file = File(p.join(tmp.path, 'pr.json'));
+        await cfg.save(file: file);
+        final reloaded = PublishConfig.load(
+          configArg: file.path,
+          fallbackDir: tmp.path,
+        );
+        expect(reloaded.pr, isFalse);
+      });
+
+      test('rejects a non-boolean pr', () async {
+        await writeConfig('cfg.json', '{"pr": "yes"}');
+        expect(
+          () =>
+              PublishConfig.load(configArg: 'cfg.json', fallbackDir: tmp.path),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('"pr" must be a boolean'),
+            ),
+          ),
+        );
+      });
+
       test('done_steps round-trips through toJson/save/load', () async {
         final cfg = PublishConfig(
           versionIncrement: 'minor',

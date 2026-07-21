@@ -54,6 +54,14 @@ class DoMerge extends DirCommand<void> {
       negatable: true,
       defaultsTo: false,
     );
+    argParser.addFlag(
+      'delete-source-branch',
+      help:
+          'Let the provider delete the source branch after a pull-request '
+          'merge.',
+      negatable: true,
+      defaultsTo: true,
+    );
     argParser.addOption(
       'message',
       abbr: 'm',
@@ -86,6 +94,7 @@ class DoMerge extends DirCommand<void> {
     String? message,
     bool? verbose,
     bool? viaPullRequest,
+    bool? deleteSourceBranch,
   }) => get(
     directory: directory,
     ggLog: ggLog,
@@ -94,6 +103,7 @@ class DoMerge extends DirCommand<void> {
     message: message,
     verbose: verbose,
     viaPullRequest: viaPullRequest,
+    deleteSourceBranch: deleteSourceBranch,
   );
 
   @override
@@ -105,12 +115,14 @@ class DoMerge extends DirCommand<void> {
     String? message,
     bool? verbose,
     bool? viaPullRequest,
+    bool? deleteSourceBranch,
   }) async {
     automerge ??= argResults?['automerge'] as bool? ?? false;
     local ??= argResults?['local'] as bool? ?? false;
     message ??= argResults?['message'] as String?;
     verbose ??= argResults?['verbose'] as bool? ?? false;
     viaPullRequest ??= argResults?['via-pull-request'] as bool? ?? false;
+    deleteSourceBranch ??= argResults?['delete-source-branch'] as bool? ?? true;
 
     // Check state
     final isDone = await _state.readSuccess(
@@ -150,6 +162,7 @@ class DoMerge extends DirCommand<void> {
         directory: directory,
         ggLog: ggLog,
         verbose: verbose,
+        deleteSourceBranch: deleteSourceBranch,
       );
     } else {
       // Update local main branch via fetch + pull
@@ -279,6 +292,7 @@ class DoMerge extends DirCommand<void> {
     required Directory directory,
     required GgLog ggLog,
     required bool verbose,
+    required bool deleteSourceBranch,
   }) async {
     // Refresh remote-tracking refs so the merge pre-conditions are accurate.
     await _fetchAndPullMain(
@@ -304,6 +318,7 @@ class DoMerge extends DirCommand<void> {
       automerge: true,
       local: false,
       verbose: verbose,
+      deleteSourceBranch: deleteSourceBranch,
     );
 
     // Block until the provider merged the pull request.

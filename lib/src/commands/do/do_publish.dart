@@ -107,6 +107,7 @@ class DoPublish extends DirCommand<void> {
     String? versionIncrement,
     String? channel,
     bool? resume,
+    bool? pr,
   }) => get(
     directory: directory,
     ggLog: ggLog,
@@ -117,6 +118,7 @@ class DoPublish extends DirCommand<void> {
     versionIncrement: versionIncrement,
     channel: channel,
     resume: resume,
+    pr: pr,
   );
 
   @override
@@ -130,6 +132,7 @@ class DoPublish extends DirCommand<void> {
     String? versionIncrement,
     String? channel,
     bool? resume,
+    bool? pr,
   }) async {
     final isVerbose = verbose ?? _verboseFromArgs;
     _publishedVersion ??= PublishedVersion(ggLog: ggLog);
@@ -212,6 +215,10 @@ class DoPublish extends DirCommand<void> {
     if (resolvedDelete == null && _deleteFeatureBranchWasProvided) {
       resolvedDelete = _deleteFeatureBranchFromArgs;
     }
+    bool? resolvedPr = pr;
+    if (resolvedPr == null && _prWasProvided) {
+      resolvedPr = _prFromArgs;
+    }
     if (resolvedIncrement == null || resolvedMessage == null) {
       if (configArg != null) {
         final config = PublishConfig.load(
@@ -223,6 +230,7 @@ class DoPublish extends DirCommand<void> {
         resolvedMessage ??= resolved.mergeMessage;
         resolvedChannel ??= config.channel;
         resolvedDelete ??= config.deleteFeatureBranch;
+        resolvedPr ??= config.pr;
       } else if (runtimeConfig != null) {
         final resolved = runtimeConfig.resolveSingle(
           configPath: runtimeFile.path,
@@ -231,6 +239,7 @@ class DoPublish extends DirCommand<void> {
         resolvedMessage ??= resolved.mergeMessage;
         resolvedChannel ??= runtimeConfig.channel;
         resolvedDelete ??= runtimeConfig.deleteFeatureBranch;
+        resolvedPr ??= runtimeConfig.pr;
       } else {
         final config = await _configurePublish.configure(
           directory: directory,
@@ -245,13 +254,15 @@ class DoPublish extends DirCommand<void> {
         resolvedDelete ??= config.deleteFeatureBranch;
       }
     } else {
-      // Increment + message came as parameters, only the channel and delete
-      // decisions may be open — read them from the config file when one is
+      // Increment + message came as parameters, only the channel, delete and
+      // pr decisions may be open — read them from the config file when one is
       // present.
       resolvedChannel ??= runtimeConfig?.channel;
       resolvedDelete ??= runtimeConfig?.deleteFeatureBranch;
+      resolvedPr ??= runtimeConfig?.pr;
     }
     resolvedChannel ??= 'stable';
+    resolvedPr ??= true;
     _explicitVersionIncrement = resolvedIncrement;
     _explicitChannel = resolvedChannel;
 
@@ -279,6 +290,7 @@ class DoPublish extends DirCommand<void> {
       mergeMessage: resolvedMessage,
       channel: resolvedChannel,
       deleteFeatureBranch: resolvedDelete,
+      pr: resolvedPr,
       branch: featureBranch,
       doneSteps: resuming ? runtimeConfig!.doneSteps : null,
     );
@@ -314,11 +326,14 @@ class DoPublish extends DirCommand<void> {
       await _canPublish.exec(directory: directory, ggLog: ggLog);
     }
 
-    // Protected main branches (e.g. Azure DevOps) reject a direct push to main
-    // and require a pull request. Detect that up front and merge via an
-    // auto-complete PR (waiting until it is merged) instead of a local merge
-    // followed by a direct push to main.
-    final viaPullRequest = await _shouldMergeViaPullRequest(directory);
+    // The final merge goes through an auto-merge pull request by default
+    // (--pr): the PR is created with automerge, the publish waits until the
+    // provider merged it, then continues. --no-pr restores the local merge
+    // followed by a direct push to main. Providers without PR support
+    // (anything but GitHub/Azure DevOps) fall back to the local merge with a
+    // warning.
+    final viaPullRequest =
+        resolvedPr && await _pullRequestFlowSupported(directory);
 
     // A resumed run whose merge already happened may still sit on the
     // feature branch (gg_multi checks it out again after a failure). Move to
@@ -376,6 +391,7 @@ class DoPublish extends DirCommand<void> {
         message: resolvedMessage,
         verbose: isVerbose,
         viaPullRequest: viaPullRequest,
+        deleteSourceBranch: resolvedDelete,
       );
       await markStepDone('merge');
     }
@@ -389,8 +405,8 @@ class DoPublish extends DirCommand<void> {
     // commit.
     await _state.writeSuccess(directory: directory, key: stateKeyDoCommit);
 
-    // In the pull-request flow the provider already updated main and deleted
-    // the source branch, so skip the direct main push and branch deletion here.
+    // In the pull-request flow the provider already updated main when it
+    // merged the PR, so skip the direct main push there.
     if (!viaPullRequest) {
       // Push through DoPush.get, not raw gitPush: it writes the »doPush«
       // success state into .gg/.gg.json (amended into the release commit)
@@ -398,19 +414,20 @@ class DoPublish extends DirCommand<void> {
       // main. The doPush state carried over from the feature branch belongs
       // to an older hash and would make CI red on every released package.
       await _doPush.get(directory: directory, force: false, ggLog: noLog);
+    }
 
-      // Step 10: Delete the feature branch. The decision was resolved up
-      // front (Step 4). Idempotent instead of tracked: a resumed multi-flow
-      // run re-pushes the branch before delegating here, so the deletion
-      // must re-run — and deleting an already-gone remote ref is tolerated
-      // inside _deleteFeatureBranch.
-      if (resolvedDelete) {
-        await _deleteFeatureBranch(
-          directory: directory,
-          branchName: featureBranch,
-          verbose: isVerbose,
-        );
-      }
+    // Step 10: Delete the feature branch. The decision was resolved up
+    // front (Step 4). Idempotent instead of tracked: a resumed multi-flow
+    // run re-pushes the branch before delegating here, so the deletion
+    // must re-run — and deleting an already-gone remote ref (e.g. removed
+    // by the provider after a pull-request merge) is tolerated inside
+    // _deleteFeatureBranch.
+    if (resolvedDelete) {
+      await _deleteFeatureBranch(
+        directory: directory,
+        branchName: featureBranch,
+        verbose: isVerbose,
+      );
     }
 
     // Step 11: Tag the release and push the tags.
@@ -529,14 +546,16 @@ class DoPublish extends DirCommand<void> {
     );
   }
 
-  /// Performs the merge. On protected branches ([viaPullRequest] true) this
-  /// merges through an auto-complete pull request and waits until it is merged;
-  /// otherwise it does a local merge into main.
+  /// Performs the merge. With [viaPullRequest] this merges through an
+  /// auto-merge pull request and waits until it is merged; otherwise it does
+  /// a local merge into main. [deleteSourceBranch] lets the provider delete
+  /// the feature branch when it completes the pull request.
   Future<void> _merge({
     required Directory directory,
     required String? message,
     required bool verbose,
     required bool viaPullRequest,
+    required bool deleteSourceBranch,
   }) async {
     await _doMerge.get(
       directory: directory,
@@ -546,24 +565,40 @@ class DoPublish extends DirCommand<void> {
       message: message,
       verbose: verbose,
       viaPullRequest: viaPullRequest,
+      deleteSourceBranch: deleteSourceBranch,
     );
   }
 
-  /// Returns whether the merge must go through a pull request because the main
-  /// branch is protected. Uses the git provider of `origin`: Azure DevOps
-  /// enforces pull requests for `main` (`TF402455`). A missing/unknown remote
-  /// falls back to the local merge.
-  Future<bool> _shouldMergeViaPullRequest(Directory directory) async {
+  /// Returns whether the pull-request flow is possible: the git provider of
+  /// `origin` must support it (GitHub or Azure DevOps). A missing remote or
+  /// an unsupported provider (e.g. a self-hosted GitLab) falls back to the
+  /// local merge with a warning instead of failing the publish.
+  Future<bool> _pullRequestFlowSupported(Directory directory) async {
     final result = await _processWrapper.run('git', [
       'config',
       '--get',
       'remote.origin.url',
     ], workingDirectory: directory.path);
     if (result.exitCode != 0) {
+      ggLog(
+        yellow(
+          'No remote "origin" found — falling back to a local merge '
+          'instead of a pull request.',
+        ),
+      );
       return false;
     }
     final url = result.stdout.toString().trim();
-    return gg_merge.providerFromRemoteUrl(url) == gg_merge.GitProvider.azure;
+    if (gg_merge.providerFromRemoteUrl(url) == null) {
+      ggLog(
+        yellow(
+          'The git provider of "$url" does not support the pull-request '
+          'flow — falling back to a local merge.',
+        ),
+      );
+      return false;
+    }
+    return true;
   }
 
   /// Checks out the default branch (`main`/`master`). Used when a resumed run
@@ -854,6 +889,10 @@ class DoPublish extends DirCommand<void> {
   bool get _deleteFeatureBranchWasProvided =>
       argResults?.wasParsed('delete-feature-branch') ?? false;
 
+  bool get _prFromArgs => argResults?['pr'] as bool? ?? true;
+
+  bool get _prWasProvided => argResults?.wasParsed('pr') ?? false;
+
   String? get _messageFromArgs => argResults?['message'] as String?;
 
   String? get _channelFromArgs => argResults?['channel'] as String?;
@@ -879,6 +918,16 @@ class DoPublish extends DirCommand<void> {
       'delete-feature-branch',
       help: 'Delete the current feature branch on origin after publishing.',
       defaultsTo: false,
+      negatable: true,
+    );
+
+    argParser.addFlag(
+      'pr',
+      help:
+          'Merge through an auto-merge pull request and wait until the '
+          'provider merged it (default). --no-pr performs a local merge '
+          'followed by a direct push to main instead.',
+      defaultsTo: true,
       negatable: true,
     );
 

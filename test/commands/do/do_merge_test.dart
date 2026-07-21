@@ -558,6 +558,7 @@ void main() {
           automerge: true,
           local: false,
           verbose: false,
+          deleteSourceBranch: true,
         ),
       ).thenAnswer((_) async => true);
 
@@ -617,6 +618,7 @@ void main() {
           automerge: true,
           local: false,
           verbose: false,
+          deleteSourceBranch: true,
         ),
         () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
         // Bring local main to the merged state.
@@ -647,6 +649,70 @@ void main() {
         ),
       );
     });
+
+    test(
+      'forwards deleteSourceBranch:false to the pull-request merge',
+      () async {
+        when(
+          () => mockGgState.readSuccess(
+            directory: d,
+            key: 'doMerge',
+            ggLog: ggLog,
+          ),
+        ).thenAnswer((_) async => false);
+
+        stubGitCommands();
+
+        when(
+          () => mockProcessWrapper.run(
+            'git',
+            ['push'],
+            runInShell: true,
+            workingDirectory: any(named: 'workingDirectory'),
+          ),
+        ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+        when(
+          () => mockGgMergeDoMerge.get(
+            directory: d,
+            ggLog: ggLog,
+            automerge: true,
+            local: false,
+            verbose: false,
+            deleteSourceBranch: false,
+          ),
+        ).thenAnswer((_) async => true);
+
+        when(
+          () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        ).thenAnswer((_) async => true);
+
+        when(
+          () => mockGgState.writeSuccess(
+            directory: d,
+            key: any(named: 'key'),
+          ),
+        ).thenAnswer((_) async {});
+
+        await doMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          viaPullRequest: true,
+          deleteSourceBranch: false,
+        );
+
+        verify(
+          () => mockGgMergeDoMerge.get(
+            directory: d,
+            ggLog: ggLog,
+            automerge: true,
+            local: false,
+            verbose: false,
+            deleteSourceBranch: false,
+          ),
+        ).called(1);
+      },
+    );
 
     group('exec', () {
       test('should call get with provided parameters', () async {

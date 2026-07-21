@@ -64,6 +64,7 @@ class PublishConfig {
     this.channel,
     this.deleteTicket,
     this.deleteFeatureBranch,
+    this.pr,
     this.branch,
     Map<String, RepoOverride>? repos,
     List<String>? doneSteps,
@@ -87,6 +88,11 @@ class PublishConfig {
   /// interactive delete-feature-branch prompt when set, so a `--config` /
   /// `.gg/.gg-publish.json` driven publish is fully headless.
   final bool? deleteFeatureBranch;
+
+  /// Top-level `pr`: whether the final merge goes through an auto-merge pull
+  /// request (true, the default) or a local merge + direct push (`--no-pr`).
+  /// Persisted so a `--continue` resumes in the same mode.
+  final bool? pr;
 
   /// Per-repo overrides keyed by repository name.
   final Map<String, RepoOverride> repos;
@@ -208,6 +214,7 @@ class PublishConfig {
       key: 'delete_feature_branch',
       where: found.path,
     );
+    final pr = _readBool(decoded, key: 'pr', where: found.path);
 
     final repos = <String, RepoOverride>{};
     final rawRepos = decoded['repos'];
@@ -260,6 +267,7 @@ class PublishConfig {
       channel: channel,
       deleteTicket: deleteTicket,
       deleteFeatureBranch: deleteFeatureBranch,
+      pr: pr,
       branch: branch,
       repos: repos,
       doneSteps: doneSteps,
@@ -376,6 +384,7 @@ class PublishConfig {
     if (deleteTicket != null) 'delete_ticket': deleteTicket,
     if (deleteFeatureBranch != null)
       'delete_feature_branch': deleteFeatureBranch,
+    if (pr != null) 'pr': pr,
     if (branch != null) 'branch': branch,
     if (doneSteps.isNotEmpty) 'done_steps': doneSteps,
     if (repos.isNotEmpty)
@@ -423,6 +432,7 @@ class PublishConfig {
       channel: channel,
       deleteTicket: deleteTicket,
       deleteFeatureBranch: deleteFeatureBranch,
+      pr: pr,
       branch: branch,
       repos: updated,
       doneSteps: doneSteps,
@@ -450,6 +460,7 @@ class PublishConfig {
       channel: channel,
       deleteTicket: deleteTicket,
       deleteFeatureBranch: deleteFeatureBranch,
+      pr: pr,
       branch: branch,
       repos: repos,
       doneSteps: [...doneSteps, step],
