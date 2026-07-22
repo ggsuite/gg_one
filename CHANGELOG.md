@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [11.0.0] - 2026-07-22
 
 ### Added
 
@@ -733,7 +733,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
-[Unreleased]: https://github.com/ggsuite/gg_one/compare/10.3.0...HEAD
+[11.0.0]: https://github.com/ggsuite/gg_one/compare/10.3.0...11.0.0
 [10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
 [10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
 [10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1
