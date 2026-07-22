@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_lang/gg_lang.dart' as gg_lang;
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:gg_process/gg_process.dart';
@@ -54,6 +55,14 @@ class DoMerge extends DirCommand<void> {
       negatable: true,
       defaultsTo: false,
     );
+    argParser.addFlag(
+      'delete-source-branch',
+      help:
+          'Let the provider delete the source branch after a pull-request '
+          'merge.',
+      negatable: true,
+      defaultsTo: true,
+    );
     argParser.addOption(
       'message',
       abbr: 'm',
@@ -74,9 +83,6 @@ class DoMerge extends DirCommand<void> {
   final gg_publish.MainBranch _mainBranch;
   final GgProcessWrapper _processWrapper;
 
-  /// The key used to save the state of the command
-  final String stateKey = 'doMerge';
-
   @override
   Future<void> exec({
     required Directory directory,
@@ -86,6 +92,7 @@ class DoMerge extends DirCommand<void> {
     String? message,
     bool? verbose,
     bool? viaPullRequest,
+    bool? deleteSourceBranch,
   }) => get(
     directory: directory,
     ggLog: ggLog,
@@ -94,6 +101,7 @@ class DoMerge extends DirCommand<void> {
     message: message,
     verbose: verbose,
     viaPullRequest: viaPullRequest,
+    deleteSourceBranch: deleteSourceBranch,
   );
 
   @override
@@ -105,24 +113,14 @@ class DoMerge extends DirCommand<void> {
     String? message,
     bool? verbose,
     bool? viaPullRequest,
+    bool? deleteSourceBranch,
   }) async {
     automerge ??= argResults?['automerge'] as bool? ?? false;
     local ??= argResults?['local'] as bool? ?? false;
     message ??= argResults?['message'] as String?;
     verbose ??= argResults?['verbose'] as bool? ?? false;
     viaPullRequest ??= argResults?['via-pull-request'] as bool? ?? false;
-
-    // Check state
-    final isDone = await _state.readSuccess(
-      directory: directory,
-      key: stateKey,
-      ggLog: ggLog,
-    );
-
-    if (isDone) {
-      ggLog(yellow('Merge already performed.'));
-      return;
-    }
+    deleteSourceBranch ??= argResults?['delete-source-branch'] as bool? ?? true;
 
     // The publish step runs build/test (incl. formatters like
     // »prettier --write«) after the last commit, and gg writes run state into
@@ -150,6 +148,8 @@ class DoMerge extends DirCommand<void> {
         directory: directory,
         ggLog: ggLog,
         verbose: verbose,
+        deleteSourceBranch: deleteSourceBranch,
+        message: message,
       );
     } else {
       // Update local main branch via fetch + pull
@@ -170,12 +170,9 @@ class DoMerge extends DirCommand<void> {
       );
     }
 
-    // Save state
-    await _state.writeSuccess(directory: directory, key: stateKey);
-
-    // A merge produces a fully-committed, gg-verified HEAD, so it also
-    // satisfies »gg did commit«. Record that too, otherwise the pre-push hook
-    // (which runs »gg did commit«) rejects the merge commit when it is pushed.
+    // A merge produces a fully-committed, gg-verified HEAD, so it satisfies
+    // »gg did commit«. Record that, otherwise the pre-push hook (which runs
+    // »gg did commit«) rejects the merge commit when it is pushed.
     await _state.writeSuccess(directory: directory, key: 'doCommit');
   }
 
@@ -188,8 +185,9 @@ class DoMerge extends DirCommand<void> {
   /// checkout". These are post-check release artifacts, so committing them
   /// keeps the merge robust instead of failing mid-publish. Untracked files
   /// are deliberately excluded (`--untracked-files=no` / `git add --update`)
-  /// so stray build output is never swept into the commit.
-  Future<void> _commitPendingChanges({
+  /// so stray build output is never swept into the commit. Returns whether a
+  /// commit was created.
+  Future<bool> _commitPendingChanges({
     required Directory directory,
     required GgLog ggLog,
     required bool verbose,
@@ -203,7 +201,7 @@ class DoMerge extends DirCommand<void> {
     );
 
     if (status.trim().isEmpty) {
-      return;
+      return false;
     }
 
     await _runGitCommand(
@@ -232,6 +230,7 @@ class DoMerge extends DirCommand<void> {
         '(e.g. formatter output or run state).',
       ),
     );
+    return true;
   }
 
   /// Removes the `.gg/.ticket.json` marker (force-added by `gg do add`) before
@@ -279,6 +278,8 @@ class DoMerge extends DirCommand<void> {
     required Directory directory,
     required GgLog ggLog,
     required bool verbose,
+    required bool deleteSourceBranch,
+    required String? message,
   }) async {
     // Refresh remote-tracking refs so the merge pre-conditions are accurate.
     await _fetchAndPullMain(
@@ -287,33 +288,88 @@ class DoMerge extends DirCommand<void> {
       verbose: verbose,
     );
 
-    // Push the feature branch (incl. version bump + changelog) so the pull
-    // request contains everything before it is created.
-    await _runGitCommand(
-      directory: directory,
-      arguments: const ['push'],
-      actionDescription: 'push feature branch before creating the pull request',
-      ggLog: ggLog,
-      verbose: verbose,
-    );
-
-    // Create the auto-complete pull request on the provider (GitHub/Azure).
-    await _doMerge.get(
-      directory: directory,
-      ggLog: ggLog,
-      automerge: true,
-      local: false,
-      verbose: verbose,
-    );
-
-    // Block until the provider merged the pull request.
-    await _waitForMerge.get(directory: directory, ggLog: ggLog);
-
-    // Bring local main to the merged state so the version tag lands on it.
     final mainBranchName = await _mainBranch.get(
       directory: directory,
       ggLog: <String>[].add,
     );
+
+    // A resumed run may find its release already on main: the previous run
+    // crashed after the provider merged the pull request but before the
+    // merge step was marked done. Detected by content (a squash merge
+    // changes the commit SHAs), the pull request and the wait are skipped.
+    final alreadyMerged = await _releaseAlreadyOnMain(
+      directory: directory,
+      mainBranchName: mainBranchName,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    if (alreadyMerged) {
+      ggLog(
+        yellow(
+          'All release changes are already on $mainBranchName (the pull '
+          'request of an earlier run was merged) — skipping the pull request.',
+        ),
+      );
+    } else {
+      // Push the feature branch (incl. version bump + changelog) so the pull
+      // request contains everything before it is created.
+      await _runGitCommand(
+        directory: directory,
+        arguments: const ['push'],
+        actionDescription:
+            'push feature branch before creating the pull request',
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+
+      // A repo-level pre-push hook can dirty the worktree during the push —
+      // e.g. a »dart run« based hook whose implicit »pub get« rewrites
+      // pubspec.lock after the version bump. Commit that drift and push again
+      // (the second hook run finds everything up to date), otherwise the
+      // checkout of the main branch below aborts with "local changes would be
+      // overwritten by checkout".
+      final hookDriftCommitted = await _commitPendingChanges(
+        directory: directory,
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+      if (hookDriftCommitted) {
+        await _runGitCommand(
+          directory: directory,
+          arguments: const ['push'],
+          actionDescription: 'push pre-push-hook drift commit',
+          ggLog: ggLog,
+          verbose: verbose,
+        );
+      }
+
+      // Create the auto-complete pull request on the provider (GitHub/Azure).
+      // The merge message becomes the PR title and squash commit message.
+      await _doMerge.get(
+        directory: directory,
+        ggLog: ggLog,
+        automerge: true,
+        local: false,
+        verbose: verbose,
+        deleteSourceBranch: deleteSourceBranch,
+        message: message,
+      );
+
+      // Block until the provider merged the pull request.
+      await _waitForMerge.get(directory: directory, ggLog: ggLog);
+    }
+
+    // Safety net: absorb any dirt that appeared since the pushes (the branch
+    // is merged already, so a throwaway commit stays local) — the checkout of
+    // the main branch below must not fail on a dirty worktree.
+    await _commitPendingChanges(
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    // Bring local main to the merged state so the version tag lands on it.
     await _runGitCommand(
       directory: directory,
       arguments: ['checkout', mainBranchName],
@@ -328,6 +384,38 @@ class DoMerge extends DirCommand<void> {
       ggLog: ggLog,
       verbose: verbose,
     );
+  }
+
+  /// Returns whether the feature branch holds no release content that is
+  /// missing on `origin/<main>`. True when the pull request of an earlier,
+  /// interrupted run was already merged — a squash merge changes the commit
+  /// SHAs, so this compares content, not ancestry. gg bookkeeping (`.gg/`)
+  /// and lock-file drift are ignored: a real release always changes the
+  /// version in the manifest, so it can never be mistaken for drift.
+  Future<bool> _releaseAlreadyOnMain({
+    required Directory directory,
+    required String mainBranchName,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    final changedFiles = await _runGitCommand(
+      directory: directory,
+      arguments: ['diff', '--name-only', 'origin/$mainBranchName', 'HEAD'],
+      actionDescription:
+          'compare the feature branch with origin/$mainBranchName',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    // Lock files rewritten by pre-push hooks and resumed runs are drift, not
+    // release content; the canonical set of lock file names lives in gg_lang.
+    return changedFiles
+        .split('\n')
+        .map((line) => line.trim())
+        .where((file) => file.isNotEmpty)
+        .where((file) => !file.startsWith('.gg/'))
+        .where((file) => !gg_lang.allLockFileNames.contains(file))
+        .isEmpty;
   }
 
   /// Fetches and pulls the main branch before performing the merge.

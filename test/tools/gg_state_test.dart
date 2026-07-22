@@ -73,6 +73,91 @@ void main() {
           final contents = json.decode(contentsString);
           expect(contents['can-commit']['success']['hash'], hash);
         });
+
+        test('should prune obsolete keys from .gg/.gg.json', () async {
+          await addAndCommitSampleFile(dLocal);
+
+          // A .gg.json written by an earlier gg version still carries
+          // publish/merge states.
+          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          checkJson.parent.createSync(recursive: true);
+          checkJson.writeAsStringSync(
+            '{"canCommit":{"success":{"hash":123}},'
+            '"doPublish":{"success":{"hash":123}},'
+            '"doPrepareVersion":{"success":{"hash":123}},'
+            '"doPublishPubDev":{"success":{"hash":123}},'
+            '"doPublishGit":{"success":{"hash":123}},'
+            '"doMerge":{"success":{"hash":123}}}',
+          );
+
+          await ggState.writeSuccess(directory: dLocal, key: 'doCommit');
+
+          final contents =
+              json.decode(await checkJson.readAsString())
+                  as Map<String, dynamic>;
+          for (final key in GgState.obsoleteKeys) {
+            expect(contents.containsKey(key), isFalse, reason: key);
+          }
+          expect(contents.containsKey('canCommit'), isTrue);
+          expect(contents.containsKey('doCommit'), isTrue);
+        });
+
+        test('should prune only once per directory', () async {
+          await addAndCommitSampleFile(dLocal);
+
+          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          checkJson.parent.createSync(recursive: true);
+          checkJson.writeAsStringSync('{"doPublish":{"success":{"hash":1}}}');
+
+          await ggState.writeSuccess(directory: dLocal, key: 'doCommit');
+
+          // Re-introduce an obsolete key — the per-process memo skips a
+          // second pruning read on this hot path.
+          final contents1 =
+              json.decode(await checkJson.readAsString())
+                  as Map<String, dynamic>;
+          contents1['doPublish'] = {
+            'success': {'hash': 2},
+          };
+          checkJson.writeAsStringSync(json.encode(contents1));
+
+          await ggState.writeSuccess(directory: dLocal, key: 'canPush');
+
+          final contents2 =
+              json.decode(await checkJson.readAsString())
+                  as Map<String, dynamic>;
+          expect(contents2.containsKey('doPublish'), isTrue);
+          expect(contents2.containsKey('canPush'), isTrue);
+        });
+
+        test('should tolerate an empty .gg/.gg.json when pruning', () async {
+          await addAndCommitSampleFile(dLocal);
+
+          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          checkJson.parent.createSync(recursive: true);
+          checkJson.writeAsStringSync('');
+
+          await ggState.writeSuccess(directory: dLocal, key: 'doCommit');
+
+          final contents =
+              json.decode(await checkJson.readAsString())
+                  as Map<String, dynamic>;
+          expect(contents.containsKey('doCommit'), isTrue);
+        });
+
+        test('should leave .gg/.gg.json untouched when no obsolete '
+            'keys exist', () async {
+          await addAndCommitSampleFile(dLocal);
+
+          await ggState.writeSuccess(directory: dLocal, key: 'canCommit');
+          await ggState.writeSuccess(directory: dLocal, key: 'doCommit');
+
+          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          final contents =
+              json.decode(await checkJson.readAsString())
+                  as Map<String, dynamic>;
+          expect(contents.keys, containsAll(<String>['canCommit', 'doCommit']));
+        });
       });
 
       group('should ammend changes to .gg/.gg.json to the last commit', () {

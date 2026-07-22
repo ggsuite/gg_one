@@ -1,5 +1,19 @@
 # Changelog
 
+## [11.0.0] - 2026-07-22
+
+### Added
+
+- Add --pr flag (default on): merge via auto-merge pull request and wait, fall back to local merge on unsupported providers, --no-pr restores local merge
+
+### Changed
+
+- Forward the merge message into the pull-request flow, drop the doMerge and doPublish states and prune legacy keys from .gg/.gg.json
+- Absorb pre-push-hook worktree drift in the pull-request merge flow so the final checkout of main does not fail
+- Skip pull request and wait when a resumed run finds the release content already merged into main
+- Use the shared origin-url lookup and gg\_lang lock-file names and memoize the legacy-key pruning
+- gg\_multi: changed references to git
+
 ## [10.3.0] - 2026-07-20
 
 ### Changed
@@ -719,6 +733,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
+[11.0.0]: https://github.com/ggsuite/gg_one/compare/10.3.0...11.0.0
 [10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
 [10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
 [10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1

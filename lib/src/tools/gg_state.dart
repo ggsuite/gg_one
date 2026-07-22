@@ -4,6 +4,7 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
@@ -46,6 +47,18 @@ class GgState {
     '.gg/.gg-publish.json',
     'CHANGELOG.md',
     '.kidney_status',
+  ];
+
+  // ...........................................................................
+  /// State keys of earlier gg versions that must not survive in the tracked
+  /// `.gg/.gg.json`: publish/merge progress lives in the git-ignored
+  /// `.gg/.gg-publish.json` now. They are pruned whenever a state is written.
+  static const obsoleteKeys = [
+    'doPrepareVersion',
+    'doPublishPubDev',
+    'doMerge',
+    'doPublishGit',
+    'doPublish',
   ];
 
   // ...........................................................................
@@ -108,6 +121,10 @@ class GgState {
 
     // Ensure configuration directory exists before writing
     await _ensureConfigDirectoryExists(directory);
+
+    // Prune keys of earlier gg versions; the pruning is committed together
+    // with the hash written below.
+    await _removeObsoleteKeys(directory);
 
     // Get the hash of the current commit
     final hash = await currentHash(
@@ -185,6 +202,36 @@ class GgState {
   final HeadMessage _headMessage;
   final HasRemote _hasRemote;
   final CommitCount _commitCount;
+
+  // ...........................................................................
+  /// Directories already pruned in this process. writeSuccess runs on every
+  /// check of every command — without the memo the migration read below
+  /// would tax that hot path forever.
+  static final Set<String> _prunedDirectories = {};
+
+  // ...........................................................................
+  /// Removes [obsoleteKeys] from `.gg/.gg.json` when present. An empty file
+  /// carries nothing to prune; other malformed files need no handling here:
+  /// the preceding [readSuccess] rejects them.
+  Future<void> _removeObsoleteKeys(Directory directory) async {
+    if (!_prunedDirectories.add(directory.path)) {
+      return;
+    }
+    final file = _configFile(directory: directory);
+    if (!await file.exists()) {
+      return;
+    }
+    final content = await file.readAsString();
+    if (content.trim().isEmpty) {
+      return;
+    }
+    final decoded = jsonDecode(content) as Map<String, dynamic>;
+    if (!obsoleteKeys.any(decoded.containsKey)) {
+      return;
+    }
+    obsoleteKeys.forEach(decoded.remove);
+    await file.writeAsString(jsonEncode(decoded));
+  }
 
   // ...........................................................................
   List<String> _hashPath(String name) => [name, 'success', 'hash'];

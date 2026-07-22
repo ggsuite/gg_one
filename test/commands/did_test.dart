@@ -39,7 +39,7 @@ void main() {
 
       expect(
         messages.first,
-        contains('Checks if you did commit, push, publish'),
+        contains('Checks if you did commit, push, upgrade'),
       );
     });
   });
