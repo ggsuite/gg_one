@@ -632,6 +632,103 @@ void main() {
       },
     );
 
+    test('commits and re-pushes pre-push-hook drift before creating the '
+        'pull request', () async {
+      stubGitCommands();
+
+      // The status is checked three times: before the merge (clean), after
+      // the first push (a »dart run« pre-push hook rewrote pubspec.lock) and
+      // as safety net after the merge wait (clean again).
+      var statusCalls = 0;
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['status', '--porcelain', '--untracked-files=no'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async {
+        statusCalls++;
+        return ProcessResult(
+          0,
+          0,
+          statusCalls == 2 ? ' M pubspec.lock\n' : '',
+          '',
+        );
+      });
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['add', '--update'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          [
+            'commit',
+            '-m',
+            'Commit pending changes before merge (e.g. release formatting)',
+          ],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['push'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+          deleteSourceBranch: true,
+        ),
+      ).thenAnswer((_) async => true);
+
+      when(
+        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+      ).thenAnswer((_) async => true);
+
+      await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+
+      // The drift commit was created and pushed with a second push.
+      verify(
+        () => mockProcessWrapper.run(
+          'git',
+          [
+            'commit',
+            '-m',
+            'Commit pending changes before merge (e.g. release formatting)',
+          ],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).called(1);
+      verify(
+        () => mockProcessWrapper.run(
+          'git',
+          ['push'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).called(2);
+      expect(statusCalls, 3);
+    });
+
     test('forwards the merge message to the pull-request merge', () async {
       stubGitCommands();
 

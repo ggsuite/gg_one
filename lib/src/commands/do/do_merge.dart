@@ -184,8 +184,9 @@ class DoMerge extends DirCommand<void> {
   /// checkout". These are post-check release artifacts, so committing them
   /// keeps the merge robust instead of failing mid-publish. Untracked files
   /// are deliberately excluded (`--untracked-files=no` / `git add --update`)
-  /// so stray build output is never swept into the commit.
-  Future<void> _commitPendingChanges({
+  /// so stray build output is never swept into the commit. Returns whether a
+  /// commit was created.
+  Future<bool> _commitPendingChanges({
     required Directory directory,
     required GgLog ggLog,
     required bool verbose,
@@ -199,7 +200,7 @@ class DoMerge extends DirCommand<void> {
     );
 
     if (status.trim().isEmpty) {
-      return;
+      return false;
     }
 
     await _runGitCommand(
@@ -228,6 +229,7 @@ class DoMerge extends DirCommand<void> {
         '(e.g. formatter output or run state).',
       ),
     );
+    return true;
   }
 
   /// Removes the `.gg/.ticket.json` marker (force-added by `gg do add`) before
@@ -295,6 +297,27 @@ class DoMerge extends DirCommand<void> {
       verbose: verbose,
     );
 
+    // A repo-level pre-push hook can dirty the worktree during the push —
+    // e.g. a »dart run« based hook whose implicit »pub get« rewrites
+    // pubspec.lock after the version bump. Commit that drift and push again
+    // (the second hook run finds everything up to date), otherwise the
+    // checkout of the main branch below aborts with "local changes would be
+    // overwritten by checkout".
+    final hookDriftCommitted = await _commitPendingChanges(
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+    if (hookDriftCommitted) {
+      await _runGitCommand(
+        directory: directory,
+        arguments: const ['push'],
+        actionDescription: 'push pre-push-hook drift commit',
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+    }
+
     // Create the auto-complete pull request on the provider (GitHub/Azure).
     // The merge message becomes the PR title and squash commit message.
     await _doMerge.get(
@@ -309,6 +332,15 @@ class DoMerge extends DirCommand<void> {
 
     // Block until the provider merged the pull request.
     await _waitForMerge.get(directory: directory, ggLog: ggLog);
+
+    // Safety net: absorb any dirt that appeared since the pushes (the branch
+    // is merged already, so a throwaway commit stays local) — the checkout of
+    // the main branch below must not fail on a dirty worktree.
+    await _commitPendingChanges(
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
 
     // Bring local main to the merged state so the version tag lands on it.
     final mainBranchName = await _mainBranch.get(
