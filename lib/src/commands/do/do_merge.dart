@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_lang/gg_lang.dart' as gg_lang;
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:gg_process/gg_process.dart';
@@ -385,15 +386,6 @@ class DoMerge extends DirCommand<void> {
     );
   }
 
-  /// Lock files that pre-push hooks and resumed runs rewrite after the
-  /// merge; their drift alone must not force a second pull request.
-  static const _lockFileNames = {
-    'pubspec.lock',
-    'pnpm-lock.yaml',
-    'package-lock.json',
-    'yarn.lock',
-  };
-
   /// Returns whether the feature branch holds no release content that is
   /// missing on `origin/<main>`. True when the pull request of an earlier,
   /// interrupted run was already merged — a squash merge changes the commit
@@ -415,12 +407,14 @@ class DoMerge extends DirCommand<void> {
       verbose: verbose,
     );
 
+    // Lock files rewritten by pre-push hooks and resumed runs are drift, not
+    // release content; the canonical set of lock file names lives in gg_lang.
     return changedFiles
         .split('\n')
         .map((line) => line.trim())
         .where((file) => file.isNotEmpty)
         .where((file) => !file.startsWith('.gg/'))
-        .where((file) => !_lockFileNames.contains(file))
+        .where((file) => !gg_lang.allLockFileNames.contains(file))
         .isEmpty;
   }
 

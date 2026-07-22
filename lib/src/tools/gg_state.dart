@@ -204,10 +204,19 @@ class GgState {
   final CommitCount _commitCount;
 
   // ...........................................................................
+  /// Directories already pruned in this process. writeSuccess runs on every
+  /// check of every command — without the memo the migration read below
+  /// would tax that hot path forever.
+  static final Set<String> _prunedDirectories = {};
+
+  // ...........................................................................
   /// Removes [obsoleteKeys] from `.gg/.gg.json` when present. An empty file
   /// carries nothing to prune; other malformed files need no handling here:
   /// the preceding [readSuccess] rejects them.
   Future<void> _removeObsoleteKeys(Directory directory) async {
+    if (!_prunedDirectories.add(directory.path)) {
+      return;
+    }
     final file = _configFile(directory: directory);
     if (!await file.exists()) {
       return;

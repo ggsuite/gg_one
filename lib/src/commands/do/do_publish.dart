@@ -555,12 +555,11 @@ class DoPublish extends DirCommand<void> {
   /// an unsupported provider (e.g. a self-hosted GitLab) falls back to the
   /// local merge with a warning instead of failing the publish.
   Future<bool> _pullRequestFlowSupported(Directory directory) async {
-    final result = await _processWrapper.run('git', [
-      'config',
-      '--get',
-      'remote.origin.url',
-    ], workingDirectory: directory.path);
-    if (result.exitCode != 0) {
+    final url = await gg_merge.readOriginUrl(
+      directory: directory,
+      processWrapper: _processWrapper,
+    );
+    if (url == null) {
       ggLog(
         yellow(
           'No remote "origin" found — falling back to a local merge '
@@ -569,7 +568,6 @@ class DoPublish extends DirCommand<void> {
       );
       return false;
     }
-    final url = result.stdout.toString().trim();
     if (gg_merge.providerFromRemoteUrl(url) == null) {
       ggLog(
         yellow(

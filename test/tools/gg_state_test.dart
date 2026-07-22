@@ -102,6 +102,34 @@ void main() {
           expect(contents.containsKey('doCommit'), isTrue);
         });
 
+        test('should prune only once per directory', () async {
+          await addAndCommitSampleFile(dLocal);
+
+          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          checkJson.parent.createSync(recursive: true);
+          checkJson.writeAsStringSync('{"doPublish":{"success":{"hash":1}}}');
+
+          await ggState.writeSuccess(directory: dLocal, key: 'doCommit');
+
+          // Re-introduce an obsolete key — the per-process memo skips a
+          // second pruning read on this hot path.
+          final contents1 =
+              json.decode(await checkJson.readAsString())
+                  as Map<String, dynamic>;
+          contents1['doPublish'] = {
+            'success': {'hash': 2},
+          };
+          checkJson.writeAsStringSync(json.encode(contents1));
+
+          await ggState.writeSuccess(directory: dLocal, key: 'canPush');
+
+          final contents2 =
+              json.decode(await checkJson.readAsString())
+                  as Map<String, dynamic>;
+          expect(contents2.containsKey('doPublish'), isTrue);
+          expect(contents2.containsKey('canPush'), isTrue);
+        });
+
         test('should tolerate an empty .gg/.gg.json when pruning', () async {
           await addAndCommitSampleFile(dLocal);
 

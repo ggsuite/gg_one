@@ -304,11 +304,12 @@ void main() {
 
     // Default: a remote without pull-request support → local merge flow.
     when(
-      () => processWrapper.run('git', [
-        'config',
-        '--get',
-        'remote.origin.url',
-      ], workingDirectory: d.path),
+      () => processWrapper.run(
+        'git',
+        ['config', '--get', 'remote.origin.url'],
+        runInShell: true,
+        workingDirectory: d.path,
+      ),
     ).thenAnswer(
       (_) async =>
           ProcessResult(0, 0, 'https://git.example.com/inlavigo/gg.git', ''),
@@ -1549,11 +1550,12 @@ void main() {
       test('uses the local merge flow when origin has no remote', () async {
         // git config exits non-zero → no provider → local merge.
         when(
-          () => processWrapper.run('git', [
-            'config',
-            '--get',
-            'remote.origin.url',
-          ], workingDirectory: d.path),
+          () => processWrapper.run(
+            'git',
+            ['config', '--get', 'remote.origin.url'],
+            runInShell: true,
+            workingDirectory: d.path,
+          ),
         ).thenAnswer((_) async => ProcessResult(1, 1, '', ''));
 
         mockPublishIsSuccessful(success: true, askBeforePublishing: false);
@@ -1595,11 +1597,12 @@ void main() {
         () async {
           // Azure remote — but --no-pr keeps the local merge + direct push.
           when(
-            () => processWrapper.run('git', [
-              'config',
-              '--get',
-              'remote.origin.url',
-            ], workingDirectory: d.path),
+            () => processWrapper.run(
+              'git',
+              ['config', '--get', 'remote.origin.url'],
+              runInShell: true,
+              workingDirectory: d.path,
+            ),
           ).thenAnswer(
             (_) async => ProcessResult(
               0,
@@ -1647,11 +1650,12 @@ void main() {
 
         // Azure remote → pull-request flow.
         when(
-          () => processWrapper.run('git', [
-            'config',
-            '--get',
-            'remote.origin.url',
-          ], workingDirectory: d.path),
+          () => processWrapper.run(
+            'git',
+            ['config', '--get', 'remote.origin.url'],
+            runInShell: true,
+            workingDirectory: d.path,
+          ),
         ).thenAnswer(
           (_) async => ProcessResult(
             0,

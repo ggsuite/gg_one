@@ -11,6 +11,7 @@
 - Forward the merge message into the pull-request flow, drop the doMerge and doPublish states and prune legacy keys from .gg/.gg.json
 - Absorb pre-push-hook worktree drift in the pull-request merge flow so the final checkout of main does not fail
 - Skip pull request and wait when a resumed run finds the release content already merged into main
+- Use the shared origin-url lookup and gg\_lang lock-file names and memoize the legacy-key pruning
 
 ## [10.3.0] - 2026-07-20
 
