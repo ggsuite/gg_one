@@ -17,7 +17,6 @@ class CanUpgrade extends CommandCluster {
     super.shortDescription = 'Can upgrade?',
     super.description = 'Is the package ready to get a dependeny upgrade?',
     super.stateKey = 'canUpgrade',
-    DidPublish? didPublish,
   }) : super(
          commands: [], // Currently we can upgrade always
        );

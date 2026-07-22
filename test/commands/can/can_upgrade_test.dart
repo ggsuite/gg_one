@@ -15,7 +15,6 @@ import 'package:test/test.dart';
 
 void main() {
   late Directory d;
-  late MockDidPublish didPublish;
   late CanUpgrade canUpgrade;
   late CommandRunner<void> runner;
 
@@ -29,8 +28,7 @@ void main() {
     await initGit(d);
     await addAndCommitSampleFile(d);
     registerFallbackValue(d);
-    didPublish = MockDidPublish();
-    canUpgrade = CanUpgrade(ggLog: ggLog, didPublish: didPublish);
+    canUpgrade = CanUpgrade(ggLog: ggLog);
     runner = CommandRunner<void>('test', 'test')..addCommand(canUpgrade);
   });
 
@@ -41,10 +39,6 @@ void main() {
   // ...........................................................................
   group('CanUpgrade', () {
     group('should succeed', () {
-      setUp(() {
-        didPublish.mockExec(result: true, directory: d, ggLog: ggLog);
-      });
-
       tearDown(() {
         expect(messages[0], yellow('Can upgrade?'));
       });

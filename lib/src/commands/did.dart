@@ -26,15 +26,13 @@ class Did extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Checks if you did commit, push, publish, ....';
+  final description = 'Checks if you did commit, push, upgrade, ....';
 
   // ...........................................................................
   void _initSubCommands(DepsOfDid deps) {
     addSubcommand(deps.didCommit);
     addSubcommand(deps.didPush);
-    addSubcommand(deps.didPublish);
     addSubcommand(deps.didUpgrade);
-    addSubcommand(deps.didMerge);
   }
 }
 
@@ -46,14 +44,10 @@ class DepsOfDid {
     required this.ggLog,
     DidCommit? commit,
     DidPush? push,
-    DidPublish? publish,
     DidUpgrade? upgrade,
-    DidMerge? merge,
   }) : didCommit = commit ?? DidCommit(ggLog: ggLog),
        didPush = push ?? DidPush(ggLog: ggLog),
-       didPublish = publish ?? DidPublish(ggLog: ggLog),
-       didUpgrade = upgrade ?? DidUpgrade(ggLog: ggLog),
-       didMerge = merge ?? DidMerge(ggLog: ggLog);
+       didUpgrade = upgrade ?? DidUpgrade(ggLog: ggLog);
 
   /// The log function
   final GgLog ggLog;
@@ -65,11 +59,5 @@ class DepsOfDid {
   final DidPush didPush;
 
   /// The can publish command
-  final DidPublish didPublish;
-
-  /// The can publish command
   final DidUpgrade didUpgrade;
-
-  /// The did merge command
-  final DidMerge didMerge;
 }

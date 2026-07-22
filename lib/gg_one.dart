@@ -26,8 +26,6 @@ export 'src/commands/check/pub_get_offline.dart';
 // Did
 export 'src/commands/did.dart';
 export 'src/commands/did/did_commit.dart';
-export 'src/commands/did/did_merge.dart';
-export 'src/commands/did/did_publish.dart';
 export 'src/commands/did/did_push.dart';
 export 'src/commands/did/did_upgrade.dart';
 // Do

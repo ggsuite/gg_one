@@ -16,7 +16,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -136,12 +135,6 @@ void main() {
       ),
     ).thenAnswer((_) async => [Version.parse('1.2.3')]);
 
-    await DirectJson.writeFile(
-      file: File(join(d.path, '.gg', '.gg.json')),
-      path: 'doPublish/success/hash',
-      value: needsChangeHash,
-    );
-
     final cfgDir = await Directory.systemTemp.createTemp('publish_config_');
     final cfgPath = join(cfgDir.path, 'release.json');
     await File(cfgPath).writeAsString(
@@ -204,8 +197,7 @@ void main() {
       '"doCommit":{"success":{"hash":$successHash}},'
       '"canPush":{"success":{"hash":$successHash}},'
       '"doPush":{"success":{"hash":$successHash}},'
-      '"canPublish":{"success":{"hash":$successHash}},'
-      '"doPublish":{"success":{"hash":$successHash}}}',
+      '"canPublish":{"success":{"hash":$successHash}}}',
     );
   }
 
@@ -369,21 +361,6 @@ void main() {
   group('DoPublish', () {
     group('exec(directory)', () {
       group('should succeed', () {
-        group('and not publish', () {
-          test('when publishing was already successful', () async {
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: successHash,
-            );
-
-            await doPublish.exec(directory: d, ggLog: ggLog);
-            expect(
-              messages,
-              contains(yellow('Current state is already published.')),
-            );
-          });
-        });
         group('and publish', () {
           group('to pub.dev', () {
             group('when no »publish_to: none« is found in pubspec.yaml', () {
@@ -399,13 +376,6 @@ void main() {
                         );
                         publishedVersionValue = Version(1, 2, 3);
                         mockPublishedVersion();
-
-                        // Mock needing publish
-                        await DirectJson.writeFile(
-                          file: File(join(d.path, '.gg', '.gg.json')),
-                          path: 'doPublish/success/hash',
-                          value: needsChangeHash,
-                        );
 
                         messages.clear();
 
@@ -458,13 +428,6 @@ void main() {
                           ).get(directory: d, ggLog: ggLog),
                           isTrue,
                         );
-
-                        expect(
-                          await DidPublish(
-                            ggLog: ggLog,
-                          ).get(directory: d, ggLog: ggLog),
-                          isTrue,
-                        );
                       });
                     }
                   });
@@ -481,13 +444,6 @@ void main() {
                         askBeforePublishing: true,
                       );
 
-                      // Mock needing publish
-                      await DirectJson.writeFile(
-                        file: File(join(d.path, '.gg', '.gg.json')),
-                        path: 'doPublish/success/hash',
-                        value: needsChangeHash,
-                      );
-
                       // Publish
                       await doPublish.exec(
                         directory: d,
@@ -497,12 +453,6 @@ void main() {
                       );
 
                       // Check
-                      expect(
-                        await DidPublish(
-                          ggLog: ggLog,
-                        ).get(directory: d, ggLog: ggLog),
-                        isTrue,
-                      );
                     });
                   });
                 });
@@ -516,13 +466,6 @@ void main() {
                     askBeforePublishing: false,
                   );
 
-                  // Mock needing publish
-                  await DirectJson.writeFile(
-                    file: File(join(d.path, '.gg', '.gg.json')),
-                    path: 'doPublish/success/hash',
-                    value: needsChangeHash,
-                  );
-
                   // Publish
                   await doPublish.exec(
                     directory: d,
@@ -532,12 +475,6 @@ void main() {
                   );
 
                   // Check result
-                  expect(
-                    await DidPublish(
-                      ggLog: ggLog,
-                    ).get(directory: d, ggLog: ggLog),
-                    isTrue,
-                  );
                 });
               });
             });
@@ -567,12 +504,6 @@ void main() {
               (_) async => ProcessResult(0, 0, ' M pubspec.lock', ''),
             );
 
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
-
             await doPublish.exec(
               directory: d,
               ggLog: ggLog,
@@ -584,23 +515,11 @@ void main() {
               await DidCommit(ggLog: ggLog).get(directory: d, ggLog: ggLog),
               isTrue,
             );
-
-            expect(
-              await DidPublish(ggLog: ggLog).get(directory: d, ggLog: ggLog),
-              isTrue,
-            );
           });
 
           test('writes the doPush state for the release commit '
               'and pushes the version tag', () async {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-
-            // Mock needing publish
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
 
             // The doPush state carries a stale hash from development — as on
             // a real feature branch, where the last »gg do push« ran before
@@ -658,13 +577,6 @@ void main() {
 
               await makeLastStateSuccessful();
 
-              // Mock needing publish
-              await DirectJson.writeFile(
-                file: File(join(d.path, '.gg', '.gg.json')),
-                path: 'doPublish/success/hash',
-                value: needsChangeHash,
-              );
-
               messages.clear();
 
               // Publish
@@ -705,11 +617,6 @@ void main() {
                 await DidPush(ggLog: ggLog).get(directory: d, ggLog: ggLog),
                 isTrue,
               );
-
-              expect(
-                await DidPublish(ggLog: ggLog).get(directory: d, ggLog: ggLog),
-                isTrue,
-              );
             });
           });
 
@@ -718,12 +625,6 @@ void main() {
             const customMessage = 'My custom merge message';
 
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
 
             await doPublish.exec(
               directory: d,
@@ -774,12 +675,6 @@ void main() {
               localBranch: localBranch,
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
               doMerge: noPubGetDoMerge(),
-            );
-
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
             );
 
             await doPublishWithEditor.exec(
@@ -835,12 +730,6 @@ void main() {
               doMerge: noPubGetDoMerge(),
             );
 
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
-
             await doPublishWithEditor.exec(
               directory: d,
               ggLog: ggLog,
@@ -891,12 +780,6 @@ void main() {
               doMerge: noPubGetDoMerge(),
             );
 
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
-
             await doPublishWithEditor.exec(
               directory: d,
               ggLog: ggLog,
@@ -917,12 +800,6 @@ void main() {
               mockPublishIsSuccessful(
                 success: true,
                 askBeforePublishing: false,
-              );
-
-              await DirectJson.writeFile(
-                file: File(join(d.path, '.gg', '.gg.json')),
-                path: 'doPublish/success/hash',
-                value: needsChangeHash,
               );
 
               await doPublish.exec(
@@ -955,12 +832,6 @@ void main() {
                 askBeforePublishing: false,
               );
 
-              await DirectJson.writeFile(
-                file: File(join(d.path, '.gg', '.gg.json')),
-                path: 'doPublish/success/hash',
-                value: needsChangeHash,
-              );
-
               await doPublish.exec(
                 directory: d,
                 ggLog: ggLog,
@@ -982,12 +853,6 @@ void main() {
           test('asks whether to delete the feature branch when not specified — '
               'up front, inside configure-publish', () async {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
 
             var promptBranchName = '';
             final doPublishWithPrompt = DoPublish(
@@ -1042,11 +907,6 @@ void main() {
                 success: true,
                 askBeforePublishing: false,
               );
-              await DirectJson.writeFile(
-                file: File(join(d.path, '.gg', '.gg.json')),
-                path: 'doPublish/success/hash',
-                value: needsChangeHash,
-              );
               // Config-only runtime file without the new field.
               File(join(d.path, '.gg', '.gg-publish.json')).writeAsStringSync(
                 '{"version_increment":"patch","merge_message":"msg"}',
@@ -1099,11 +959,6 @@ void main() {
 
           test('reads delete_feature_branch from the config file', () async {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
             File(join(d.path, '.gg', '.gg-publish.json')).writeAsStringSync(
               '{"version_increment":"patch","merge_message":"msg",'
               '"delete_feature_branch":true}',
@@ -1152,12 +1007,6 @@ void main() {
           test('uses CLI delete-feature-branch flag when provided', () async {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
 
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
-
             final cliDoPublish = DoPublish(
               ggLog: ggLog,
               publish: publish,
@@ -1205,11 +1054,6 @@ void main() {
               'when neither is supplied on the CLI', () async {
             // Covers the single-repo `--config` resolve path.
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
 
             // Config sits outside the repo to keep the working tree clean.
             final cfgDir = await Directory.systemTemp.createTemp(
@@ -1266,10 +1110,6 @@ void main() {
             ]);
 
             // Reaching here proves the load+resolve path ran successfully.
-            expect(
-              await DidPublish(ggLog: ggLog).get(directory: d, ggLog: ggLog),
-              isTrue,
-            );
 
             cfgDir.deleteSync(recursive: true);
           });
@@ -1284,12 +1124,6 @@ void main() {
 
           test('logs each executed command when --verbose is set', () async {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-
-            await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
-              path: 'doPublish/success/hash',
-              value: needsChangeHash,
-            );
 
             final cliDoPublish = DoPublish(
               ggLog: ggLog,
@@ -1335,12 +1169,6 @@ void main() {
               mockPublishIsSuccessful(
                 success: true,
                 askBeforePublishing: false,
-              );
-
-              await DirectJson.writeFile(
-                file: File(join(d.path, '.gg', '.gg.json')),
-                path: 'doPublish/success/hash',
-                value: needsChangeHash,
               );
 
               final cliDoPublish = DoPublish(
@@ -1396,12 +1224,6 @@ void main() {
               );
 
               await resetTicketFile();
-
-              await DirectJson.writeFile(
-                file: File(join(d.path, '.gg', '.gg.json')),
-                path: 'doPublish/success/hash',
-                value: needsChangeHash,
-              );
 
               final cliDoPublish = DoPublish(
                 ggLog: ggLog,
@@ -1459,13 +1281,6 @@ void main() {
               publishedVersionValue = Version(0, 0, 0);
               mockPublishedVersion();
 
-              // Mock needing publish
-              await DirectJson.writeFile(
-                file: File(join(d.path, '.gg', '.gg.json')),
-                path: 'doPublish/success/hash',
-                value: needsChangeHash,
-              );
-
               // Publish with askBeforePublishing = false
               late String exception;
 
@@ -1489,22 +1304,12 @@ void main() {
               );
 
               // Check
-              expect(
-                await DidPublish(ggLog: ggLog).get(directory: d, ggLog: ggLog),
-                isFalse,
-              );
             });
           });
         });
 
         test('when deleting the feature branch fails', () async {
           mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-
-          await DirectJson.writeFile(
-            file: File(join(d.path, '.gg', '.gg.json')),
-            path: 'doPublish/success/hash',
-            value: needsChangeHash,
-          );
 
           when(
             () => processWrapper.run('git', [
@@ -1592,12 +1397,6 @@ void main() {
           publishedVersionValue = Version(1, 2, 3);
           mockPublishedVersion();
 
-          await DirectJson.writeFile(
-            file: File(join(d.path, '.gg', '.gg.json')),
-            path: 'doPublish/success/hash',
-            value: needsChangeHash,
-          );
-
           messages.clear();
 
           await doPublish.exec(
@@ -1655,12 +1454,6 @@ void main() {
         mockPublishIsSuccessful(success: true, askBeforePublishing: false);
         publishedVersionValue = Version(1, 2, 3);
         mockPublishedVersion();
-
-        await DirectJson.writeFile(
-          file: File(join(d.path, '.gg', '.gg.json')),
-          path: 'doPublish/success/hash',
-          value: needsChangeHash,
-        );
 
         return DoPublish(
           ggLog: ggLog,
@@ -1767,12 +1560,6 @@ void main() {
         publishedVersionValue = Version(1, 2, 3);
         mockPublishedVersion();
 
-        await DirectJson.writeFile(
-          file: File(join(d.path, '.gg', '.gg.json')),
-          path: 'doPublish/success/hash',
-          value: needsChangeHash,
-        );
-
         messages.clear();
         await doPublish.exec(
           directory: d,
@@ -1789,12 +1576,6 @@ void main() {
         mockPublishIsSuccessful(success: true, askBeforePublishing: false);
         publishedVersionValue = Version(1, 2, 3);
         mockPublishedVersion();
-
-        await DirectJson.writeFile(
-          file: File(join(d.path, '.gg', '.gg.json')),
-          path: 'doPublish/success/hash',
-          value: needsChangeHash,
-        );
 
         messages.clear();
         await doPublish.exec(
@@ -1831,12 +1612,6 @@ void main() {
           mockPublishIsSuccessful(success: true, askBeforePublishing: false);
           publishedVersionValue = Version(1, 2, 3);
           mockPublishedVersion();
-
-          await DirectJson.writeFile(
-            file: File(join(d.path, '.gg', '.gg.json')),
-            path: 'doPublish/success/hash',
-            value: needsChangeHash,
-          );
 
           messages.clear();
           final runner = CommandRunner<void>('gg', 'gg')..addCommand(doPublish);
@@ -1889,12 +1664,6 @@ void main() {
         mockPublishIsSuccessful(success: true, askBeforePublishing: false);
         publishedVersionValue = Version(1, 2, 3);
         mockPublishedVersion();
-
-        await DirectJson.writeFile(
-          file: File(join(d.path, '.gg', '.gg.json')),
-          path: 'doPublish/success/hash',
-          value: needsChangeHash,
-        );
 
         final azurePublish = DoPublish(
           ggLog: ggLog,
@@ -2080,11 +1849,6 @@ void main() {
 
       test('reuses an existing config file without prompting', () async {
         mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-        await DirectJson.writeFile(
-          file: File(join(d.path, '.gg', '.gg.json')),
-          path: 'doPublish/success/hash',
-          value: needsChangeHash,
-        );
         runtimeFile.writeAsStringSync(
           '{"version_increment":"patch",'
           '"merge_message":"From runtime file"}',
@@ -2369,11 +2133,6 @@ void main() {
           // leaves a config-only file with a recorded branch. A later fresh
           // publish of a DIFFERENT branch must not delete that stale branch.
           mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-          await DirectJson.writeFile(
-            file: File(join(d.path, '.gg', '.gg.json')),
-            path: 'doPublish/success/hash',
-            value: needsChangeHash,
-          );
           runtimeFile.writeAsStringSync('''
 {
   "version_increment": "patch",
@@ -2565,11 +2324,6 @@ void main() {
         '--reconfigure discards config and progress and reconfigures',
         () async {
           mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-          await DirectJson.writeFile(
-            file: File(join(d.path, '.gg', '.gg.json')),
-            path: 'doPublish/success/hash',
-            value: needsChangeHash,
-          );
           runtimeFile.writeAsStringSync('''
 {
   "version_increment": "patch",

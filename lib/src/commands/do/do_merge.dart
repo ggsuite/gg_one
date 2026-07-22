@@ -82,9 +82,6 @@ class DoMerge extends DirCommand<void> {
   final gg_publish.MainBranch _mainBranch;
   final GgProcessWrapper _processWrapper;
 
-  /// The key used to save the state of the command
-  final String stateKey = 'doMerge';
-
   @override
   Future<void> exec({
     required Directory directory,
@@ -124,18 +121,6 @@ class DoMerge extends DirCommand<void> {
     viaPullRequest ??= argResults?['via-pull-request'] as bool? ?? false;
     deleteSourceBranch ??= argResults?['delete-source-branch'] as bool? ?? true;
 
-    // Check state
-    final isDone = await _state.readSuccess(
-      directory: directory,
-      key: stateKey,
-      ggLog: ggLog,
-    );
-
-    if (isDone) {
-      ggLog(yellow('Merge already performed.'));
-      return;
-    }
-
     // The publish step runs build/test (incl. formatters like
     // »prettier --write«) after the last commit, and gg writes run state into
     // the tracked ».gg/.gg.json«. Commit those leftovers first, otherwise the
@@ -163,6 +148,7 @@ class DoMerge extends DirCommand<void> {
         ggLog: ggLog,
         verbose: verbose,
         deleteSourceBranch: deleteSourceBranch,
+        message: message,
       );
     } else {
       // Update local main branch via fetch + pull
@@ -183,12 +169,9 @@ class DoMerge extends DirCommand<void> {
       );
     }
 
-    // Save state
-    await _state.writeSuccess(directory: directory, key: stateKey);
-
-    // A merge produces a fully-committed, gg-verified HEAD, so it also
-    // satisfies »gg did commit«. Record that too, otherwise the pre-push hook
-    // (which runs »gg did commit«) rejects the merge commit when it is pushed.
+    // A merge produces a fully-committed, gg-verified HEAD, so it satisfies
+    // »gg did commit«. Record that, otherwise the pre-push hook (which runs
+    // »gg did commit«) rejects the merge commit when it is pushed.
     await _state.writeSuccess(directory: directory, key: 'doCommit');
   }
 
@@ -293,6 +276,7 @@ class DoMerge extends DirCommand<void> {
     required GgLog ggLog,
     required bool verbose,
     required bool deleteSourceBranch,
+    required String? message,
   }) async {
     // Refresh remote-tracking refs so the merge pre-conditions are accurate.
     await _fetchAndPullMain(
@@ -312,6 +296,7 @@ class DoMerge extends DirCommand<void> {
     );
 
     // Create the auto-complete pull request on the provider (GitHub/Azure).
+    // The merge message becomes the PR title and squash commit message.
     await _doMerge.get(
       directory: directory,
       ggLog: ggLog,
@@ -319,6 +304,7 @@ class DoMerge extends DirCommand<void> {
       local: false,
       verbose: verbose,
       deleteSourceBranch: deleteSourceBranch,
+      message: message,
     );
 
     // Block until the provider merged the pull request.

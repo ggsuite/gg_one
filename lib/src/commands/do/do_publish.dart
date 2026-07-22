@@ -89,9 +89,6 @@ class DoPublish extends DirCommand<void> {
     _addArgs();
   }
 
-  /// The key used to save the state of the command.
-  final String stateKey = 'doPublish';
-
   /// The key used to save the "all changes committed" state (checked by the
   /// pre-push hook via »gg did commit«).
   final String stateKeyDoCommit = 'doCommit';
@@ -184,19 +181,6 @@ class DoPublish extends DirCommand<void> {
         'Resume it with "gg do publish --continue", or discard it with '
         '"gg do publish --reconfigure".',
       );
-    }
-
-    // Step 2: Did already publish? Only trusted when no in-flight progress
-    // exists — a leftover progress file means later steps (e.g. the tag)
-    // still have to run.
-    final isDone = await _state.readSuccess(
-      directory: directory,
-      key: stateKey,
-      ggLog: ggLog,
-    );
-    if (isDone && !resuming) {
-      ggLog(yellow('Current state is already published.'));
-      return;
     }
 
     // Step 3: Make the runtime file invisible to git before it is written.
@@ -395,9 +379,6 @@ class DoPublish extends DirCommand<void> {
       );
       await markStepDone('merge');
     }
-
-    // Save state
-    await _state.writeSuccess(directory: directory, key: stateKey);
 
     // The merge/version commits produced a fully-committed, gg-verified HEAD on
     // the main branch. Record it as »doCommit« too, so the pre-push hook (which

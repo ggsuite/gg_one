@@ -118,7 +118,7 @@ void main() {
       processWrapper: mockProcessWrapper,
     );
 
-    // Default: any state write succeeds (doMerge + doCommit).
+    // Default: any state write succeeds (doCommit).
     when(
       () => mockGgState.writeSuccess(
         directory: any(named: 'directory'),
@@ -137,7 +137,6 @@ void main() {
         final instance = DoMerge(ggLog: ggLog);
         expect(instance.name, 'merge');
         expect(instance.description, 'Performs the merge operation.');
-        expect(instance.stateKey, 'doMerge');
       });
 
       test('should initialize with provided parameters', () {
@@ -154,11 +153,6 @@ void main() {
     });
 
     test('should fetch and pull main, then call gg_merge DoMerge', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => false);
-
       stubGitCommands();
 
       when(
@@ -170,10 +164,6 @@ void main() {
           verbose: false,
         ),
       ).thenAnswer((_) async => true);
-
-      when(
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
-      ).thenAnswer((_) async {});
 
       await doMerge.get(directory: d, ggLog: ggLog);
 
@@ -215,17 +205,11 @@ void main() {
           local: false,
           verbose: false,
         ),
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
         () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
       ]);
     });
 
     test('commits pending worktree changes before merge', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => false);
-
       stubGitCommands();
 
       // A formatter / gg run left tracked files dirty after the last commit.
@@ -269,10 +253,6 @@ void main() {
           verbose: false,
         ),
       ).thenAnswer((_) async => true);
-
-      when(
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
-      ).thenAnswer((_) async {});
 
       await doMerge.get(directory: d, ggLog: ggLog);
 
@@ -319,11 +299,6 @@ void main() {
     });
 
     test('should not checkout when already on main branch', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => false);
-
       stubGitCommands(currentBranch: 'main');
 
       when(
@@ -335,10 +310,6 @@ void main() {
           verbose: false,
         ),
       ).thenAnswer((_) async => true);
-
-      when(
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
-      ).thenAnswer((_) async {});
 
       await doMerge.get(directory: d, ggLog: ggLog);
 
@@ -369,11 +340,6 @@ void main() {
     });
 
     test('should restore branch when fetch fails', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => false);
-
       stubGitCommands();
 
       when(
@@ -416,11 +382,6 @@ void main() {
     });
 
     test('logs each git command when verbose is true', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => false);
-
       stubGitCommands();
 
       when(
@@ -432,10 +393,6 @@ void main() {
           verbose: true,
         ),
       ).thenAnswer((_) async => true);
-
-      when(
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
-      ).thenAnswer((_) async {});
 
       await doMerge.get(directory: d, ggLog: ggLog, verbose: true);
 
@@ -452,11 +409,6 @@ void main() {
     });
 
     test('removes and commits the ticket marker before merge', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => false);
-
       // The marker as force-added by do add.
       final ggDir = Directory('${d.path}/.gg')..createSync();
       final ticketJson = File('${ggDir.path}/.ticket.json')
@@ -488,9 +440,6 @@ void main() {
           verbose: false,
         ),
       ).thenAnswer((_) async => true);
-      when(
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
-      ).thenAnswer((_) async {});
 
       await doMerge.get(directory: d, ggLog: ggLog);
 
@@ -518,26 +467,8 @@ void main() {
       );
     });
 
-    test('should not perform merge if already done', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => true);
-
-      await doMerge.get(directory: d, ggLog: ggLog);
-
-      expect(messages.last, yellow('Merge already performed.'));
-      verifyNever(() => mockGgMergeDoMerge.get(directory: d, ggLog: ggLog));
-      verifyZeroInteractions(mockProcessWrapper);
-    });
-
     test('merges via a pull request and waits for it, then updates '
         'main', () async {
-      when(
-        () =>
-            mockGgState.readSuccess(directory: d, key: 'doMerge', ggLog: ggLog),
-      ).thenAnswer((_) async => false);
-
       stubGitCommands();
 
       // Feature-branch push before creating the pull request.
@@ -566,10 +497,6 @@ void main() {
       when(
         () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
       ).thenAnswer((_) async => true);
-
-      when(
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
-      ).thenAnswer((_) async {});
 
       await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
 
@@ -634,7 +561,6 @@ void main() {
           runInShell: true,
           workingDirectory: d.path,
         ),
-        () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
         () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
       ]);
 
@@ -653,14 +579,6 @@ void main() {
     test(
       'forwards deleteSourceBranch:false to the pull-request merge',
       () async {
-        when(
-          () => mockGgState.readSuccess(
-            directory: d,
-            key: 'doMerge',
-            ggLog: ggLog,
-          ),
-        ).thenAnswer((_) async => false);
-
         stubGitCommands();
 
         when(
@@ -714,16 +632,56 @@ void main() {
       },
     );
 
+    test('forwards the merge message to the pull-request merge', () async {
+      stubGitCommands();
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['push'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+          deleteSourceBranch: true,
+          message: 'Release 1.2.3',
+        ),
+      ).thenAnswer((_) async => true);
+
+      when(
+        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+      ).thenAnswer((_) async => true);
+
+      await doMerge.get(
+        directory: d,
+        ggLog: ggLog,
+        viaPullRequest: true,
+        message: 'Release 1.2.3',
+      );
+
+      verify(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+          deleteSourceBranch: true,
+          message: 'Release 1.2.3',
+        ),
+      ).called(1);
+    });
+
     group('exec', () {
       test('should call get with provided parameters', () async {
-        when(
-          () => mockGgState.readSuccess(
-            directory: d,
-            key: 'doMerge',
-            ggLog: ggLog,
-          ),
-        ).thenAnswer((_) async => false);
-
         stubGitCommands();
 
         when(
@@ -735,10 +693,6 @@ void main() {
             verbose: false,
           ),
         ).thenAnswer((_) async => true);
-
-        when(
-          () => mockGgState.writeSuccess(directory: d, key: 'doMerge'),
-        ).thenAnswer((_) async {});
 
         await doMerge.exec(
           directory: d,

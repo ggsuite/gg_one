@@ -17,12 +17,10 @@ class DoMaintain extends DirCommand<void> {
   DoMaintain({
     required super.ggLog,
     super.name = 'maintain',
-    super.description = 'Is the package upgraded and published?',
+    super.description = 'Upgrades the package dependencies.',
     GgState? state,
     DoUpgrade? doUpgrade,
-    DidPublish? didPublish,
-  }) : _didPublish = didPublish ?? DidPublish(ggLog: ggLog),
-       _doUpgrade = doUpgrade ?? DoUpgrade(ggLog: ggLog) {
+  }) : _doUpgrade = doUpgrade ?? DoUpgrade(ggLog: ggLog) {
     _addParam();
   }
 
@@ -63,9 +61,6 @@ class DoMaintain extends DirCommand<void> {
       ),
       success: (result) => true,
     );
-
-    // Rung »gg did publish«
-    await _didPublish.exec(directory: directory, ggLog: ggLog);
   }
 
   /// The key used to save the state of the command
@@ -78,7 +73,6 @@ class DoMaintain extends DirCommand<void> {
   // ...........................................................................
 
   final DoUpgrade _doUpgrade;
-  final DidPublish _didPublish;
 
   // ...........................................................................
   void _addParam() {

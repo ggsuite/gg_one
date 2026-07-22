@@ -6,6 +6,10 @@
 
 - Add --pr flag (default on): merge via auto-merge pull request and wait, fall back to local merge on unsupported providers, --no-pr restores local merge
 
+### Changed
+
+- Forward the merge message into the pull-request flow, drop the doMerge and doPublish states and prune legacy keys from .gg/.gg.json
+
 ## [10.3.0] - 2026-07-20
 
 ### Changed
