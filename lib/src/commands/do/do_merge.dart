@@ -287,51 +287,77 @@ class DoMerge extends DirCommand<void> {
       verbose: verbose,
     );
 
-    // Push the feature branch (incl. version bump + changelog) so the pull
-    // request contains everything before it is created.
-    await _runGitCommand(
+    final mainBranchName = await _mainBranch.get(
       directory: directory,
-      arguments: const ['push'],
-      actionDescription: 'push feature branch before creating the pull request',
+      ggLog: <String>[].add,
+    );
+
+    // A resumed run may find its release already on main: the previous run
+    // crashed after the provider merged the pull request but before the
+    // merge step was marked done. Detected by content (a squash merge
+    // changes the commit SHAs), the pull request and the wait are skipped.
+    final alreadyMerged = await _releaseAlreadyOnMain(
+      directory: directory,
+      mainBranchName: mainBranchName,
       ggLog: ggLog,
       verbose: verbose,
     );
 
-    // A repo-level pre-push hook can dirty the worktree during the push —
-    // e.g. a »dart run« based hook whose implicit »pub get« rewrites
-    // pubspec.lock after the version bump. Commit that drift and push again
-    // (the second hook run finds everything up to date), otherwise the
-    // checkout of the main branch below aborts with "local changes would be
-    // overwritten by checkout".
-    final hookDriftCommitted = await _commitPendingChanges(
-      directory: directory,
-      ggLog: ggLog,
-      verbose: verbose,
-    );
-    if (hookDriftCommitted) {
+    if (alreadyMerged) {
+      ggLog(
+        yellow(
+          'All release changes are already on $mainBranchName (the pull '
+          'request of an earlier run was merged) — skipping the pull request.',
+        ),
+      );
+    } else {
+      // Push the feature branch (incl. version bump + changelog) so the pull
+      // request contains everything before it is created.
       await _runGitCommand(
         directory: directory,
         arguments: const ['push'],
-        actionDescription: 'push pre-push-hook drift commit',
+        actionDescription:
+            'push feature branch before creating the pull request',
         ggLog: ggLog,
         verbose: verbose,
       );
+
+      // A repo-level pre-push hook can dirty the worktree during the push —
+      // e.g. a »dart run« based hook whose implicit »pub get« rewrites
+      // pubspec.lock after the version bump. Commit that drift and push again
+      // (the second hook run finds everything up to date), otherwise the
+      // checkout of the main branch below aborts with "local changes would be
+      // overwritten by checkout".
+      final hookDriftCommitted = await _commitPendingChanges(
+        directory: directory,
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+      if (hookDriftCommitted) {
+        await _runGitCommand(
+          directory: directory,
+          arguments: const ['push'],
+          actionDescription: 'push pre-push-hook drift commit',
+          ggLog: ggLog,
+          verbose: verbose,
+        );
+      }
+
+      // Create the auto-complete pull request on the provider (GitHub/Azure).
+      // The merge message becomes the PR title and squash commit message.
+      await _doMerge.get(
+        directory: directory,
+        ggLog: ggLog,
+        automerge: true,
+        local: false,
+        verbose: verbose,
+        deleteSourceBranch: deleteSourceBranch,
+        message: message,
+      );
+
+      // Block until the provider merged the pull request.
+      await _waitForMerge.get(directory: directory, ggLog: ggLog);
     }
-
-    // Create the auto-complete pull request on the provider (GitHub/Azure).
-    // The merge message becomes the PR title and squash commit message.
-    await _doMerge.get(
-      directory: directory,
-      ggLog: ggLog,
-      automerge: true,
-      local: false,
-      verbose: verbose,
-      deleteSourceBranch: deleteSourceBranch,
-      message: message,
-    );
-
-    // Block until the provider merged the pull request.
-    await _waitForMerge.get(directory: directory, ggLog: ggLog);
 
     // Safety net: absorb any dirt that appeared since the pushes (the branch
     // is merged already, so a throwaway commit stays local) — the checkout of
@@ -343,10 +369,6 @@ class DoMerge extends DirCommand<void> {
     );
 
     // Bring local main to the merged state so the version tag lands on it.
-    final mainBranchName = await _mainBranch.get(
-      directory: directory,
-      ggLog: <String>[].add,
-    );
     await _runGitCommand(
       directory: directory,
       arguments: ['checkout', mainBranchName],
@@ -361,6 +383,45 @@ class DoMerge extends DirCommand<void> {
       ggLog: ggLog,
       verbose: verbose,
     );
+  }
+
+  /// Lock files that pre-push hooks and resumed runs rewrite after the
+  /// merge; their drift alone must not force a second pull request.
+  static const _lockFileNames = {
+    'pubspec.lock',
+    'pnpm-lock.yaml',
+    'package-lock.json',
+    'yarn.lock',
+  };
+
+  /// Returns whether the feature branch holds no release content that is
+  /// missing on `origin/<main>`. True when the pull request of an earlier,
+  /// interrupted run was already merged — a squash merge changes the commit
+  /// SHAs, so this compares content, not ancestry. gg bookkeeping (`.gg/`)
+  /// and lock-file drift are ignored: a real release always changes the
+  /// version in the manifest, so it can never be mistaken for drift.
+  Future<bool> _releaseAlreadyOnMain({
+    required Directory directory,
+    required String mainBranchName,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    final changedFiles = await _runGitCommand(
+      directory: directory,
+      arguments: ['diff', '--name-only', 'origin/$mainBranchName', 'HEAD'],
+      actionDescription:
+          'compare the feature branch with origin/$mainBranchName',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    return changedFiles
+        .split('\n')
+        .map((line) => line.trim())
+        .where((file) => file.isNotEmpty)
+        .where((file) => !file.startsWith('.gg/'))
+        .where((file) => !_lockFileNames.contains(file))
+        .isEmpty;
   }
 
   /// Fetches and pulls the main branch before performing the merge.

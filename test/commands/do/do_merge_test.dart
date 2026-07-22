@@ -97,6 +97,18 @@ void main() {
         workingDirectory: any(named: 'workingDirectory'),
       ),
     ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+    // A real release change by default, so the pull-request path runs.
+    when(
+      () => mockProcessWrapper.run(
+        'git',
+        ['diff', '--name-only', 'origin/$mainBranchName', 'HEAD'],
+        runInShell: true,
+        workingDirectory: any(named: 'workingDirectory'),
+      ),
+    ).thenAnswer(
+      (_) async => ProcessResult(0, 0, 'lib/src/changed.dart\n', ''),
+    );
   }
 
   setUp(() async {
@@ -629,6 +641,70 @@ void main() {
             deleteSourceBranch: false,
           ),
         ).called(1);
+      },
+    );
+
+    test(
+      'skips the pull request when the release is already on main',
+      () async {
+        stubGitCommands();
+
+        // Only gg bookkeeping and lock-file drift differ from origin/main —
+        // the pull request of an earlier, interrupted run was already merged
+        // (squash merge, so ancestry checks cannot see it).
+        when(
+          () => mockProcessWrapper.run(
+            'git',
+            ['diff', '--name-only', 'origin/main', 'HEAD'],
+            runInShell: true,
+            workingDirectory: any(named: 'workingDirectory'),
+          ),
+        ).thenAnswer(
+          (_) async => ProcessResult(0, 0, '.gg/.gg.json\npubspec.lock\n', ''),
+        );
+
+        await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+
+        // No push, no pull request, no waiting — straight to main.
+        verifyNever(
+          () => mockProcessWrapper.run(
+            'git',
+            ['push'],
+            runInShell: any(named: 'runInShell'),
+            workingDirectory: any(named: 'workingDirectory'),
+          ),
+        );
+        verifyNever(
+          () => mockGgMergeDoMerge.get(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+            automerge: any(named: 'automerge'),
+            local: any(named: 'local'),
+            verbose: any(named: 'verbose'),
+            deleteSourceBranch: any(named: 'deleteSourceBranch'),
+            message: any(named: 'message'),
+          ),
+        );
+        verifyNever(
+          () => mockWaitForMerge.get(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+          ),
+        );
+
+        // Local main is still brought to the merged state.
+        verify(
+          () => mockProcessWrapper.run(
+            'git',
+            ['checkout', 'main'],
+            runInShell: true,
+            workingDirectory: d.path,
+          ),
+        ).called(2); // once in _fetchAndPullMain, once for the final checkout
+        expect(
+          messages.any((m) => m.contains('skipping the pull request')),
+          isTrue,
+        );
       },
     );
 
