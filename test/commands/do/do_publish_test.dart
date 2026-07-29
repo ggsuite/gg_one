@@ -2532,6 +2532,91 @@ void main() {
       );
     });
 
+    group('when a previous publish left the version tag behind', () {
+      test('removes it locally and on the remote and re-tags the '
+          'release commit', () async {
+        // A publish that failed after tagging leaves tag 1.2.4 on a commit
+        // this run replaces. Without removing it »add version tag« refuses
+        // ("must be greater 1.2.4") and the release stays untagged.
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        final abandoned = await Process.run('git', [
+          'rev-parse',
+          'HEAD',
+        ], workingDirectory: d.path);
+        await addTag(d, '1.2.4');
+        await Process.run('git', [
+          'push',
+          'origin',
+          '--tags',
+        ], workingDirectory: d.path);
+
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+        );
+
+        final allMessages = messages.join('\n');
+        expect(allMessages, contains('✅ Removed the local tag 1.2.4.'));
+        expect(allMessages, contains('✅ Removed the remote tag 1.2.4.'));
+        expect(allMessages, contains('✅ Tag 1.2.4 added.'));
+
+        // The tag was recreated on the release commit, not on the
+        // abandoned one - locally as well as on the remote.
+        final head = await Process.run('git', [
+          'rev-parse',
+          'HEAD',
+        ], workingDirectory: d.path);
+        expect(head.stdout, isNot(abandoned.stdout));
+
+        final tagged = await Process.run('git', [
+          'rev-list',
+          '-n',
+          '1',
+          '1.2.4',
+        ], workingDirectory: d.path);
+        expect(tagged.stdout, head.stdout);
+
+        // The remote now carries the recreated (annotated) tag object, and no
+        // longer the lightweight tag of the abandoned commit.
+        final remoteTag = await Process.run('git', [
+          'ls-remote',
+          '--tags',
+          'origin',
+          'refs/tags/1.2.4',
+        ], workingDirectory: d.path);
+        final localTagObject = await Process.run('git', [
+          'rev-parse',
+          'refs/tags/1.2.4',
+        ], workingDirectory: d.path);
+        expect(
+          remoteTag.stdout as String,
+          contains((localTagObject.stdout as String).trim()),
+        );
+        expect(
+          remoteTag.stdout as String,
+          isNot(contains((abandoned.stdout as String).trim())),
+        );
+      });
+
+      test('logs nothing about tags when none was left behind', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+        );
+
+        final allMessages = messages.join('\n');
+        expect(allMessages, isNot(contains('to be removed')));
+        expect(allMessages, contains('✅ Tag 1.2.4 added.'));
+      });
+    });
+
     test('should have a code coverage of 100%', () {
       expect(
         DoPublish(
