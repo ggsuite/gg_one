@@ -543,6 +543,11 @@ class DoPublish extends DirCommand<void> {
   /// auto-merge pull request and waits until it is merged; otherwise it does
   /// a local merge into main. [deleteSourceBranch] lets the provider delete
   /// the feature branch when it completes the pull request.
+  ///
+  /// The merge logs stay visible in non-verbose mode too: the pull-request
+  /// flow can block for minutes (provider CI + automerge), and without the
+  /// »Waiting for pull request to be merged« progress messages the publish
+  /// looks like it is hanging.
   Future<void> _merge({
     required Directory directory,
     required String? message,
@@ -550,9 +555,17 @@ class DoPublish extends DirCommand<void> {
     required bool viaPullRequest,
     required bool deleteSourceBranch,
   }) async {
+    if (viaPullRequest) {
+      ggLog(
+        darkGray(
+          'Merging into the default branch via auto-merge pull request…',
+        ),
+      );
+    }
+
     await _doMerge.get(
       directory: directory,
-      ggLog: verbose ? ggLog : <String>[].add,
+      ggLog: ggLog,
       automerge: false,
       local: !viaPullRequest,
       message: message,

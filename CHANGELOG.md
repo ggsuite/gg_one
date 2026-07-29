@@ -9,6 +9,7 @@
 ### Changed
 
 - do publish: wait visibly until the version appears on pub.dev/npm
+- do publish: keep merge and pull-request wait messages visible
 
 ## [11.0.0] - 2026-07-22
 
