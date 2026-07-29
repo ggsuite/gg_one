@@ -27,7 +27,7 @@
 - do merge passes the pull request's source branch to the wait, so a moved HEAD no longer causes "No pull request found for branch main"
 - do merge: updating the local main branch no longer aborts with "You have divergent branches": the pull is fast-forward-only, and when main diverged from origin/main with gg bookkeeping or lock-file drift only, it is reset to origin/main (real local commits still abort with a clear message)
 
-## Unreleased
+## 11.2.1 - 2026-07-29
 
 ### Removed
 
