@@ -1,10 +1,10 @@
 # Changelog
 
-## [11.0.1] - 2026-07-29
+## \[11.0.1\] - 2026-07-29
 
 ### Added
 
-- do publish now waits after the registry publish until the version is actually visible on pub.dev/npm (via gg_publish's WaitUntilPublished): a message announces the wait incl. a status url, progress is reported and the wait is bounded by a timeout instead of hanging
+- do publish now waits after the registry publish until the version is actually visible on pub.dev/npm (via gg\_publish's WaitUntilPublished): a message announces the wait incl. a status url, progress is reported and the wait is bounded by a timeout instead of hanging
 
 ### Changed
 
@@ -21,6 +21,8 @@
 - do merge passes the pull request's source branch to the wait, so a moved HEAD no longer causes "No pull request found for branch main"
 - do merge: updating the local main branch no longer aborts with "You have divergent branches": the pull is fast-forward-only, and when main diverged from origin/main with gg bookkeeping or lock-file drift only, it is reset to origin/main (real local commits still abort with a clear message)
 
+## [11.0.1] - 2026-07-29
+
 ## [11.0.0] - 2026-07-22
 
 ### Added
@@ -32,15 +34,15 @@
 - Forward the merge message into the pull-request flow, drop the doMerge and doPublish states and prune legacy keys from .gg/.gg.json
 - Absorb pre-push-hook worktree drift in the pull-request merge flow so the final checkout of main does not fail
 - Skip pull request and wait when a resumed run finds the release content already merged into main
-- Use the shared origin-url lookup and gg_lang lock-file names and memoize the legacy-key pruning
-- gg_multi: changed references to git
+- Use the shared origin-url lookup and gg\_lang lock-file names and memoize the legacy-key pruning
+- gg\_multi: changed references to git
 
 ## [10.3.0] - 2026-07-20
 
 ### Changed
 
 - Accept `test` in a TypeScript package's `prebuild` script as fulfilling the build-must-run-test rule
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ### Fixed
 
@@ -71,7 +73,7 @@
 ### Changed
 
 - Track .gg/.gg.json again - .gitignore excluded the whole .gg directory, so CI never saw the check states
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [10.1.1] - 2026-07-20
 
@@ -83,16 +85,16 @@
 
 ### Added
 
-- delete_feature_branch (bool, optional) in `.gg-publish.json`: replaces
-  the interactive delete-feature-branch prompt, so a config-driven publish
-  is fully headless. `do configure-publish` now asks the question up front
-  (presettable via `--delete-feature-branch`) and `do publish` persists
-  the decision in the runtime file — a resumed run never re-asks, and no
-  prompt sits between the irreversible publish steps anymore.
+- delete\_feature\_branch (bool, optional) in `.gg-publish.json`: replaces
+the interactive delete-feature-branch prompt, so a config-driven publish
+is fully headless. `do configure-publish` now asks the question up front
+(presettable via `--delete-feature-branch`) and `do publish` persists
+the decision in the runtime file — a resumed run never re-asks, and no
+prompt sits between the irreversible publish steps anymore.
 - All default prompts (version increment, merge message, branch/ticket
-  deletion) fail fast with an actionable error when stdin is not a
-  terminal (new throwWhenNotATerminal in `tools/terminal_guard.dart`),
-  instead of hanging forever in CI or piped shells.
+deletion) fail fast with an actionable error when stdin is not a
+terminal (new throwWhenNotATerminal in `tools/terminal_guard.dart`),
+instead of hanging forever in CI or piped shells.
 
 ### Changed
 
@@ -103,40 +105,40 @@
 ### Added
 
 - `do configure-publish`: new command that interactively writes
-  `<repo>/.gg/.gg-publish.json` (version increment + merge message; `-m`
-  presets the message). `do publish` runs it automatically when started
-  without a resolved configuration, so all interactive decisions happen
-  before the unattended publish. The command also makes sure
-  `.gg/.gg-publish.json` is listed in `.gitignore` (appending and
-  committing the entry once per repo).
+`<repo>/.gg/.gg-publish.json` (version increment + merge message; `-m`
+presets the message). `do publish` runs it automatically when started
+without a resolved configuration, so all interactive decisions happen
+before the unattended publish. The command also makes sure
+`.gg/.gg-publish.json` is listed in `.gitignore` (appending and
+committing the entry once per repo).
 - `do publish --continue` / `--reconfigure`: per-step publish progress
-  (done_steps: prepare_version, publish_registry, merge, tag) is
-  recorded in `.gg/.gg-publish.json` and a failed publish resumes at the
-  first open step — including the version tag, which the old hash-based
-  state could silently skip. A leftover progress file makes a plain
-  re-run refuse until `--continue` or `--reconfigure` is chosen. The file
-  stores the feature branch (trusted only when resuming) and is deleted
-  after a fully successful publish. On resume, the hash-keyed
-  `did commit` check still runs, so raw commits added after the failure
-  are never published unvalidated; the feature-branch deletion is
-  idempotent and re-runs; when the merge is already done, the default
-  branch is checked out before the first push. `do configure-publish`
-  refuses to overwrite a file that carries `done_steps` (code review).
+(done\_steps: prepare\_version, publish\_registry, merge, tag) is
+recorded in `.gg/.gg-publish.json` and a failed publish resumes at the
+first open step — including the version tag, which the old hash-based
+state could silently skip. A leftover progress file makes a plain
+re-run refuse until `--continue` or `--reconfigure` is chosen. The file
+stores the feature branch (trusted only when resuming) and is deleted
+after a fully successful publish. On resume, the hash-keyed
+`did commit` check still runs, so raw commits added after the failure
+are never published unvalidated; the feature-branch deletion is
+idempotent and re-runs; when the merge is already done, the default
+branch is checked out before the first push. `do configure-publish`
+refuses to overwrite a file that carries `done_steps` (code review).
 - `DoPublish.exec` accepts `resume:` so `gg_multi do publish --continue`
-  resumes each repo at its open step.
-- `PublishConfig`: done_steps + branch runtime fields with
-  withStepDone/isStepDone/hasStepProgress; new
-  `EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
-  `.gg/.gg-publish.json` from content hashes.
+resumes each repo at its open step.
+- `PublishConfig`: done\_steps + branch runtime fields with
+withStepDone/isStepDone/hasStepProgress; new
+`EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
+`.gg/.gg-publish.json` from content hashes.
 
 ### Changed
 
 - **Breaking:** `DoPublish` no longer takes versionSelector /
-  editMessage — both prompts live in the injectable
-  `DoConfigurePublish` now. The publish-step resume no longer uses the
-  hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
-  doPublish/doCommit are still written for `did publish` and the
-  pre-push hook.
+editMessage — both prompts live in the injectable
+`DoConfigurePublish` now. The publish-step resume no longer uses the
+hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
+doPublish/doCommit are still written for `did publish` and the
+pre-push hook.
 - Tidy CHANGELOGs: single Unreleased section and chronological order
 
 ### Fixed
@@ -148,40 +150,40 @@
 ### Changed
 
 - feat: merge via auto-complete pull request on protected main (Azure) and wait until merged
-- docs(gg_one): document protected-main pull-request publish flow
-- gg_multi: changed references to git
+- docs(gg\_one): document protected-main pull-request publish flow
+- gg\_multi: changed references to git
 
 ## [9.4.0] - 2026-07-01
 
 ### Changed
 
 - npm-logged-in: resolve the package's actual publish registry
-  (`publishConfig.registry` → `@scope:registry` → default `registry`) and run
-  `whoami` against that registry, instead of always checking npmjs.org. This
-  makes the check work for Azure DevOps, GitHub Packages and other private
-  registries. Registries without reliable `whoami` support (e.g. Azure
-  DevOps) are skipped gracefully instead of failing the check — the auth is
-  verified for real at publish time.
+(`publishConfig.registry` → `@scope:registry` → default `registry`) and run
+`whoami` against that registry, instead of always checking npmjs.org. This
+makes the check work for Azure DevOps, GitHub Packages and other private
+registries. Registries without reliable `whoami` support (e.g. Azure
+DevOps) are skipped gracefully instead of failing the check — the auth is
+verified for real at publish time.
 
 ## [9.3.0] - 2026-07-01
 
 ### Changed
 
 - feat(gg): interactive npm publish + npm-logged-in precheck; package.json prepublishOnly->build->test rules (bridges exempt from build->test); do review pnpm blockExoticSubdeps + stdout; can publish runs per-repo can-publish; do merge/publish write doCommit; pana skip label
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [9.2.2] - 2026-06-26
 
 ### Changed
 
 - Preserve dependency constraint operator (^^/\~/exact) through publish
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [9.2.1] - 2026-06-25
 
 ### Changed
 
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [9.2.0] - 2026-06-19
 
@@ -192,67 +194,67 @@
 ### Changed
 
 - Treat dart-typescript bridge repos as TypeScript for can/do commit, running package.json scripts (test/lint/format:check)
-- Treat dart-typescript bridge repos as TypeScript for can/do review (npm install, skip dart pub get); export isBridgeProject from gg_one
-- Introduce checkProjectType() as single source of truth for bridge->TypeScript check rule; add .example() real-instance factories & P:\programs\flutter/bin/internal/exit_with_errorlevel.bat
+- Treat dart-typescript bridge repos as TypeScript for can/do review (npm install, skip dart pub get); export isBridgeProject from gg\_one
+- Introduce checkProjectType() as single source of truth for bridge->TypeScript check rule; add .example() real-instance factories & P:\programs\flutter/bin/internal/exit\_with\_errorlevel.bat
 - Publish bridges as TypeScript: pnpm-aware publish, dual-manifest version bump, non-swallowed publish errors, idempotent resume, review skips merged repos, link: for local TS deps, package.json scripts check
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 - Pana check: skip stdout preamble before JSON (robust parse of cold-run pana output)
 
 ## [9.1.1] - 2026-06-11
 
 ### Changed
 
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [9.1.0] - 2026-06-09
 
 ### Changed
 
 - feat(ts): version-pinned git deps via #semver: + tag-push for npm/pnpm
-- refactor(ts): trim comments to grace-cloud style limits + do_maintain layout
+- refactor(ts): trim comments to grace-cloud style limits + do\_maintain layout
 - style: apply grace-cloud comment + 80-char limits across ticket
 
 ## [9.0.0] - 2026-06-08
 
 ### Changed
 
-- feat: language-universal commit/publish via gg_lang (isDartFamily gating, lockFileFor, registry-aware dispatch)
-- test: real PublishConfig tests + dart format tidy; bypass known TOCTOU flake in gg_state.readSuccess under parallel coverage
-- gg_multi: changed references to git
-- gg_multi: changed references to git
-- gg_multi: changed references to git
+- feat: language-universal commit/publish via gg\_lang (isDartFamily gating, lockFileFor, registry-aware dispatch)
+- test: real PublishConfig tests + dart format tidy; bypass known TOCTOU flake in gg\_state.readSuccess under parallel coverage
+- gg\_multi: changed references to git
+- gg\_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [8.2.1] - 2026-05-19
 
 ### Changed
 
 - `CanCommit`: `dart pub get --offline` (or the Flutter equivalent) now runs as
-  a regular check below the `Can commit?` header and is logged as
-  `Running "dart pub get --offline"`, matching the style of the other checks
-  (was framed with `»«` and printed above the header).
+a regular check below the `Can commit?` header and is logged as
+`Running "dart pub get --offline"`, matching the style of the other checks
+(was framed with `»«` and printed above the header).
 - Renamed package from `gg` to `gg_one` and moved the repository to
-  [https://github.com/ggsuite/gg_one](https://github.com/ggsuite/gg_one). The previous history (versions
-  up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
-  at commit `9141ef54f5edac470d119a39285813299143898f`.
+[https://github.com/ggsuite/gg\_one](https://github.com/ggsuite/gg_one). The previous history (versions
+up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
+at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 ## [8.2.0] - 2026-05-19
 
 ### Changed
 
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [8.1.1] - 2026-05-19
 
 ### Changed
 
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 - Gg Multi: changed references to pub.dev
 
 ## [8.1.0] - 2026-05-12
 
 ### Changed
 
-- gg_multi: changed references to git
+- gg\_multi: changed references to git
 
 ## [7.0.5] - 2026-05-04
 
@@ -345,14 +347,14 @@
 
 ### Changed
 
-- Refactor do_publish to use gitPush with pushTags and update tests
+- Refactor do\_publish to use gitPush with pushTags and update tests
 - Wrap checkout logic in status printer for progress output
 
 ## [5.1.0] - 2026-03-19
 
 ### Fixed
 
-- Fix mock param in do_checkout_test and update checkout error check
+- Fix mock param in do\_checkout\_test and update checkout error check
 
 ## [5.0.1] - 2026-03-16
 
@@ -364,7 +366,7 @@
 
 ### Added
 
-- Add do_checkout command to support branch checkout with stash
+- Add do\_checkout command to support branch checkout with stash
 
 ### Changed
 
@@ -384,7 +386,7 @@
 ### Changed
 
 - move .gg.json to .gg/.gg.json and update related code/tests
-- Refactor do_publish to add version selector and local merge step
+- Refactor do\_publish to add version selector and local merge step
 
 ### Fixed
 
@@ -407,7 +409,7 @@
 ### Added
 
 - Add --ignoreUnstaged option to gg can commit and gg can push
-- Update gg_merge to version 1.0.2
+- Update gg\_merge to version 1.0.2
 - BREAKING CHANGE: V.5.0.0: Git must be set to EOF LF
 - Add message parameter to exec and get in do merge
 
@@ -422,7 +424,7 @@
 ### Added
 
 - Add .gitattributes file
-- Add pubspeck.lock and .kidney_status to ignored files
+- Add pubspeck.lock and .kidney\_status to ignored files
 
 ## [4.0.1] - 2025-08-11
 
@@ -445,17 +447,17 @@
 
 ### Changed
 
-- Update gg_test to version 1.1.7
+- Update gg\_test to version 1.1.7
 
 ## [3.0.24] - 2025-07-09
 
 ### Changed
 
-- Update version of gg_test
+- Update version of gg\_test
 
 ### Removed
 
-- remove publish_to: none
+- remove publish\_to: none
 
 ## [3.0.23] - 2025-06-19
 
@@ -515,7 +517,7 @@
 
 ### Changed
 
-- Replace gg_json by gg_direct_json
+- Replace gg\_json by gg\_direct\_json
 
 ## [3.0.15] - 2024-10-03
 
@@ -572,7 +574,7 @@
 
 ### Changed
 
-- Update gg_test to 1.0.19. Only failing error lines are shown, but not details.
+- Update gg\_test to 1.0.19. Only failing error lines are shown, but not details.
 
 ## [3.0.7] - 2024-08-20
 
@@ -584,7 +586,7 @@
 
 ### Changed
 
-- Update to new version of gg_tests
+- Update to new version of gg\_tests
 
 ## [3.0.5] - 2024-06-21
 
@@ -636,7 +638,7 @@
 ### Removed
 
 - Upgrade check before pushing
-- dependency to gg_install_gg, remove ./check script
+- dependency to gg\_install\_gg, remove ./check script
 - Upgrading does not trigger a commit and a publish
 
 ## [3.0.0] - 2024-04-10
@@ -670,7 +672,7 @@
 
 ### Changed
 
-- Update latest changes on gg_publish and gg_git
+- Update latest changes on gg\_publish and gg\_git
 - Refactor tests
 
 ## [2.0.2] - 2024-04-06
@@ -736,7 +738,7 @@
 
 - Removed unused sample project
 - logStatus is replaced by GgStatusPrinter
-- isGitHub is replaced by gg_is_github
+- isGitHub is replaced by gg\_is\_github
 - Pipeline: remove --no-save-state flag
 
 ## [1.0.14] - 2024-04-05
@@ -754,6 +756,7 @@
 
 - Initial version
 
+[11.0.1]: https://github.com/ggsuite/gg_one/compare/11.0.0...11.0.1
 [11.0.0]: https://github.com/ggsuite/gg_one/compare/10.3.0...11.0.0
 [10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
 [10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
