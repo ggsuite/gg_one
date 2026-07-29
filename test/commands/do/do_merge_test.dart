@@ -902,7 +902,8 @@ void main() {
 
       await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
 
-      // The drift commit was created and pushed with a second push.
+      // The drift commit was created and pushed with a second push; the
+      // third push carries the recorded release state into the PR.
       verify(
         () => mockProcessWrapper.run(
           'git',
@@ -922,8 +923,59 @@ void main() {
           runInShell: true,
           workingDirectory: d.path,
         ),
-      ).called(2);
+      ).called(3);
       expect(statusCalls, 3);
+    });
+
+    test('records doCommit and doPush before creating the pull request, '
+        'so the squashed main passes »gg did commit« and '
+        '»gg did push«', () async {
+      stubGitCommands();
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['push'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+          deleteSourceBranch: true,
+        ),
+      ).thenAnswer((_) async => true);
+
+      when(
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
+      ).thenAnswer((_) async => true);
+
+      await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+
+      // Both states are written while the feature branch content is still
+      // the content the squash merge puts on main.
+      verifyInOrder([
+        () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
+        () => mockGgState.writeSuccess(directory: d, key: 'doPush'),
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+          deleteSourceBranch: true,
+        ),
+      ]);
     });
 
     test('forwards the merge message to the pull-request merge', () async {

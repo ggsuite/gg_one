@@ -355,6 +355,20 @@ class DoMerge extends DirCommand<void> {
         );
       }
 
+      // Record »doCommit« and »doPush« for the content that is about to be
+      // merged. A squash merge keeps the tree, and [GgState] hashes the tree
+      // (ignoring `.gg/`), so the hashes written here are exactly the hashes
+      // of the default branch afterwards. Without this, main carries the
+      // hashes of an older feature-branch state and »gg did commit« /
+      // »gg did push« fail on it — blocking CI and the pre-push hook of the
+      // next release. The state must ride along inside the pull request:
+      // main is merged by the provider, so gg cannot push a fix afterwards.
+      await _writeReleaseState(
+        directory: directory,
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+
       // Create the auto-complete pull request on the provider (GitHub/Azure).
       // The merge message becomes the PR title and squash commit message.
       await _doMerge.get(
@@ -395,6 +409,31 @@ class DoMerge extends DirCommand<void> {
     await _pullMainSafely(
       directory: directory,
       mainBranchName: mainBranchName,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+  }
+
+  /// Writes the `doCommit` and `doPush` success states for the current
+  /// feature-branch content and pushes the resulting bookkeeping commit, so
+  /// the pull request carries them into the default branch.
+  ///
+  /// [GgState] hashes the tracked tree and ignores `.gg/`, so recording the
+  /// state neither changes the hash nor invalidates itself.
+  Future<void> _writeReleaseState({
+    required Directory directory,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    await _state.writeSuccess(directory: directory, key: 'doCommit');
+    await _state.writeSuccess(directory: directory, key: 'doPush');
+
+    // A no-op when the states were already up to date ("Everything
+    // up-to-date"), so this never creates an empty extra round trip.
+    await _runGitCommand(
+      directory: directory,
+      arguments: const ['push'],
+      actionDescription: 'push the recorded release state',
       ggLog: ggLog,
       verbose: verbose,
     );

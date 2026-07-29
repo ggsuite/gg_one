@@ -12,6 +12,7 @@
 - do publish: keep merge and pull-request wait messages visible
 - do merge: sync main fast-forward-only, reset gg-bookkeeping divergence
 - Refuse to publish ticket repos with a suppressed publish target
+- do publish waits until version is published and pull request is merged
 
 ### Fixed
 
