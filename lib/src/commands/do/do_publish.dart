@@ -4,6 +4,7 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:gg_one/gg_one.dart';
@@ -56,6 +57,7 @@ class DoPublish extends DirCommand<void> {
     ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
     DoConfigurePublish? configurePublish,
     EnsurePublishConfigIgnored? ensureIgnored,
+    WaitUntilPublished? waitUntilPublished,
     // coverage:ignore-start
   }) : _canPublish = canPublish ?? CanPublish(ggLog: ggLog),
        _publishToPubDev = publish ?? Publish(ggLog: ggLog),
@@ -91,7 +93,9 @@ class DoPublish extends DirCommand<void> {
            DoConfigurePublish.defaultConfirmDeleteFeatureBranch,
        _configurePublish = configurePublish ?? DoConfigurePublish(ggLog: ggLog),
        _ensureIgnored =
-           ensureIgnored ?? EnsurePublishConfigIgnored(ggLog: ggLog) {
+           ensureIgnored ?? EnsurePublishConfigIgnored(ggLog: ggLog),
+       _waitUntilPublished =
+           waitUntilPublished ?? WaitUntilPublished(ggLog: ggLog) {
     // coverage:ignore-end
     _addArgs();
   }
@@ -144,6 +148,12 @@ class DoPublish extends DirCommand<void> {
     // Does directory exist?
     await check(directory: directory);
     void noLog(_) {} // coverage:ignore-line
+
+    // Never publish a repo whose registry target is currently suppressed by
+    // the ticket tooling (»gg multi do add« writes »publish_to: none« and
+    // backs the original value up). Without this guard the publish silently
+    // skips the upload and merges the suppressed manifest into main.
+    _throwIfPublishTargetIsSuppressed(directory);
 
     final cliContinue = argResults?['continue'] as bool? ?? false;
     final reconfigure = argResults?['reconfigure'] as bool? ?? false;
@@ -375,9 +385,27 @@ class DoPublish extends DirCommand<void> {
             verbose: isVerbose,
           );
         }
+      } else {
+        // Skipping the registry must never be silent — a publish that ends
+        // without an upload looks successful otherwise.
+        final target = await _publishTo.fromDirectory(directory);
+        ggLog(
+          yellow(
+            'Not publishing to a registry: the manifest says '
+            '"$target". Only the version bump, merge and tag run.',
+          ),
+        );
       }
       await markStepDone('publish_registry');
     }
+
+    // Step 8b: Registries take a while to make a fresh upload visible. Wait
+    // until the version appears on pub.dev/npm — announced with a status
+    // url, reporting progress and bounded by a timeout instead of hanging.
+    // Idempotent (returns immediately once the version is visible), so it
+    // also runs on resumed runs; packages that publish to no registry are
+    // skipped inside.
+    await _waitUntilPublished.get(directory: directory, ggLog: ggLog);
 
     // Step 9: Merge into the default branch. (When the step is already done
     // on a resumed run, the default branch was checked out before Step 6.)
@@ -457,12 +485,58 @@ class DoPublish extends DirCommand<void> {
   final ConfirmDeleteFeatureBranch _confirmDeleteFeatureBranch;
   final DoConfigurePublish _configurePublish;
   final EnsurePublishConfigIgnored _ensureIgnored;
+  final WaitUntilPublished _waitUntilPublished;
 
   /// Pre-resolved version increment; always set before the steps run.
   String? _explicitVersionIncrement;
 
   /// Pre-resolved release channel; always set before the steps run.
   String? _explicitChannel;
+
+  /// The file »gg multi do add« writes when it replaces a repo's publish
+  /// target with »none« for the duration of a ticket.
+  static File publishToBackupFile(Directory directory) => File(
+    join(directory.path, '.gg', '.gg_localize_refs_publish_to_backup.json'),
+  );
+
+  /// Throws when the manifest's publish target was replaced by the ticket
+  /// tooling. `gg multi do add` sets `publish_to: none` in every ticket repo
+  /// and remembers the original value; `gg multi do publish` restores it
+  /// before publishing. A standalone `gg do publish` does not — it would
+  /// skip the registry upload and merge the suppressed `publish_to: none`
+  /// into the main branch, breaking the released package.
+  void _throwIfPublishTargetIsSuppressed(Directory directory) {
+    final backup = publishToBackupFile(directory);
+    if (!backup.existsSync()) {
+      return;
+    }
+
+    final Map<String, dynamic> content;
+    try {
+      content = jsonDecode(backup.readAsStringSync()) as Map<String, dynamic>;
+      // coverage:ignore-start
+    } catch (_) {
+      // An unreadable backup must not block a publish.
+      return;
+      // coverage:ignore-end
+    }
+
+    // The backed-up value is what the package publishes to outside the
+    // ticket; »null« means the default (pub.dev). Only a genuinely private
+    // package has »none« there — that one may be published as-is.
+    final original = content['publish_to_original'] as String?;
+    if (original == 'none') {
+      return;
+    }
+
+    throw Exception(
+      'This repository is part of a ticket workspace: its publish target is '
+      'temporarily set to "none" (${backup.path}). Publishing it directly '
+      'would skip the registry upload and merge "publish_to: none" into the '
+      'main branch. Publish the ticket with "gg multi do publish" instead, '
+      'which restores the publish target first.',
+    );
+  }
 
   /// Returns true when the current version is already visible on the
   /// registry, i.e. publishing it again is obsolete.
@@ -515,18 +589,14 @@ class DoPublish extends DirCommand<void> {
     }
   }
 
-  /// Publish to the package registry when the package should be published.
+  /// Publishes to the package registry. Only called from the
+  /// `publish_registry` step after `_shouldPublishToRegistry` returned true —
+  /// registry-less targets are announced and skipped there.
   Future<void> _publishToPubDevIfNeeded({
     required Directory directory,
     required GgLog ggLog,
     required bool? askBeforePublishing,
   }) async {
-    final publishToRegistry = await _shouldPublishToRegistry(directory, ggLog);
-
-    if (!publishToRegistry) {
-      return;
-    }
-
     final shouldAskBeforePublishing = await _shouldAskBeforePublishing(
       directory,
       ggLog,
@@ -544,6 +614,11 @@ class DoPublish extends DirCommand<void> {
   /// auto-merge pull request and waits until it is merged; otherwise it does
   /// a local merge into main. [deleteSourceBranch] lets the provider delete
   /// the feature branch when it completes the pull request.
+  ///
+  /// The merge logs stay visible in non-verbose mode too: the pull-request
+  /// flow can block for minutes (provider CI + automerge), and without the
+  /// »Waiting for pull request to be merged« progress messages the publish
+  /// looks like it is hanging.
   Future<void> _merge({
     required Directory directory,
     required String? message,
@@ -551,9 +626,17 @@ class DoPublish extends DirCommand<void> {
     required bool viaPullRequest,
     required bool deleteSourceBranch,
   }) async {
+    if (viaPullRequest) {
+      ggLog(
+        darkGray(
+          'Merging into the default branch via auto-merge pull request…',
+        ),
+      );
+    }
+
     await _doMerge.get(
       directory: directory,
-      ggLog: verbose ? ggLog : <String>[].add,
+      ggLog: ggLog,
       automerge: false,
       local: !viaPullRequest,
       message: message,
