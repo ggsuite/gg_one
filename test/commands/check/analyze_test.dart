@@ -89,18 +89,6 @@ void main() {
           );
         });
 
-        test('if the project type cannot be detected', () async {
-          final emptyDir = Directory.systemTemp.createTempSync();
-          try {
-            await expectLater(
-              () => runner.run(['analyze', '--input', emptyDir.path]),
-              throwsA(isA<Exception>()),
-            );
-          } finally {
-            emptyDir.deleteSync(recursive: true);
-          }
-        });
-
         test('when the injected typescript analyzer throws', () async {
           final tsDir = Directory.systemTemp.createTempSync();
           File('${tsDir.path}/package.json').writeAsStringSync('{}');
@@ -137,6 +125,43 @@ void main() {
 
       // .......................................................................
       group('should succeed', () {
+        test('skipping when the project has no manifest', () async {
+          final emptyDir = Directory.systemTemp.createTempSync();
+          final dartAnalyzer = MockAnalyzer();
+          final tsAnalyzer = MockAnalyzer();
+
+          final localRunner = CommandRunner<void>('test', 'test');
+          localRunner.addCommand(
+            Analyze(
+              ggLog: messages.add,
+              dartAnalyzer: dartAnalyzer,
+              typeScriptAnalyzer: tsAnalyzer,
+            ),
+          );
+
+          try {
+            await localRunner.run(['analyze', '--input', emptyDir.path]);
+            expect(
+              messages.last,
+              contains('Skipping analyze (no project manifest)'),
+            );
+            verifyNever(
+              () => dartAnalyzer.run(
+                directory: any(named: 'directory'),
+                ggLog: any(named: 'ggLog'),
+              ),
+            );
+            verifyNever(
+              () => tsAnalyzer.run(
+                directory: any(named: 'directory'),
+                ggLog: any(named: 'ggLog'),
+              ),
+            );
+          } finally {
+            emptyDir.deleteSync(recursive: true);
+          }
+        });
+
         test('when the injected analyzer returns without throwing', () async {
           final mockAnalyzer = MockAnalyzer();
           when(

@@ -164,7 +164,8 @@ class DoConfigurePublish extends DirCommand<void> {
   }
 
   /// Reads the version used as the baseline for the increment preview.
-  /// Falls back to the `package.json` version (TypeScript) and finally to
+  /// Falls back to the `package.json` version (TypeScript), then to the
+  /// latest git version tag (projects without a manifest) and finally to
   /// 0.0.0 — only the chosen increment is stored, so the baseline is
   /// preview-only.
   Future<Version> _currentVersion(Directory directory) async {
@@ -178,7 +179,16 @@ class DoConfigurePublish extends DirCommand<void> {
           (decoded as Map<String, dynamic>)['version'].toString(),
         );
       } catch (_) {
-        return Version(0, 0, 0);
+        try {
+          final latest = await FromGit(
+            ggLog: <String>[].add,
+          ).latest(ggLog: <String>[].add, directory: directory);
+          return latest ?? Version(0, 0, 0);
+        } catch (_) {
+          // Defensive: configure always runs inside a git repo, so the tag
+          // lookup cannot fail there — but a preview value must never crash.
+          return Version(0, 0, 0); // coverage:ignore-line
+        }
       }
     }
   }

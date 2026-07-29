@@ -74,17 +74,9 @@ class CheckPackageJsonScripts extends DirCommand<void> {
   Future<void> get({required Directory directory, required GgLog ggLog}) async {
     await check(directory: directory);
 
-    final ProjectType type;
-    try {
-      type = checkProjectType(directory);
-    } catch (_) {
-      // No recognizable manifest — nothing to check here.
-      return;
-    }
-
     // Only TypeScript-treated projects (pure TypeScript repos and bridges)
     // carry a package.json with scripts.
-    if (type != ProjectType.typescript) {
+    if (checkProjectType(directory) != ProjectType.typescript) {
       return;
     }
 

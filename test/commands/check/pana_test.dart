@@ -148,6 +148,21 @@ void main() {
         expect(messages[1], contains('✅ Running pana'));
       });
 
+      group('when the project has no manifest', () {
+        test('skipping pana', () async {
+          final emptyDir = Directory.systemTemp.createTempSync();
+          try {
+            await runner.run(['pana', '--input', emptyDir.path]);
+            expect(
+              messages[0],
+              contains('✅ Skipping pana (no project manifest)'),
+            );
+          } finally {
+            emptyDir.deleteSync(recursive: true);
+          }
+        });
+      });
+
       group('when package is not published to pub.dev', () {
         test('and publishedOnly is set to true', () async {
           // Add publish_to: none

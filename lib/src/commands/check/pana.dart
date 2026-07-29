@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
@@ -45,6 +46,15 @@ class Pana extends DirCommand<void> {
     await check(directory: directory);
     publishedOnly ??=
         _publishedOnlyFromArgs ?? _publishedOnlyFromConstructor ?? false;
+
+    // Without a manifest there is no package pana could analyze.
+    if (checkProjectType(directory) == ProjectType.none) {
+      GgStatusPrinter<void>(
+        ggLog: ggLog,
+        message: 'Skipping pana (no project manifest)',
+      ).logStatus(GgStatusPrinterStatus.success);
+      return;
+    }
 
     // Pana only applies to packages published to pub.dev. For npm (TypeScript)
     // or `none` (private) targets there is nothing to analyze, so make the

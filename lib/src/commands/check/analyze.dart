@@ -10,6 +10,7 @@ import 'package:gg_one/src/tools/analyzer.dart';
 import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart' as mocktail;
 
 // #############################################################################
@@ -39,9 +40,17 @@ class Analyze extends DirCommand<void> {
 
     final type = checkProjectType(directory);
 
+    if (type == ProjectType.none) {
+      GgStatusPrinter<void>(
+        ggLog: ggLog,
+        message: 'Skipping analyze (no project manifest)',
+      ).logStatus(GgStatusPrinterStatus.success);
+      return;
+    }
+
     final analyzer = switch (type) {
       ProjectType.dart || ProjectType.flutter => _dartAnalyzer,
-      ProjectType.typescript => _typeScriptAnalyzer,
+      ProjectType.typescript || ProjectType.none => _typeScriptAnalyzer,
     };
 
     await analyzer.run(directory: directory, ggLog: ggLog);

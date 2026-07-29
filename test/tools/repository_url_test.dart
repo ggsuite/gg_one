@@ -117,6 +117,21 @@ void main() {
       });
     });
 
+    group('without a manifest', () {
+      test('throws', () async {
+        await expectLater(
+          readRepositoryUrl(tmp),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('no manifest'),
+            ),
+          ),
+        );
+      });
+    });
+
     test('resolves the real rljson fixture', () async {
       // Integration check against the actual test project in the workspace.
       final realProject = Directory(
