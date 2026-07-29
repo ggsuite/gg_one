@@ -377,10 +377,84 @@ class DoMerge extends DirCommand<void> {
       ggLog: ggLog,
       verbose: verbose,
     );
+    await _pullMainSafely(
+      directory: directory,
+      mainBranchName: mainBranchName,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+  }
+
+  /// Fast-forwards the local main branch to `origin/<main>` — robust against
+  /// the divergence gg itself creates: after a merge, gg's state bookkeeping
+  /// commits `.gg/.gg.json` onto main, and in the pull-request flow main is
+  /// never pushed. The next release then finds main and `origin/<main>`
+  /// diverged, and a plain »git pull« aborts with "You have divergent
+  /// branches". After a pull-request merge origin is the truth for main:
+  /// when the local extra commits carry only gg bookkeeping or lock-file
+  /// drift, main is hard-reset to `origin/<main>`. Real local commits are
+  /// never discarded — the sync fails with a clear message instead.
+  Future<void> _pullMainSafely({
+    required Directory directory,
+    required String mainBranchName,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    try {
+      await _runGitCommand(
+        directory: directory,
+        arguments: const ['pull', '--ff-only'],
+        actionDescription: 'pull on $mainBranchName',
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+      return;
+    } on Exception {
+      // Not fast-forwardable — decide below whether the local extra commits
+      // may be dropped. The failed pull already fetched, so origin/<main>
+      // is up to date.
+    }
+
+    final localOnlyFiles = await _runGitCommand(
+      directory: directory,
+      arguments: [
+        'log',
+        'origin/$mainBranchName..HEAD',
+        '--name-only',
+        '--pretty=format:',
+      ],
+      actionDescription: 'list local-only commits on $mainBranchName',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    final realFiles = localOnlyFiles
+        .split('\n')
+        .map((line) => line.trim())
+        .where((file) => file.isNotEmpty)
+        .where((file) => !file.startsWith('.gg/'))
+        .where((file) => !gg_lang.allLockFileNames.contains(file))
+        .toSet();
+
+    if (realFiles.isNotEmpty) {
+      throw Exception(
+        'Local $mainBranchName and origin/$mainBranchName have diverged, '
+        'and the local commits touch ${realFiles.join(', ')}. '
+        'Reconcile $mainBranchName manually (e.g. rebase it onto '
+        'origin/$mainBranchName), then run the command again.',
+      );
+    }
+
+    ggLog(
+      yellow(
+        'Local $mainBranchName diverged from origin/$mainBranchName with '
+        'gg bookkeeping only — resetting it to origin/$mainBranchName.',
+      ),
+    );
     await _runGitCommand(
       directory: directory,
-      arguments: const ['pull'],
-      actionDescription: 'pull on $mainBranchName',
+      arguments: ['reset', '--hard', 'origin/$mainBranchName'],
+      actionDescription: 'reset $mainBranchName to origin/$mainBranchName',
       ggLog: ggLog,
       verbose: verbose,
     );
@@ -457,10 +531,9 @@ class DoMerge extends DirCommand<void> {
         ggLog: ggLog,
         verbose: verbose,
       );
-      await _runGitCommand(
+      await _pullMainSafely(
         directory: directory,
-        arguments: const ['pull'],
-        actionDescription: 'pull on $mainBranchName',
+        mainBranchName: mainBranchName,
         ggLog: ggLog,
         verbose: verbose,
       );

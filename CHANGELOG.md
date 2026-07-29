@@ -10,6 +10,11 @@
 
 - do publish: wait visibly until the version appears on pub.dev/npm
 - do publish: keep merge and pull-request wait messages visible
+- do merge: sync main fast-forward-only, reset gg-bookkeeping divergence
+
+### Fixed
+
+- do merge: updating the local main branch no longer aborts with "You have divergent branches": the pull is fast-forward-only, and when main diverged from origin/main with gg bookkeeping or lock-file drift only, it is reset to origin/main (real local commits still abort with a clear message)
 
 ## [11.0.0] - 2026-07-22
 

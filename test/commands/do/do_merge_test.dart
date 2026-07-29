@@ -82,7 +82,7 @@ void main() {
     when(
       () => mockProcessWrapper.run(
         'git',
-        ['pull'],
+        ['pull', '--ff-only'],
         runInShell: true,
         workingDirectory: any(named: 'workingDirectory'),
       ),
@@ -200,7 +200,7 @@ void main() {
         ),
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -219,6 +219,111 @@ void main() {
         ),
         () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
       ]);
+    });
+
+    test('resets a diverged main when only gg bookkeeping differs', () async {
+      stubGitCommands();
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: false,
+          local: false,
+          verbose: false,
+        ),
+      ).thenAnswer((_) async => true);
+
+      // The fast-forward pull fails: main and origin/main have diverged.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['pull', '--ff-only'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer(
+        (_) async => ProcessResult(1, 1, '', 'You have divergent branches ...'),
+      );
+
+      // The local-only commits touch gg bookkeeping and lock files only.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['log', 'origin/main..HEAD', '--name-only', '--pretty=format:'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer(
+        (_) async => ProcessResult(0, 0, '.gg/.gg.json\npubspec.lock\n', ''),
+      );
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['reset', '--hard', 'origin/main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      await doMerge.get(directory: d, ggLog: ggLog);
+
+      verify(
+        () => mockProcessWrapper.run(
+          'git',
+          ['reset', '--hard', 'origin/main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).called(1);
+      expect(messages.any((m) => m.contains('gg bookkeeping only')), isTrue);
+    });
+
+    test('throws when main diverged with real local commits', () async {
+      stubGitCommands();
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['pull', '--ff-only'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer(
+        (_) async => ProcessResult(1, 1, '', 'You have divergent branches ...'),
+      );
+
+      // The local-only commits touch real source files.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['log', 'origin/main..HEAD', '--name-only', '--pretty=format:'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, 'lib/src/foo.dart\n', ''));
+
+      await expectLater(
+        doMerge.get(directory: d, ggLog: ggLog),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            allOf(contains('have diverged'), contains('lib/src/foo.dart')),
+          ),
+        ),
+      );
+
+      // Real commits are never discarded.
+      verifyNever(
+        () => mockProcessWrapper.run(
+          'git',
+          ['reset', '--hard', 'origin/main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      );
     });
 
     test('commits pending worktree changes before merge', () async {
@@ -344,7 +449,7 @@ void main() {
       verify(
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -414,7 +519,7 @@ void main() {
           '\$ git rev-parse --abbrev-ref HEAD',
           '\$ git checkout main',
           '\$ git fetch',
-          '\$ git pull',
+          '\$ git pull --ff-only',
           '\$ git checkout feature/x',
         ]),
       );
@@ -534,7 +639,7 @@ void main() {
         ),
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -569,7 +674,7 @@ void main() {
         ),
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
