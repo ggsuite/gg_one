@@ -42,6 +42,7 @@ class DoPublish extends DirCommand<void> {
     AddVersionTag? addVersionTag,
     AddTypeScriptVersionTag? addTypeScriptVersionTag,
     AddGitOnlyVersionTag? addGitOnlyVersionTag,
+    RemoveVersionTag? removeVersionTag,
     Commit? commit,
     DoPush? doPush,
     DidCommit? didCommit,
@@ -75,6 +76,9 @@ class DoPublish extends DirCommand<void> {
              ggLog: (msg) => ggLog('✅ $msg'),
              processWrapper: processWrapper,
            ),
+       // Like _addVersionTag: operates on the real repo, not through the
+       // command's own process wrapper.
+       _removeVersionTag = removeVersionTag ?? RemoveVersionTag(ggLog: ggLog),
        _commit = commit ?? Commit(ggLog: ggLog),
        _doPush = doPush ?? DoPush(ggLog: ggLog),
        _didCommit = didCommit ?? DidCommit(ggLog: ggLog),
@@ -469,6 +473,7 @@ class DoPublish extends DirCommand<void> {
   final AddVersionTag _addVersionTag;
   final AddTypeScriptVersionTag _addTypeScriptVersionTag;
   final AddGitOnlyVersionTag _addGitOnlyVersionTag;
+  final RemoveVersionTag _removeVersionTag;
   final DoPush _doPush;
   final Commit _commit;
   final DidCommit _didCommit;
@@ -710,10 +715,28 @@ class DoPublish extends DirCommand<void> {
   /// Adds the version tag for [directory] so `do_push --tags` carries it.
   /// Dart uses `AddVersionTag` (pubspec ↔ CHANGELOG); TS reads
   /// `package.json` via [AddTypeScriptVersionTag] — required for `#semver:`.
+  ///
+  /// A tag left behind by a publish that failed after tagging is removed first
+  /// (locally and on the remote): it points at a commit this run replaced, so
+  /// re-adding it would either be refused (`must be greater ...`) or leave the
+  /// release tagged on an abandoned commit. Only a tag that was really removed
+  /// is reported — the normal publish must not log a line for a tag that was
+  /// never there.
   Future<void> _publishGit({
     required Directory directory,
     required GgLog ggLog,
   }) async {
+    final removeMessages = <String>[];
+    final tagRemoved = await _removeVersionTag.get(
+      directory: directory,
+      ggLog: removeMessages.add,
+    );
+    if (tagRemoved) {
+      for (final message in removeMessages) {
+        ggLog('✅ $message');
+      }
+    }
+
     if (_supportsChangeLog(directory)) {
       await _addVersionTag.exec(
         directory: directory,
