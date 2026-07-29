@@ -55,6 +55,7 @@ class DoPublish extends DirCommand<void> {
     ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
     DoConfigurePublish? configurePublish,
     EnsurePublishConfigIgnored? ensureIgnored,
+    WaitUntilPublished? waitUntilPublished,
     // coverage:ignore-start
   }) : _canPublish = canPublish ?? CanPublish(ggLog: ggLog),
        _publishToPubDev = publish ?? Publish(ggLog: ggLog),
@@ -84,7 +85,9 @@ class DoPublish extends DirCommand<void> {
            DoConfigurePublish.defaultConfirmDeleteFeatureBranch,
        _configurePublish = configurePublish ?? DoConfigurePublish(ggLog: ggLog),
        _ensureIgnored =
-           ensureIgnored ?? EnsurePublishConfigIgnored(ggLog: ggLog) {
+           ensureIgnored ?? EnsurePublishConfigIgnored(ggLog: ggLog),
+       _waitUntilPublished =
+           waitUntilPublished ?? WaitUntilPublished(ggLog: ggLog) {
     // coverage:ignore-end
     _addArgs();
   }
@@ -367,6 +370,14 @@ class DoPublish extends DirCommand<void> {
       await markStepDone('publish_registry');
     }
 
+    // Step 8b: Registries take a while to make a fresh upload visible. Wait
+    // until the version appears on pub.dev/npm — announced with a status
+    // url, reporting progress and bounded by a timeout instead of hanging.
+    // Idempotent (returns immediately once the version is visible), so it
+    // also runs on resumed runs; packages that publish to no registry are
+    // skipped inside.
+    await _waitUntilPublished.get(directory: directory, ggLog: ggLog);
+
     // Step 9: Merge into the default branch. (When the step is already done
     // on a resumed run, the default branch was checked out before Step 6.)
     if (!progress.isStepDone('merge')) {
@@ -444,6 +455,7 @@ class DoPublish extends DirCommand<void> {
   final ConfirmDeleteFeatureBranch _confirmDeleteFeatureBranch;
   final DoConfigurePublish _configurePublish;
   final EnsurePublishConfigIgnored _ensureIgnored;
+  final WaitUntilPublished _waitUntilPublished;
 
   /// Pre-resolved version increment; always set before the steps run.
   String? _explicitVersionIncrement;
