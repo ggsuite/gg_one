@@ -614,6 +614,9 @@ void main() {
               expect(allMessages, contains('✅ Increase version'));
               expect(allMessages, contains('Tag 1.0.2 added.'));
 
+              // Skipping the registry is announced, never silent.
+              expect(allMessages, contains('Not publishing to a registry'));
+
               // Was a new version created?
               pubspec = await pubspecFile.readAsString();
               final changeLog = await File(
@@ -638,6 +641,63 @@ void main() {
                 await DidPush(ggLog: ggLog).get(directory: d, ggLog: ggLog),
                 isTrue,
               );
+            });
+          });
+
+          group('refuses to publish a ticket repo whose publish target '
+              'is suppressed', () {
+            // »gg multi do add« writes »publish_to: none« into every ticket
+            // repo and remembers the original value. Publishing such a repo
+            // standalone would skip the registry upload and merge the
+            // suppressed manifest into main.
+            Future<void> writeBackup(String content) async {
+              final ggDir = Directory(join(d.path, '.gg'));
+              if (!ggDir.existsSync()) {
+                await ggDir.create(recursive: true);
+              }
+              await File(
+                join(ggDir.path, '.gg_localize_refs_publish_to_backup.json'),
+              ).writeAsString(content);
+            }
+
+            test('and points to "gg multi do publish"', () async {
+              await writeBackup('{"publish_to_original": null}');
+
+              await expectLater(
+                doPublish.exec(
+                  directory: d,
+                  ggLog: ggLog,
+                  deleteFeatureBranch: false,
+                ),
+                throwsA(
+                  isA<Exception>().having(
+                    (e) => e.toString(),
+                    'message',
+                    allOf(
+                      contains('ticket workspace'),
+                      contains('gg multi do publish'),
+                    ),
+                  ),
+                ),
+              );
+            });
+
+            test('but publishes a genuinely private package', () async {
+              // A package that publishes nowhere outside the ticket either
+              // may be published (i.e. version-bumped + merged) as before.
+              await writeBackup('{"publish_to_original": "none"}');
+              // The new file changed the worktree — re-record the state so
+              // the publish checks see a committed repository again.
+              await makeLastStateSuccessful();
+              mockPublishIsSuccessful(success: true, askBeforePublishing: true);
+
+              await doPublish.exec(
+                directory: d,
+                ggLog: ggLog,
+                deleteFeatureBranch: false,
+              );
+
+              expect(messages.join('\n'), contains('Tag 1.2.4 added.'));
             });
           });
 

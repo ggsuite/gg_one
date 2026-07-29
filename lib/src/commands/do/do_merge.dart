@@ -293,6 +293,17 @@ class DoMerge extends DirCommand<void> {
       ggLog: <String>[].add,
     );
 
+    // The source branch of the pull request. Captured before anything can
+    // move HEAD, so the wait below never looks for a pull request of the
+    // default branch.
+    final sourceBranch = (await _runGitCommand(
+      directory: directory,
+      arguments: const ['rev-parse', '--abbrev-ref', 'HEAD'],
+      actionDescription: 'determine the pull request source branch',
+      ggLog: ggLog,
+      verbose: verbose,
+    )).trim();
+
     // A resumed run may find its release already on main: the previous run
     // crashed after the provider merged the pull request but before the
     // merge step was marked done. Detected by content (a squash merge
@@ -357,7 +368,11 @@ class DoMerge extends DirCommand<void> {
       );
 
       // Block until the provider merged the pull request.
-      await _waitForMerge.get(directory: directory, ggLog: ggLog);
+      await _waitForMerge.get(
+        directory: directory,
+        ggLog: ggLog,
+        branch: sourceBranch,
+      );
     }
 
     // Safety net: absorb any dirt that appeared since the pushes (the branch

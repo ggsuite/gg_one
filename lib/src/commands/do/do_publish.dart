@@ -4,6 +4,7 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:gg_one/gg_one.dart';
@@ -140,6 +141,12 @@ class DoPublish extends DirCommand<void> {
     // Does directory exist?
     await check(directory: directory);
     void noLog(_) {} // coverage:ignore-line
+
+    // Never publish a repo whose registry target is currently suppressed by
+    // the ticket tooling (»gg multi do add« writes »publish_to: none« and
+    // backs the original value up). Without this guard the publish silently
+    // skips the upload and merges the suppressed manifest into main.
+    _throwIfPublishTargetIsSuppressed(directory);
 
     final cliContinue = argResults?['continue'] as bool? ?? false;
     final reconfigure = argResults?['reconfigure'] as bool? ?? false;
@@ -463,6 +470,51 @@ class DoPublish extends DirCommand<void> {
   /// Pre-resolved release channel; always set before the steps run.
   String? _explicitChannel;
 
+  /// The file »gg multi do add« writes when it replaces a repo's publish
+  /// target with »none« for the duration of a ticket.
+  static File publishToBackupFile(Directory directory) => File(
+    join(directory.path, '.gg', '.gg_localize_refs_publish_to_backup.json'),
+  );
+
+  /// Throws when the manifest's publish target was replaced by the ticket
+  /// tooling. `gg multi do add` sets `publish_to: none` in every ticket repo
+  /// and remembers the original value; `gg multi do publish` restores it
+  /// before publishing. A standalone `gg do publish` does not — it would
+  /// skip the registry upload and merge the suppressed `publish_to: none`
+  /// into the main branch, breaking the released package.
+  void _throwIfPublishTargetIsSuppressed(Directory directory) {
+    final backup = publishToBackupFile(directory);
+    if (!backup.existsSync()) {
+      return;
+    }
+
+    final Map<String, dynamic> content;
+    try {
+      content = jsonDecode(backup.readAsStringSync()) as Map<String, dynamic>;
+      // coverage:ignore-start
+    } catch (_) {
+      // An unreadable backup must not block a publish.
+      return;
+      // coverage:ignore-end
+    }
+
+    // The backed-up value is what the package publishes to outside the
+    // ticket; »null« means the default (pub.dev). Only a genuinely private
+    // package has »none« there — that one may be published as-is.
+    final original = content['publish_to_original'] as String?;
+    if (original == 'none') {
+      return;
+    }
+
+    throw Exception(
+      'This repository is part of a ticket workspace: its publish target is '
+      'temporarily set to "none" (${backup.path}). Publishing it directly '
+      'would skip the registry upload and merge "publish_to: none" into the '
+      'main branch. Publish the ticket with "gg multi do publish" instead, '
+      'which restores the publish target first.',
+    );
+  }
+
   /// Returns true when the current version is already visible on the
   /// registry, i.e. publishing it again is obsolete.
   Future<bool> _versionAlreadyPublished({
@@ -523,6 +575,15 @@ class DoPublish extends DirCommand<void> {
     final publishToRegistry = await _shouldPublishToRegistry(directory, ggLog);
 
     if (!publishToRegistry) {
+      // Skipping the registry must never be silent — a publish that ends
+      // without an upload looks successful otherwise.
+      final target = await _publishTo.fromDirectory(directory);
+      ggLog(
+        yellow(
+          'Not publishing to a registry: the manifest says '
+          '"$target". Only the version bump, merge and tag run.',
+        ),
+      );
       return;
     }
 

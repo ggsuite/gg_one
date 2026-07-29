@@ -612,7 +612,11 @@ void main() {
 
       // Wait until merged.
       when(
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
       ).thenAnswer((_) async => true);
 
       await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
@@ -664,7 +668,11 @@ void main() {
           verbose: false,
           deleteSourceBranch: true,
         ),
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
         // Bring local main to the merged state.
         () => mockProcessWrapper.run(
           'git',
@@ -719,7 +727,11 @@ void main() {
         ).thenAnswer((_) async => true);
 
         when(
-          () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+          () => mockWaitForMerge.get(
+            directory: d,
+            ggLog: ggLog,
+            branch: any(named: 'branch'),
+          ),
         ).thenAnswer((_) async => true);
 
         when(
@@ -881,7 +893,11 @@ void main() {
       ).thenAnswer((_) async => true);
 
       when(
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
       ).thenAnswer((_) async => true);
 
       await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
@@ -935,7 +951,11 @@ void main() {
       ).thenAnswer((_) async => true);
 
       when(
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
       ).thenAnswer((_) async => true);
 
       await doMerge.get(

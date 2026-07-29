@@ -11,9 +11,13 @@
 - do publish: wait visibly until the version appears on pub.dev/npm
 - do publish: keep merge and pull-request wait messages visible
 - do merge: sync main fast-forward-only, reset gg-bookkeeping divergence
+- Refuse to publish ticket repos with a suppressed publish target
 
 ### Fixed
 
+- do publish refuses to publish a repo whose publish target is suppressed by the ticket tooling (`gg multi do add` writes `publish_to: none`). Before, it silently skipped the registry upload and merged `publish_to: none` into the main branch — publish the ticket with `gg multi do publish` instead
+- do publish announces a skipped registry upload instead of skipping silently
+- do merge passes the pull request's source branch to the wait, so a moved HEAD no longer causes "No pull request found for branch main"
 - do merge: updating the local main branch no longer aborts with "You have divergent branches": the pull is fast-forward-only, and when main diverged from origin/main with gg bookkeeping or lock-file drift only, it is reset to origin/main (real local commits still abort with a clear message)
 
 ## [11.0.0] - 2026-07-22
