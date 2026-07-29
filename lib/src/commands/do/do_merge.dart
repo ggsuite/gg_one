@@ -171,8 +171,8 @@ class DoMerge extends DirCommand<void> {
     }
 
     // A merge produces a fully-committed, gg-verified HEAD, so it satisfies
-    // »gg did commit«. Record that, otherwise the pre-push hook (which runs
-    // »gg did commit«) rejects the merge commit when it is pushed.
+    // »gg did commit«. Record that, otherwise every later »gg did commit« —
+    // CI, and any repo-level hook that runs it — rejects the merge commit.
     await _state.writeSuccess(directory: directory, key: 'doCommit');
   }
 
@@ -336,7 +336,8 @@ class DoMerge extends DirCommand<void> {
 
       // A repo-level pre-push hook can dirty the worktree during the push —
       // e.g. a »dart run« based hook whose implicit »pub get« rewrites
-      // pubspec.lock after the version bump. Commit that drift and push again
+      // pubspec.lock after the version bump. gg does not install such a hook,
+      // but a repo may carry one of its own. Commit that drift and push again
       // (the second hook run finds everything up to date), otherwise the
       // checkout of the main branch below aborts with "local changes would be
       // overwritten by checkout".
@@ -360,8 +361,8 @@ class DoMerge extends DirCommand<void> {
       // (ignoring `.gg/`), so the hashes written here are exactly the hashes
       // of the default branch afterwards. Without this, main carries the
       // hashes of an older feature-branch state and »gg did commit« /
-      // »gg did push« fail on it — blocking CI and the pre-push hook of the
-      // next release. The state must ride along inside the pull request:
+      // »gg did push« fail on it — blocking CI and the next release. The
+      // state must ride along inside the pull request:
       // main is merged by the provider, so gg cannot push a fix afterwards.
       await _writeReleaseState(
         directory: directory,
