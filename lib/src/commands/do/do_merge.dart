@@ -266,7 +266,7 @@ class DoMerge extends DirCommand<void> {
       ggLog: ggLog,
       verbose: verbose,
     );
-    ggLog(yellow('Removed .gg/.ticket.json before merge.'));
+    ggLog(darkGray('Removed .gg/.ticket.json before merge.'));
   }
 
   /// Merges the feature branch through an auto-complete pull request and blocks

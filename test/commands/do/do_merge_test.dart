@@ -580,7 +580,7 @@ void main() {
       ).called(1);
       expect(
         messages,
-        contains(yellow('Removed .gg/.ticket.json before merge.')),
+        contains(darkGray('Removed .gg/.ticket.json before merge.')),
       );
     });
 
