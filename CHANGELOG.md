@@ -21,9 +21,15 @@
 - do merge passes the pull request's source branch to the wait, so a moved HEAD no longer causes "No pull request found for branch main"
 - do merge: updating the local main branch no longer aborts with "You have divergent branches": the pull is fast-forward-only, and when main diverged from origin/main with gg bookkeeping or lock-file drift only, it is reset to origin/main (real local commits still abort with a clear message)
 
-## [11.0.1] - 2026-07-29
+## 11.0.2 - 2026-07-29
 
-## [11.0.0] - 2026-07-22
+### Changed
+
+- Delete remote feature branch by default
+
+## 11.0.1 - 2026-07-29
+
+## 11.0.0 - 2026-07-22
 
 ### Added
 
@@ -37,7 +43,7 @@
 - Use the shared origin-url lookup and gg\_lang lock-file names and memoize the legacy-key pruning
 - gg\_multi: changed references to git
 
-## [10.3.0] - 2026-07-20
+## 10.3.0 - 2026-07-20
 
 ### Changed
 
@@ -52,19 +58,19 @@
 
 - Remove stale root .ticket marker from main - do merge only drops .gg/.ticket.json, so the old marker leaked through squash merges and preset wrong merge messages
 
-## [10.2.2] - 2026-07-20
+## 10.2.2 - 2026-07-20
 
 ### Fixed
 
 - Re-release combining the rc prerelease channel (10.2.0) with the do-merge dirty-worktree fix - pub.dev 10.2.1 was published without the rc channel
 
-## [10.2.1] - 2026-07-20
+## 10.2.1 - 2026-07-20
 
 ### Changed
 
 - fix(do-merge): commit pending tracked worktree changes before switching branches, so a publish-time formatter (prettier --write reformatting pubspec.yaml) or a gg .gg/.gg.json state write no longer aborts the merge's git checkout <main> with 'local changes would be overwritten'
 
-## [10.2.0] - 2026-07-20
+## 10.2.0 - 2026-07-20
 
 ### Added
 
@@ -75,13 +81,13 @@
 - Track .gg/.gg.json again - .gitignore excluded the whole .gg directory, so CI never saw the check states
 - gg\_multi: changed references to git
 
-## [10.1.1] - 2026-07-20
+## 10.1.1 - 2026-07-20
 
 ### Fixed
 
 - Fix broken GitHub pipelines: doPush state was not written on the release commit during publish
 
-## [10.1.0] - 2026-07-16
+## 10.1.0 - 2026-07-16
 
 ### Added
 
@@ -100,7 +106,7 @@ instead of hanging forever in CI or piped shells.
 
 - Tidy CHANGELOG Unreleased sections
 
-## [10.0.0] - 2026-07-15
+## 10.0.0 - 2026-07-15
 
 ### Added
 
@@ -145,7 +151,7 @@ pre-push hook.
 
 - Code-review fixes: resume-safe branch handling, progress guards for configure/--config, did-commit check and idempotent branch deletion on resume
 
-## [9.5.0] - 2026-07-06
+## 9.5.0 - 2026-07-06
 
 ### Changed
 
@@ -153,7 +159,7 @@ pre-push hook.
 - docs(gg\_one): document protected-main pull-request publish flow
 - gg\_multi: changed references to git
 
-## [9.4.0] - 2026-07-01
+## 9.4.0 - 2026-07-01
 
 ### Changed
 
@@ -165,27 +171,27 @@ registries. Registries without reliable `whoami` support (e.g. Azure
 DevOps) are skipped gracefully instead of failing the check — the auth is
 verified for real at publish time.
 
-## [9.3.0] - 2026-07-01
+## 9.3.0 - 2026-07-01
 
 ### Changed
 
 - feat(gg): interactive npm publish + npm-logged-in precheck; package.json prepublishOnly->build->test rules (bridges exempt from build->test); do review pnpm blockExoticSubdeps + stdout; can publish runs per-repo can-publish; do merge/publish write doCommit; pana skip label
 - gg\_multi: changed references to git
 
-## [9.2.2] - 2026-06-26
+## 9.2.2 - 2026-06-26
 
 ### Changed
 
 - Preserve dependency constraint operator (^^/\~/exact) through publish
 - gg\_multi: changed references to git
 
-## [9.2.1] - 2026-06-25
+## 9.2.1 - 2026-06-25
 
 ### Changed
 
 - gg\_multi: changed references to git
 
-## [9.2.0] - 2026-06-19
+## 9.2.0 - 2026-06-19
 
 ### Added
 
@@ -200,13 +206,13 @@ verified for real at publish time.
 - gg\_multi: changed references to git
 - Pana check: skip stdout preamble before JSON (robust parse of cold-run pana output)
 
-## [9.1.1] - 2026-06-11
+## 9.1.1 - 2026-06-11
 
 ### Changed
 
 - gg\_multi: changed references to git
 
-## [9.1.0] - 2026-06-09
+## 9.1.0 - 2026-06-09
 
 ### Changed
 
@@ -214,7 +220,7 @@ verified for real at publish time.
 - refactor(ts): trim comments to grace-cloud style limits + do\_maintain layout
 - style: apply grace-cloud comment + 80-char limits across ticket
 
-## [9.0.0] - 2026-06-08
+## 9.0.0 - 2026-06-08
 
 ### Changed
 
@@ -224,7 +230,7 @@ verified for real at publish time.
 - gg\_multi: changed references to git
 - gg\_multi: changed references to git
 
-## [8.2.1] - 2026-05-19
+## 8.2.1 - 2026-05-19
 
 ### Changed
 
@@ -237,91 +243,91 @@ a regular check below the `Can commit?` header and is logged as
 up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
 at commit `9141ef54f5edac470d119a39285813299143898f`.
 
-## [8.2.0] - 2026-05-19
+## 8.2.0 - 2026-05-19
 
 ### Changed
 
 - gg\_multi: changed references to git
 
-## [8.1.1] - 2026-05-19
+## 8.1.1 - 2026-05-19
 
 ### Changed
 
 - gg\_multi: changed references to git
 - Gg Multi: changed references to pub.dev
 
-## [8.1.0] - 2026-05-12
+## 8.1.0 - 2026-05-12
 
 ### Changed
 
 - gg\_multi: changed references to git
 
-## [7.0.5] - 2026-05-04
+## 7.0.5 - 2026-05-04
 
-## [7.0.4] - 2026-04-28
+## 7.0.4 - 2026-04-28
 
 ### Changed
 
 - Execute git fetch and git pull on the main branch before merging in gg do merge
 
-## [7.0.3] - 2026-04-23
+## 7.0.3 - 2026-04-23
 
 ### Changed
 
 - Refactor: resolve delete-feature-branch only when needed
 - Create ticket for lazy-resolve-delete-feature-branch
 
-## [7.0.2] - 2026-04-23
+## 7.0.2 - 2026-04-23
 
-## [7.0.1] - 2026-04-22
+## 7.0.1 - 2026-04-22
 
-## [7.0.0] - 2026-04-20
+## 7.0.0 - 2026-04-20
 
-## [6.3.1] - 2026-04-15
+## 6.3.1 - 2026-04-15
 
-## [6.3.0] - 2026-04-13
+## 6.3.0 - 2026-04-13
 
-## [6.2.0] - 2026-04-13
+## 6.2.0 - 2026-04-13
 
 ### Changed
 
 - kidney: changed references to local
 
-## [6.1.4] - 2026-04-10
+## 6.1.4 - 2026-04-10
 
-## [6.1.3] - 2026-04-07
+## 6.1.3 - 2026-04-07
 
 ### Changed
 
 - Kidney: changed references to pub.dev
 
-## [6.1.2] - 2026-03-30
+## 6.1.2 - 2026-03-30
 
-## [6.1.1] - 2026-03-29
+## 6.1.1 - 2026-03-29
 
 ### Fixed
 
 - Bugfix http client
 
-## [6.1.0] - 2026-03-29
+## 6.1.0 - 2026-03-29
 
 ### Added
 
 - Add message to do publish
 
-## [6.0.5] - 2026-03-27
+## 6.0.5 - 2026-03-27
 
 ### Fixed
 
 - bugfix-closed-client
 
-## [6.0.4] - 2026-03-27
+## 6.0.4 - 2026-03-27
 
 ### Changed
 
 - new gg version
 
-## [6.0.3] - 2026-03-27
+## 6.0.3 - 2026-03-27
 
 ### Changed
 
@@ -331,38 +337,38 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - bugfix tagging in gg do publish
 
-## [6.0.2] - 2026-03-27
+## 6.0.2 - 2026-03-27
 
 ### Changed
 
 - kidney: changed references to path
 
-## [6.0.1] - 2026-03-26
+## 6.0.1 - 2026-03-26
 
 ### Added
 
 - Add: push after publish
 
-## [6.0.0] - 2026-03-26
+## 6.0.0 - 2026-03-26
 
 ### Changed
 
 - Refactor do\_publish to use gitPush with pushTags and update tests
 - Wrap checkout logic in status printer for progress output
 
-## [5.1.0] - 2026-03-19
+## 5.1.0 - 2026-03-19
 
 ### Fixed
 
 - Fix mock param in do\_checkout\_test and update checkout error check
 
-## [5.0.1] - 2026-03-16
+## 5.0.1 - 2026-03-16
 
 ### Changed
 
 - Change commit message to 'Finish development of version X'
 
-## [5.0.0] - 2026-03-16
+## 5.0.0 - 2026-03-16
 
 ### Added
 
@@ -376,7 +382,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Remove IsVersionPrepared check from CanPublish command flow
 
-## [4.0.7] - 2026-03-08
+## 4.0.7 - 2026-03-08
 
 ### Added
 
@@ -392,19 +398,19 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Fix copy right header in auto created Test files
 
-## [4.0.6] - 2026-01-20
+## 4.0.6 - 2026-01-20
 
 ### Changed
 
 - Remove pubspec.yaml from change detection ignore files
 
-## [4.0.5] - 2026-01-20
+## 4.0.5 - 2026-01-20
 
 ### Changed
 
 - Ignore missing version in CHANGELOG when running pana because version is managed by gg
 
-## [4.0.4] - 2025-08-16
+## 4.0.4 - 2025-08-16
 
 ### Added
 
@@ -413,26 +419,26 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - BREAKING CHANGE: V.5.0.0: Git must be set to EOF LF
 - Add message parameter to exec and get in do merge
 
-## [4.0.3] - 2025-08-16
+## 4.0.3 - 2025-08-16
 
 ### Changed
 
 - Allow to print details using -v option on gg info last-changes-hash
 
-## [4.0.2] - 2025-08-11
+## 4.0.2 - 2025-08-11
 
 ### Added
 
 - Add .gitattributes file
 - Add pubspeck.lock and .kidney\_status to ignored files
 
-## [4.0.1] - 2025-08-11
+## 4.0.1 - 2025-08-11
 
-## [4.0.0] - 2025-08-11
+## 4.0.0 - 2025-08-11
 
-## [3.1.1] - 2025-08-11
+## 3.1.1 - 2025-08-11
 
-## [3.1.0] - 2025-08-02
+## 3.1.0 - 2025-08-02
 
 ### Added
 
@@ -443,13 +449,13 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Prepare version 3.1.0
 
-## [3.0.25] - 2025-07-31
+## 3.0.25 - 2025-07-31
 
 ### Changed
 
 - Update gg\_test to version 1.1.7
 
-## [3.0.24] - 2025-07-09
+## 3.0.24 - 2025-07-09
 
 ### Changed
 
@@ -459,7 +465,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - remove publish\_to: none
 
-## [3.0.23] - 2025-06-19
+## 3.0.23 - 2025-06-19
 
 ### Added
 
@@ -469,31 +475,31 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Do not add version tag automatically. Use --add-version-tag to add the tag.
 
-## [3.0.22] - 2025-06-09
+## 3.0.22 - 2025-06-09
 
 ### Changed
 
 - Improve error message on version errors.
 
-## [3.0.21] - 2025-06-07
+## 3.0.21 - 2025-06-07
 
 ### Changed
 
 - Improve hashing algorithm
 
-## [3.0.20] - 2025-06-07
+## 3.0.20 - 2025-06-07
 
 ### Fixed
 
 - Fix a missing error output on test errors
 
-## [3.0.19] - 2025-06-07
+## 3.0.19 - 2025-06-07
 
 ### Changed
 
 - Print more details when tests fail
 
-## [3.0.18] - 2025-06-05
+## 3.0.18 - 2025-06-05
 
 ### Changed
 
@@ -507,19 +513,19 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Require -m prefix for gg do commit
 
-## [3.0.17] - 2025-02-28
+## 3.0.17 - 2025-02-28
 
 ### Changed
 
 - Upgrade to dart 3.7
 
-## [3.0.16] - 2024-11-27
+## 3.0.16 - 2024-11-27
 
 ### Changed
 
 - Replace gg\_json by gg\_direct\_json
 
-## [3.0.15] - 2024-10-03
+## 3.0.15 - 2024-10-03
 
 ### Changed
 
@@ -529,19 +535,19 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Fix pana issues
 
-## [3.0.14] - 2024-09-04
+## 3.0.14 - 2024-09-04
 
 ### Changed
 
 - Exclude l10 from coverage
 
-## [3.0.13] - 2024-09-04
+## 3.0.13 - 2024-09-04
 
 ### Changed
 
 - Don't expect tests for l10n folders
 
-## [3.0.12] - 2024-08-30
+## 3.0.12 - 2024-08-30
 
 ### Changed
 
@@ -549,14 +555,14 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Test change
 - Prevent updating the hash for CanUpgrade.
 
-## [3.0.11] - 2024-08-30
+## 3.0.11 - 2024-08-30
 
 ### Changed
 
 - Pretty print .gg.json
 - Hashes wil be calculated independent of line feeds
 
-## [3.0.10] - 2024-08-30
+## 3.0.10 - 2024-08-30
 
 ### Changed
 
@@ -564,49 +570,49 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Make pana work on windows
 - Run tests on MacOS
 
-## [3.0.9] - 2024-08-24
+## 3.0.9 - 2024-08-24
 
 ### Changed
 
 - Show detailed test errors when running on a github pipeline
 
-## [3.0.8] - 2024-08-24
+## 3.0.8 - 2024-08-24
 
 ### Changed
 
 - Update gg\_test to 1.0.19. Only failing error lines are shown, but not details.
 
-## [3.0.7] - 2024-08-20
+## 3.0.7 - 2024-08-20
 
 ### Fixed
 
 - Fix an issue with binary file hash calculation
 
-## [3.0.6] - 2024-06-21
+## 3.0.6 - 2024-06-21
 
 ### Changed
 
 - Update to new version of gg\_tests
 
-## [3.0.5] - 2024-06-21
+## 3.0.5 - 2024-06-21
 
 ### Fixed
 
 - Fix issue with generated files
 
-## [3.0.4] - 2024-04-13
+## 3.0.4 - 2024-04-13
 
 ### Removed
 
 - Removed neccessity to specify a log type when running »gg do commit«
 
-## [3.0.3] - 2024-04-13
+## 3.0.3 - 2024-04-13
 
 ### Added
 
 - missing ✅ for message Tag 1.2.3 added
 
-## [3.0.2] - 2024-04-13
+## 3.0.2 - 2024-04-13
 
 ### Changed
 
@@ -616,7 +622,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - dependency pana
 
-## [3.0.1] - 2024-04-13
+## 3.0.1 - 2024-04-13
 
 ### Added
 
@@ -641,20 +647,20 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - dependency to gg\_install\_gg, remove ./check script
 - Upgrading does not trigger a commit and a publish
 
-## [3.0.0] - 2024-04-10
+## 3.0.0 - 2024-04-10
 
 ### Changed
 
 - BREAKING CHANGE: Interface of »gg do commit« has changed.
 
-## [2.0.5] - 2024-04-10
+## 2.0.5 - 2024-04-10
 
 ### Fixed
 
 - DoPublish: Don't confirm package not published to pub.dev, small fixes
 - Pipeline: Disable cache
 
-## [2.0.4] - 2024-04-09
+## 2.0.4 - 2024-04-09
 
 ### Changed
 
@@ -664,7 +670,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Various fixes to make non-pub.dev repos work
 
-## [2.0.3] - 2024-04-09
+## 2.0.3 - 2024-04-09
 
 ### Added
 
@@ -675,13 +681,13 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Update latest changes on gg\_publish and gg\_git
 - Refactor tests
 
-## [2.0.2] - 2024-04-06
+## 2.0.2 - 2024-04-06
 
 ### Fixed
 
 - Changes were not correctly submitted on publish
 
-## [2.0.1] - 2024-04-06
+## 2.0.1 - 2024-04-06
 
 ### Changed
 
@@ -692,7 +698,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - doPush did not push success state result when state was pushed before
 
-## [2.0.0] - 2024-04-06
+## 2.0.0 - 2024-04-06
 
 ### Added
 
@@ -712,7 +718,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Wrong option in command line output
 - An error which can lead to sporadic test fails
 
-## [1.0.16] - 2024-04-05
+## 1.0.16 - 2024-04-05
 
 ### Added
 
@@ -725,7 +731,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Cleaned up pipeline
 - Prepare publishing
 
-## [1.0.15] - 2024-04-05
+## 1.0.15 - 2024-04-05
 
 ### Added
 
@@ -741,7 +747,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - isGitHub is replaced by gg\_is\_github
 - Pipeline: remove --no-save-state flag
 
-## [1.0.14] - 2024-04-05
+## 1.0.14 - 2024-04-05
 
 ### Added
 
@@ -752,98 +758,6 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Broken links in CHANGELOG.md, wrong commit messages
 - Remove unneccessary commandline output
 
-## [1.0.12] - 2024-04-04
+## 1.0.12 - 2024-04-04
 
 - Initial version
-
-[11.0.1]: https://github.com/ggsuite/gg_one/compare/11.0.0...11.0.1
-[11.0.0]: https://github.com/ggsuite/gg_one/compare/10.3.0...11.0.0
-[10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
-[10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
-[10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1
-[10.2.0]: https://github.com/ggsuite/gg_one/compare/10.1.1...10.2.0
-[10.1.1]: https://github.com/ggsuite/gg_one/compare/10.1.0...10.1.1
-[10.1.0]: https://github.com/ggsuite/gg_one/compare/10.0.0...10.1.0
-[10.0.0]: https://github.com/ggsuite/gg_one/compare/9.5.0...10.0.0
-[9.5.0]: https://github.com/ggsuite/gg_one/compare/9.4.0...9.5.0
-[9.4.0]: https://github.com/ggsuite/gg_one/compare/9.3.0...9.4.0
-[9.3.0]: https://github.com/ggsuite/gg_one/compare/9.2.2...9.3.0
-[9.2.2]: https://github.com/ggsuite/gg_one/compare/9.2.1...9.2.2
-[9.2.1]: https://github.com/ggsuite/gg_one/compare/9.2.0...9.2.1
-[9.2.0]: https://github.com/ggsuite/gg_one/compare/9.1.1...9.2.0
-[9.1.1]: https://github.com/ggsuite/gg_one/compare/9.1.0...9.1.1
-[9.1.0]: https://github.com/ggsuite/gg_one/compare/9.0.0...9.1.0
-[9.0.0]: https://github.com/ggsuite/gg_one/compare/8.2.1...9.0.0
-[8.2.1]: https://github.com/ggsuite/gg_one/compare/8.2.0...8.2.1
-[8.2.0]: https://github.com/ggsuite/gg_one/compare/8.1.1...8.2.0
-[8.1.1]: https://github.com/ggsuite/gg_one/compare/8.1.0...8.1.1
-[8.1.0]: https://github.com/ggsuite/gg_one/compare/7.0.5...8.1.0
-[7.0.5]: https://github.com/inlavigo/gg/compare/7.0.4...7.0.5
-[7.0.4]: https://github.com/inlavigo/gg/compare/7.0.3...7.0.4
-[7.0.3]: https://github.com/inlavigo/gg/compare/7.0.2...7.0.3
-[7.0.2]: https://github.com/inlavigo/gg/compare/7.0.1...7.0.2
-[7.0.1]: https://github.com/inlavigo/gg/compare/7.0.0...7.0.1
-[7.0.0]: https://github.com/inlavigo/gg/compare/6.3.1...7.0.0
-[6.3.1]: https://github.com/inlavigo/gg/compare/6.3.0...6.3.1
-[6.3.0]: https://github.com/inlavigo/gg/compare/6.2.0...6.3.0
-[6.2.0]: https://github.com/inlavigo/gg/compare/6.1.4...6.2.0
-[6.1.4]: https://github.com/inlavigo/gg/compare/6.1.3...6.1.4
-[6.1.3]: https://github.com/inlavigo/gg/compare/6.1.2...6.1.3
-[6.1.2]: https://github.com/inlavigo/gg/compare/6.1.1...6.1.2
-[6.1.1]: https://github.com/inlavigo/gg/compare/6.1.0...6.1.1
-[6.1.0]: https://github.com/inlavigo/gg/compare/6.0.5...6.1.0
-[6.0.5]: https://github.com/inlavigo/gg/compare/6.0.4...6.0.5
-[6.0.4]: https://github.com/inlavigo/gg/compare/6.0.3...6.0.4
-[6.0.3]: https://github.com/inlavigo/gg/compare/6.0.2...6.0.3
-[6.0.2]: https://github.com/inlavigo/gg/compare/6.0.1...6.0.2
-[6.0.1]: https://github.com/inlavigo/gg/compare/6.0.0...6.0.1
-[6.0.0]: https://github.com/inlavigo/gg/compare/5.1.0...6.0.0
-[5.1.0]: https://github.com/inlavigo/gg/compare/5.0.1...5.1.0
-[5.0.1]: https://github.com/inlavigo/gg/compare/5.0.0...5.0.1
-[5.0.0]: https://github.com/inlavigo/gg/compare/4.0.7...5.0.0
-[4.0.7]: https://github.com/inlavigo/gg/compare/4.0.6...4.0.7
-[4.0.6]: https://github.com/inlavigo/gg/compare/4.0.5...4.0.6
-[4.0.5]: https://github.com/inlavigo/gg/compare/4.0.4...4.0.5
-[4.0.4]: https://github.com/inlavigo/gg/compare/4.0.3...4.0.4
-[4.0.3]: https://github.com/inlavigo/gg/compare/4.0.2...4.0.3
-[4.0.2]: https://github.com/inlavigo/gg/compare/4.0.1...4.0.2
-[4.0.1]: https://github.com/inlavigo/gg/compare/4.0.0...4.0.1
-[4.0.0]: https://github.com/inlavigo/gg/compare/3.1.1...4.0.0
-[3.1.1]: https://github.com/inlavigo/gg/compare/3.1.0...3.1.1
-[3.1.0]: https://github.com/inlavigo/gg/compare/3.0.25...3.1.0
-[3.0.25]: https://github.com/inlavigo/gg/compare/3.0.24...3.0.25
-[3.0.24]: https://github.com/inlavigo/gg/compare/3.0.23...3.0.24
-[3.0.23]: https://github.com/inlavigo/gg/compare/3.0.22...3.0.23
-[3.0.22]: https://github.com/inlavigo/gg/compare/3.0.21...3.0.22
-[3.0.21]: https://github.com/inlavigo/gg/compare/3.0.20...3.0.21
-[3.0.20]: https://github.com/inlavigo/gg/compare/3.0.19...3.0.20
-[3.0.19]: https://github.com/inlavigo/gg/compare/3.0.18...3.0.19
-[3.0.18]: https://github.com/inlavigo/gg/compare/3.0.17...3.0.18
-[3.0.17]: https://github.com/inlavigo/gg/compare/3.0.16...3.0.17
-[3.0.16]: https://github.com/inlavigo/gg/compare/3.0.15...3.0.16
-[3.0.15]: https://github.com/inlavigo/gg/compare/3.0.14...3.0.15
-[3.0.14]: https://github.com/inlavigo/gg/compare/3.0.13...3.0.14
-[3.0.13]: https://github.com/inlavigo/gg/compare/3.0.12...3.0.13
-[3.0.12]: https://github.com/inlavigo/gg/compare/3.0.11...3.0.12
-[3.0.11]: https://github.com/inlavigo/gg/compare/3.0.10...3.0.11
-[3.0.10]: https://github.com/inlavigo/gg/compare/3.0.9...3.0.10
-[3.0.9]: https://github.com/inlavigo/gg/compare/3.0.8...3.0.9
-[3.0.8]: https://github.com/inlavigo/gg/compare/3.0.7...3.0.8
-[3.0.7]: https://github.com/inlavigo/gg/compare/3.0.6...3.0.7
-[3.0.6]: https://github.com/inlavigo/gg/compare/3.0.5...3.0.6
-[3.0.5]: https://github.com/inlavigo/gg/compare/3.0.4...3.0.5
-[3.0.4]: https://github.com/inlavigo/gg/compare/3.0.3...3.0.4
-[3.0.3]: https://github.com/inlavigo/gg/compare/3.0.2...3.0.3
-[3.0.2]: https://github.com/inlavigo/gg/compare/3.0.1...3.0.2
-[3.0.1]: https://github.com/inlavigo/gg/compare/3.0.0...3.0.1
-[3.0.0]: https://github.com/inlavigo/gg/compare/2.0.5...3.0.0
-[2.0.5]: https://github.com/inlavigo/gg/compare/2.0.4...2.0.5
-[2.0.4]: https://github.com/inlavigo/gg/compare/2.0.3...2.0.4
-[2.0.3]: https://github.com/inlavigo/gg/compare/2.0.2...2.0.3
-[2.0.2]: https://github.com/inlavigo/gg/compare/2.0.1...2.0.2
-[2.0.1]: https://github.com/inlavigo/gg/compare/2.0.0...2.0.1
-[2.0.0]: https://github.com/inlavigo/gg/compare/1.0.16...2.0.0
-[1.0.16]: https://github.com/inlavigo/gg/compare/1.0.15...1.0.16
-[1.0.15]: https://github.com/inlavigo/gg/compare/1.0.14...1.0.15
-[1.0.14]: https://github.com/inlavigo/gg/compare/1.0.12...1.0.14
-[1.0.12]: https://github.com/inlavigo/gg/releases/tag/1.0.12
