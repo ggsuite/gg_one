@@ -417,7 +417,7 @@ void main() {
                           join(d.path, 'CHANGELOG.md'),
                         ).readAsString();
                         expect(pubspec, contains('version: 1.2.4'));
-                        expect(changeLog, contains('## [1.2.4] -'));
+                        expect(changeLog, contains('## 1.2.4 -'));
 
                         // Was the new version checked in?
                         final headMessage = await HeadMessage(
@@ -623,7 +623,7 @@ void main() {
                 join(d.path, 'CHANGELOG.md'),
               ).readAsString();
               expect(pubspec, contains('version: 1.0.2'));
-              expect(changeLog, contains('## [1.0.2] -'));
+              expect(changeLog, contains('## 1.0.2 -'));
 
               // Was the new version checked in?
               final headMessage = await HeadMessage(

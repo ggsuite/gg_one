@@ -100,8 +100,8 @@ class DoPublish extends DirCommand<void> {
     _addArgs();
   }
 
-  /// The key used to save the "all changes committed" state (checked by the
-  /// pre-push hook via »gg did commit«).
+  /// The key used to save the "all changes committed" state (read back by
+  /// »gg did commit«, e.g. in CI).
   final String stateKeyDoCommit = 'doCommit';
 
   @override
@@ -421,9 +421,8 @@ class DoPublish extends DirCommand<void> {
     }
 
     // The merge/version commits produced a fully-committed, gg-verified HEAD on
-    // the main branch. Record it as »doCommit« too, so the pre-push hook (which
-    // runs »gg did commit«) accepts the push instead of rejecting the merge
-    // commit.
+    // the main branch. Record it as »doCommit« too, so a later »gg did commit«
+    // accepts the merge commit instead of rejecting it.
     await _state.writeSuccess(directory: directory, key: stateKeyDoCommit);
 
     // In the pull-request flow the provider already updated main when it
@@ -1014,7 +1013,7 @@ class DoPublish extends DirCommand<void> {
     argParser.addFlag(
       'delete-feature-branch',
       help: 'Delete the current feature branch on origin after publishing.',
-      defaultsTo: false,
+      defaultsTo: true,
       negatable: true,
     );
 

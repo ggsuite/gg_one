@@ -10,7 +10,7 @@
 
 ### Added
 
-- do publish now waits after the registry publish until the version is actually visible on pub.dev/npm (via gg\_publish's WaitUntilPublished): a message announces the wait incl. a status url, progress is reported and the wait is bounded by a timeout instead of hanging
+- do publish now waits after the registry publish until the version is actually visible on pub.dev/npm (via gg_publish's WaitUntilPublished): a message announces the wait incl. a status url, progress is reported and the wait is bounded by a timeout instead of hanging
 
 ### Changed
 
@@ -27,9 +27,21 @@
 - do merge passes the pull request's source branch to the wait, so a moved HEAD no longer causes "No pull request found for branch main"
 - do merge: updating the local main branch no longer aborts with "You have divergent branches": the pull is fast-forward-only, and when main diverged from origin/main with gg bookkeeping or lock-file drift only, it is reset to origin/main (real local commits still abort with a clear message)
 
-## [11.0.1] - 2026-07-29
+## 11.1.0 - 2026-07-29
 
-## [11.0.0] - 2026-07-22
+### Removed
+
+- Remove git hooks functionality completely because merging is done via merge requests
+
+## 11.0.2 - 2026-07-29
+
+### Changed
+
+- Delete remote feature branch by default
+
+## 11.0.1 - 2026-07-29
+
+## 11.0.0 - 2026-07-22
 
 ### Added
 
@@ -40,15 +52,15 @@
 - Forward the merge message into the pull-request flow, drop the doMerge and doPublish states and prune legacy keys from .gg/.gg.json
 - Absorb pre-push-hook worktree drift in the pull-request merge flow so the final checkout of main does not fail
 - Skip pull request and wait when a resumed run finds the release content already merged into main
-- Use the shared origin-url lookup and gg\_lang lock-file names and memoize the legacy-key pruning
-- gg\_multi: changed references to git
+- Use the shared origin-url lookup and gg_lang lock-file names and memoize the legacy-key pruning
+- gg_multi: changed references to git
 
-## [10.3.0] - 2026-07-20
+## 10.3.0 - 2026-07-20
 
 ### Changed
 
 - Accept `test` in a TypeScript package's `prebuild` script as fulfilling the build-must-run-test rule
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 
 ### Fixed
 
@@ -58,19 +70,19 @@
 
 - Remove stale root .ticket marker from main - do merge only drops .gg/.ticket.json, so the old marker leaked through squash merges and preset wrong merge messages
 
-## [10.2.2] - 2026-07-20
+## 10.2.2 - 2026-07-20
 
 ### Fixed
 
 - Re-release combining the rc prerelease channel (10.2.0) with the do-merge dirty-worktree fix - pub.dev 10.2.1 was published without the rc channel
 
-## [10.2.1] - 2026-07-20
+## 10.2.1 - 2026-07-20
 
 ### Changed
 
 - fix(do-merge): commit pending tracked worktree changes before switching branches, so a publish-time formatter (prettier --write reformatting pubspec.yaml) or a gg .gg/.gg.json state write no longer aborts the merge's git checkout <main> with 'local changes would be overwritten'
 
-## [10.2.0] - 2026-07-20
+## 10.2.0 - 2026-07-20
 
 ### Added
 
@@ -79,119 +91,119 @@
 ### Changed
 
 - Track .gg/.gg.json again - .gitignore excluded the whole .gg directory, so CI never saw the check states
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 
-## [10.1.1] - 2026-07-20
+## 10.1.1 - 2026-07-20
 
 ### Fixed
 
 - Fix broken GitHub pipelines: doPush state was not written on the release commit during publish
 
-## [10.1.0] - 2026-07-16
+## 10.1.0 - 2026-07-16
 
 ### Added
 
-- delete\_feature\_branch (bool, optional) in `.gg-publish.json`: replaces
-the interactive delete-feature-branch prompt, so a config-driven publish
-is fully headless. `do configure-publish` now asks the question up front
-(presettable via `--delete-feature-branch`) and `do publish` persists
-the decision in the runtime file — a resumed run never re-asks, and no
-prompt sits between the irreversible publish steps anymore.
+- delete_feature_branch (bool, optional) in `.gg-publish.json`: replaces
+  the interactive delete-feature-branch prompt, so a config-driven publish
+  is fully headless. `do configure-publish` now asks the question up front
+  (presettable via `--delete-feature-branch`) and `do publish` persists
+  the decision in the runtime file — a resumed run never re-asks, and no
+  prompt sits between the irreversible publish steps anymore.
 - All default prompts (version increment, merge message, branch/ticket
-deletion) fail fast with an actionable error when stdin is not a
-terminal (new throwWhenNotATerminal in `tools/terminal_guard.dart`),
-instead of hanging forever in CI or piped shells.
+  deletion) fail fast with an actionable error when stdin is not a
+  terminal (new throwWhenNotATerminal in `tools/terminal_guard.dart`),
+  instead of hanging forever in CI or piped shells.
 
 ### Changed
 
 - Tidy CHANGELOG Unreleased sections
 
-## [10.0.0] - 2026-07-15
+## 10.0.0 - 2026-07-15
 
 ### Added
 
 - `do configure-publish`: new command that interactively writes
-`<repo>/.gg/.gg-publish.json` (version increment + merge message; `-m`
-presets the message). `do publish` runs it automatically when started
-without a resolved configuration, so all interactive decisions happen
-before the unattended publish. The command also makes sure
-`.gg/.gg-publish.json` is listed in `.gitignore` (appending and
-committing the entry once per repo).
+  `<repo>/.gg/.gg-publish.json` (version increment + merge message; `-m`
+  presets the message). `do publish` runs it automatically when started
+  without a resolved configuration, so all interactive decisions happen
+  before the unattended publish. The command also makes sure
+  `.gg/.gg-publish.json` is listed in `.gitignore` (appending and
+  committing the entry once per repo).
 - `do publish --continue` / `--reconfigure`: per-step publish progress
-(done\_steps: prepare\_version, publish\_registry, merge, tag) is
-recorded in `.gg/.gg-publish.json` and a failed publish resumes at the
-first open step — including the version tag, which the old hash-based
-state could silently skip. A leftover progress file makes a plain
-re-run refuse until `--continue` or `--reconfigure` is chosen. The file
-stores the feature branch (trusted only when resuming) and is deleted
-after a fully successful publish. On resume, the hash-keyed
-`did commit` check still runs, so raw commits added after the failure
-are never published unvalidated; the feature-branch deletion is
-idempotent and re-runs; when the merge is already done, the default
-branch is checked out before the first push. `do configure-publish`
-refuses to overwrite a file that carries `done_steps` (code review).
+  (done_steps: prepare_version, publish_registry, merge, tag) is
+  recorded in `.gg/.gg-publish.json` and a failed publish resumes at the
+  first open step — including the version tag, which the old hash-based
+  state could silently skip. A leftover progress file makes a plain
+  re-run refuse until `--continue` or `--reconfigure` is chosen. The file
+  stores the feature branch (trusted only when resuming) and is deleted
+  after a fully successful publish. On resume, the hash-keyed
+  `did commit` check still runs, so raw commits added after the failure
+  are never published unvalidated; the feature-branch deletion is
+  idempotent and re-runs; when the merge is already done, the default
+  branch is checked out before the first push. `do configure-publish`
+  refuses to overwrite a file that carries `done_steps` (code review).
 - `DoPublish.exec` accepts `resume:` so `gg_multi do publish --continue`
-resumes each repo at its open step.
-- `PublishConfig`: done\_steps + branch runtime fields with
-withStepDone/isStepDone/hasStepProgress; new
-`EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
-`.gg/.gg-publish.json` from content hashes.
+  resumes each repo at its open step.
+- `PublishConfig`: done_steps + branch runtime fields with
+  withStepDone/isStepDone/hasStepProgress; new
+  `EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
+  `.gg/.gg-publish.json` from content hashes.
 
 ### Changed
 
 - **Breaking:** `DoPublish` no longer takes versionSelector /
-editMessage — both prompts live in the injectable
-`DoConfigurePublish` now. The publish-step resume no longer uses the
-hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
-doPublish/doCommit are still written for `did publish` and the
-pre-push hook.
+  editMessage — both prompts live in the injectable
+  `DoConfigurePublish` now. The publish-step resume no longer uses the
+  hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
+  doPublish/doCommit are still written for `did publish` and the
+  pre-push hook.
 - Tidy CHANGELOGs: single Unreleased section and chronological order
 
 ### Fixed
 
 - Code-review fixes: resume-safe branch handling, progress guards for configure/--config, did-commit check and idempotent branch deletion on resume
 
-## [9.5.0] - 2026-07-06
+## 9.5.0 - 2026-07-06
 
 ### Changed
 
 - feat: merge via auto-complete pull request on protected main (Azure) and wait until merged
-- docs(gg\_one): document protected-main pull-request publish flow
-- gg\_multi: changed references to git
+- docs(gg_one): document protected-main pull-request publish flow
+- gg_multi: changed references to git
 
-## [9.4.0] - 2026-07-01
+## 9.4.0 - 2026-07-01
 
 ### Changed
 
 - npm-logged-in: resolve the package's actual publish registry
-(`publishConfig.registry` → `@scope:registry` → default `registry`) and run
-`whoami` against that registry, instead of always checking npmjs.org. This
-makes the check work for Azure DevOps, GitHub Packages and other private
-registries. Registries without reliable `whoami` support (e.g. Azure
-DevOps) are skipped gracefully instead of failing the check — the auth is
-verified for real at publish time.
+  (`publishConfig.registry` → `@scope:registry` → default `registry`) and run
+  `whoami` against that registry, instead of always checking npmjs.org. This
+  makes the check work for Azure DevOps, GitHub Packages and other private
+  registries. Registries without reliable `whoami` support (e.g. Azure
+  DevOps) are skipped gracefully instead of failing the check — the auth is
+  verified for real at publish time.
 
-## [9.3.0] - 2026-07-01
+## 9.3.0 - 2026-07-01
 
 ### Changed
 
 - feat(gg): interactive npm publish + npm-logged-in precheck; package.json prepublishOnly->build->test rules (bridges exempt from build->test); do review pnpm blockExoticSubdeps + stdout; can publish runs per-repo can-publish; do merge/publish write doCommit; pana skip label
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 
-## [9.2.2] - 2026-06-26
+## 9.2.2 - 2026-06-26
 
 ### Changed
 
 - Preserve dependency constraint operator (^^/\~/exact) through publish
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 
-## [9.2.1] - 2026-06-25
+## 9.2.1 - 2026-06-25
 
 ### Changed
 
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 
-## [9.2.0] - 2026-06-19
+## 9.2.0 - 2026-06-19
 
 ### Added
 
@@ -200,134 +212,134 @@ verified for real at publish time.
 ### Changed
 
 - Treat dart-typescript bridge repos as TypeScript for can/do commit, running package.json scripts (test/lint/format:check)
-- Treat dart-typescript bridge repos as TypeScript for can/do review (npm install, skip dart pub get); export isBridgeProject from gg\_one
-- Introduce checkProjectType() as single source of truth for bridge->TypeScript check rule; add .example() real-instance factories & P:\programs\flutter/bin/internal/exit\_with\_errorlevel.bat
+- Treat dart-typescript bridge repos as TypeScript for can/do review (npm install, skip dart pub get); export isBridgeProject from gg_one
+- Introduce checkProjectType() as single source of truth for bridge->TypeScript check rule; add .example() real-instance factories & P:\programs\flutter/bin/internal/exit_with_errorlevel.bat
 - Publish bridges as TypeScript: pnpm-aware publish, dual-manifest version bump, non-swallowed publish errors, idempotent resume, review skips merged repos, link: for local TS deps, package.json scripts check
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 - Pana check: skip stdout preamble before JSON (robust parse of cold-run pana output)
 
-## [9.1.1] - 2026-06-11
+## 9.1.1 - 2026-06-11
 
 ### Changed
 
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 
-## [9.1.0] - 2026-06-09
+## 9.1.0 - 2026-06-09
 
 ### Changed
 
 - feat(ts): version-pinned git deps via #semver: + tag-push for npm/pnpm
-- refactor(ts): trim comments to grace-cloud style limits + do\_maintain layout
+- refactor(ts): trim comments to grace-cloud style limits + do_maintain layout
 - style: apply grace-cloud comment + 80-char limits across ticket
 
-## [9.0.0] - 2026-06-08
+## 9.0.0 - 2026-06-08
 
 ### Changed
 
-- feat: language-universal commit/publish via gg\_lang (isDartFamily gating, lockFileFor, registry-aware dispatch)
-- test: real PublishConfig tests + dart format tidy; bypass known TOCTOU flake in gg\_state.readSuccess under parallel coverage
-- gg\_multi: changed references to git
-- gg\_multi: changed references to git
-- gg\_multi: changed references to git
+- feat: language-universal commit/publish via gg_lang (isDartFamily gating, lockFileFor, registry-aware dispatch)
+- test: real PublishConfig tests + dart format tidy; bypass known TOCTOU flake in gg_state.readSuccess under parallel coverage
+- gg_multi: changed references to git
+- gg_multi: changed references to git
+- gg_multi: changed references to git
 
-## [8.2.1] - 2026-05-19
+## 8.2.1 - 2026-05-19
 
 ### Changed
 
 - `CanCommit`: `dart pub get --offline` (or the Flutter equivalent) now runs as
-a regular check below the `Can commit?` header and is logged as
-`Running "dart pub get --offline"`, matching the style of the other checks
-(was framed with `»«` and printed above the header).
+  a regular check below the `Can commit?` header and is logged as
+  `Running "dart pub get --offline"`, matching the style of the other checks
+  (was framed with `»«` and printed above the header).
 - Renamed package from `gg` to `gg_one` and moved the repository to
-[https://github.com/ggsuite/gg\_one](https://github.com/ggsuite/gg_one). The previous history (versions
-up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
-at commit `9141ef54f5edac470d119a39285813299143898f`.
+  [https://github.com/ggsuite/gg_one](https://github.com/ggsuite/gg_one). The previous history (versions
+  up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
+  at commit `9141ef54f5edac470d119a39285813299143898f`.
 
-## [8.2.0] - 2026-05-19
-
-### Changed
-
-- gg\_multi: changed references to git
-
-## [8.1.1] - 2026-05-19
+## 8.2.0 - 2026-05-19
 
 ### Changed
 
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
+
+## 8.1.1 - 2026-05-19
+
+### Changed
+
+- gg_multi: changed references to git
 - Gg Multi: changed references to pub.dev
 
-## [8.1.0] - 2026-05-12
+## 8.1.0 - 2026-05-12
 
 ### Changed
 
-- gg\_multi: changed references to git
+- gg_multi: changed references to git
 
-## [7.0.5] - 2026-05-04
+## 7.0.5 - 2026-05-04
 
-## [7.0.4] - 2026-04-28
+## 7.0.4 - 2026-04-28
 
 ### Changed
 
 - Execute git fetch and git pull on the main branch before merging in gg do merge
 
-## [7.0.3] - 2026-04-23
+## 7.0.3 - 2026-04-23
 
 ### Changed
 
 - Refactor: resolve delete-feature-branch only when needed
 - Create ticket for lazy-resolve-delete-feature-branch
 
-## [7.0.2] - 2026-04-23
+## 7.0.2 - 2026-04-23
 
-## [7.0.1] - 2026-04-22
+## 7.0.1 - 2026-04-22
 
-## [7.0.0] - 2026-04-20
+## 7.0.0 - 2026-04-20
 
-## [6.3.1] - 2026-04-15
+## 6.3.1 - 2026-04-15
 
-## [6.3.0] - 2026-04-13
+## 6.3.0 - 2026-04-13
 
-## [6.2.0] - 2026-04-13
+## 6.2.0 - 2026-04-13
 
 ### Changed
 
 - kidney: changed references to local
 
-## [6.1.4] - 2026-04-10
+## 6.1.4 - 2026-04-10
 
-## [6.1.3] - 2026-04-07
+## 6.1.3 - 2026-04-07
 
 ### Changed
 
 - Kidney: changed references to pub.dev
 
-## [6.1.2] - 2026-03-30
+## 6.1.2 - 2026-03-30
 
-## [6.1.1] - 2026-03-29
+## 6.1.1 - 2026-03-29
 
 ### Fixed
 
 - Bugfix http client
 
-## [6.1.0] - 2026-03-29
+## 6.1.0 - 2026-03-29
 
 ### Added
 
 - Add message to do publish
 
-## [6.0.5] - 2026-03-27
+## 6.0.5 - 2026-03-27
 
 ### Fixed
 
 - bugfix-closed-client
 
-## [6.0.4] - 2026-03-27
+## 6.0.4 - 2026-03-27
 
 ### Changed
 
 - new gg version
 
-## [6.0.3] - 2026-03-27
+## 6.0.3 - 2026-03-27
 
 ### Changed
 
@@ -337,42 +349,42 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - bugfix tagging in gg do publish
 
-## [6.0.2] - 2026-03-27
+## 6.0.2 - 2026-03-27
 
 ### Changed
 
 - kidney: changed references to path
 
-## [6.0.1] - 2026-03-26
+## 6.0.1 - 2026-03-26
 
 ### Added
 
 - Add: push after publish
 
-## [6.0.0] - 2026-03-26
+## 6.0.0 - 2026-03-26
 
 ### Changed
 
-- Refactor do\_publish to use gitPush with pushTags and update tests
+- Refactor do_publish to use gitPush with pushTags and update tests
 - Wrap checkout logic in status printer for progress output
 
-## [5.1.0] - 2026-03-19
+## 5.1.0 - 2026-03-19
 
 ### Fixed
 
-- Fix mock param in do\_checkout\_test and update checkout error check
+- Fix mock param in do_checkout_test and update checkout error check
 
-## [5.0.1] - 2026-03-16
+## 5.0.1 - 2026-03-16
 
 ### Changed
 
 - Change commit message to 'Finish development of version X'
 
-## [5.0.0] - 2026-03-16
+## 5.0.0 - 2026-03-16
 
 ### Added
 
-- Add do\_checkout command to support branch checkout with stash
+- Add do_checkout command to support branch checkout with stash
 
 ### Changed
 
@@ -382,7 +394,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Remove IsVersionPrepared check from CanPublish command flow
 
-## [4.0.7] - 2026-03-08
+## 4.0.7 - 2026-03-08
 
 ### Added
 
@@ -392,53 +404,53 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 ### Changed
 
 - move .gg.json to .gg/.gg.json and update related code/tests
-- Refactor do\_publish to add version selector and local merge step
+- Refactor do_publish to add version selector and local merge step
 
 ### Fixed
 
 - Fix copy right header in auto created Test files
 
-## [4.0.6] - 2026-01-20
+## 4.0.6 - 2026-01-20
 
 ### Changed
 
 - Remove pubspec.yaml from change detection ignore files
 
-## [4.0.5] - 2026-01-20
+## 4.0.5 - 2026-01-20
 
 ### Changed
 
 - Ignore missing version in CHANGELOG when running pana because version is managed by gg
 
-## [4.0.4] - 2025-08-16
+## 4.0.4 - 2025-08-16
 
 ### Added
 
 - Add --ignoreUnstaged option to gg can commit and gg can push
-- Update gg\_merge to version 1.0.2
+- Update gg_merge to version 1.0.2
 - BREAKING CHANGE: V.5.0.0: Git must be set to EOF LF
 - Add message parameter to exec and get in do merge
 
-## [4.0.3] - 2025-08-16
+## 4.0.3 - 2025-08-16
 
 ### Changed
 
 - Allow to print details using -v option on gg info last-changes-hash
 
-## [4.0.2] - 2025-08-11
+## 4.0.2 - 2025-08-11
 
 ### Added
 
 - Add .gitattributes file
-- Add pubspeck.lock and .kidney\_status to ignored files
+- Add pubspeck.lock and .kidney_status to ignored files
 
-## [4.0.1] - 2025-08-11
+## 4.0.1 - 2025-08-11
 
-## [4.0.0] - 2025-08-11
+## 4.0.0 - 2025-08-11
 
-## [3.1.1] - 2025-08-11
+## 3.1.1 - 2025-08-11
 
-## [3.1.0] - 2025-08-02
+## 3.1.0 - 2025-08-02
 
 ### Added
 
@@ -449,23 +461,23 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Prepare version 3.1.0
 
-## [3.0.25] - 2025-07-31
+## 3.0.25 - 2025-07-31
 
 ### Changed
 
-- Update gg\_test to version 1.1.7
+- Update gg_test to version 1.1.7
 
-## [3.0.24] - 2025-07-09
+## 3.0.24 - 2025-07-09
 
 ### Changed
 
-- Update version of gg\_test
+- Update version of gg_test
 
 ### Removed
 
-- remove publish\_to: none
+- remove publish_to: none
 
-## [3.0.23] - 2025-06-19
+## 3.0.23 - 2025-06-19
 
 ### Added
 
@@ -475,31 +487,31 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Do not add version tag automatically. Use --add-version-tag to add the tag.
 
-## [3.0.22] - 2025-06-09
+## 3.0.22 - 2025-06-09
 
 ### Changed
 
 - Improve error message on version errors.
 
-## [3.0.21] - 2025-06-07
+## 3.0.21 - 2025-06-07
 
 ### Changed
 
 - Improve hashing algorithm
 
-## [3.0.20] - 2025-06-07
+## 3.0.20 - 2025-06-07
 
 ### Fixed
 
 - Fix a missing error output on test errors
 
-## [3.0.19] - 2025-06-07
+## 3.0.19 - 2025-06-07
 
 ### Changed
 
 - Print more details when tests fail
 
-## [3.0.18] - 2025-06-05
+## 3.0.18 - 2025-06-05
 
 ### Changed
 
@@ -513,19 +525,19 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Require -m prefix for gg do commit
 
-## [3.0.17] - 2025-02-28
+## 3.0.17 - 2025-02-28
 
 ### Changed
 
 - Upgrade to dart 3.7
 
-## [3.0.16] - 2024-11-27
+## 3.0.16 - 2024-11-27
 
 ### Changed
 
-- Replace gg\_json by gg\_direct\_json
+- Replace gg_json by gg_direct_json
 
-## [3.0.15] - 2024-10-03
+## 3.0.15 - 2024-10-03
 
 ### Changed
 
@@ -535,19 +547,19 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Fix pana issues
 
-## [3.0.14] - 2024-09-04
+## 3.0.14 - 2024-09-04
 
 ### Changed
 
 - Exclude l10 from coverage
 
-## [3.0.13] - 2024-09-04
+## 3.0.13 - 2024-09-04
 
 ### Changed
 
 - Don't expect tests for l10n folders
 
-## [3.0.12] - 2024-08-30
+## 3.0.12 - 2024-08-30
 
 ### Changed
 
@@ -555,14 +567,14 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Test change
 - Prevent updating the hash for CanUpgrade.
 
-## [3.0.11] - 2024-08-30
+## 3.0.11 - 2024-08-30
 
 ### Changed
 
 - Pretty print .gg.json
 - Hashes wil be calculated independent of line feeds
 
-## [3.0.10] - 2024-08-30
+## 3.0.10 - 2024-08-30
 
 ### Changed
 
@@ -570,49 +582,49 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Make pana work on windows
 - Run tests on MacOS
 
-## [3.0.9] - 2024-08-24
+## 3.0.9 - 2024-08-24
 
 ### Changed
 
 - Show detailed test errors when running on a github pipeline
 
-## [3.0.8] - 2024-08-24
+## 3.0.8 - 2024-08-24
 
 ### Changed
 
-- Update gg\_test to 1.0.19. Only failing error lines are shown, but not details.
+- Update gg_test to 1.0.19. Only failing error lines are shown, but not details.
 
-## [3.0.7] - 2024-08-20
+## 3.0.7 - 2024-08-20
 
 ### Fixed
 
 - Fix an issue with binary file hash calculation
 
-## [3.0.6] - 2024-06-21
+## 3.0.6 - 2024-06-21
 
 ### Changed
 
-- Update to new version of gg\_tests
+- Update to new version of gg_tests
 
-## [3.0.5] - 2024-06-21
+## 3.0.5 - 2024-06-21
 
 ### Fixed
 
 - Fix issue with generated files
 
-## [3.0.4] - 2024-04-13
+## 3.0.4 - 2024-04-13
 
 ### Removed
 
 - Removed neccessity to specify a log type when running »gg do commit«
 
-## [3.0.3] - 2024-04-13
+## 3.0.3 - 2024-04-13
 
 ### Added
 
 - missing ✅ for message Tag 1.2.3 added
 
-## [3.0.2] - 2024-04-13
+## 3.0.2 - 2024-04-13
 
 ### Changed
 
@@ -622,7 +634,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - dependency pana
 
-## [3.0.1] - 2024-04-13
+## 3.0.1 - 2024-04-13
 
 ### Added
 
@@ -644,23 +656,23 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 ### Removed
 
 - Upgrade check before pushing
-- dependency to gg\_install\_gg, remove ./check script
+- dependency to gg_install_gg, remove ./check script
 - Upgrading does not trigger a commit and a publish
 
-## [3.0.0] - 2024-04-10
+## 3.0.0 - 2024-04-10
 
 ### Changed
 
 - BREAKING CHANGE: Interface of »gg do commit« has changed.
 
-## [2.0.5] - 2024-04-10
+## 2.0.5 - 2024-04-10
 
 ### Fixed
 
 - DoPublish: Don't confirm package not published to pub.dev, small fixes
 - Pipeline: Disable cache
 
-## [2.0.4] - 2024-04-09
+## 2.0.4 - 2024-04-09
 
 ### Changed
 
@@ -670,7 +682,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Various fixes to make non-pub.dev repos work
 
-## [2.0.3] - 2024-04-09
+## 2.0.3 - 2024-04-09
 
 ### Added
 
@@ -678,16 +690,16 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 ### Changed
 
-- Update latest changes on gg\_publish and gg\_git
+- Update latest changes on gg_publish and gg_git
 - Refactor tests
 
-## [2.0.2] - 2024-04-06
+## 2.0.2 - 2024-04-06
 
 ### Fixed
 
 - Changes were not correctly submitted on publish
 
-## [2.0.1] - 2024-04-06
+## 2.0.1 - 2024-04-06
 
 ### Changed
 
@@ -698,7 +710,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - doPush did not push success state result when state was pushed before
 
-## [2.0.0] - 2024-04-06
+## 2.0.0 - 2024-04-06
 
 ### Added
 
@@ -718,7 +730,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Wrong option in command line output
 - An error which can lead to sporadic test fails
 
-## [1.0.16] - 2024-04-05
+## 1.0.16 - 2024-04-05
 
 ### Added
 
@@ -731,7 +743,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Cleaned up pipeline
 - Prepare publishing
 
-## [1.0.15] - 2024-04-05
+## 1.0.15 - 2024-04-05
 
 ### Added
 
@@ -744,10 +756,10 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Removed unused sample project
 - logStatus is replaced by GgStatusPrinter
-- isGitHub is replaced by gg\_is\_github
+- isGitHub is replaced by gg_is_github
 - Pipeline: remove --no-save-state flag
 
-## [1.0.14] - 2024-04-05
+## 1.0.14 - 2024-04-05
 
 ### Added
 
@@ -758,99 +770,6 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 - Broken links in CHANGELOG.md, wrong commit messages
 - Remove unneccessary commandline output
 
-## [1.0.12] - 2024-04-04
+## 1.0.12 - 2024-04-04
 
 - Initial version
-
-[Unreleased]: https://github.com/ggsuite/gg_one/compare/11.0.1...HEAD
-[11.0.1]: https://github.com/ggsuite/gg_one/compare/11.0.0...11.0.1
-[11.0.0]: https://github.com/ggsuite/gg_one/compare/10.3.0...11.0.0
-[10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
-[10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2
-[10.2.1]: https://github.com/ggsuite/gg_one/compare/10.2.0...10.2.1
-[10.2.0]: https://github.com/ggsuite/gg_one/compare/10.1.1...10.2.0
-[10.1.1]: https://github.com/ggsuite/gg_one/compare/10.1.0...10.1.1
-[10.1.0]: https://github.com/ggsuite/gg_one/compare/10.0.0...10.1.0
-[10.0.0]: https://github.com/ggsuite/gg_one/compare/9.5.0...10.0.0
-[9.5.0]: https://github.com/ggsuite/gg_one/compare/9.4.0...9.5.0
-[9.4.0]: https://github.com/ggsuite/gg_one/compare/9.3.0...9.4.0
-[9.3.0]: https://github.com/ggsuite/gg_one/compare/9.2.2...9.3.0
-[9.2.2]: https://github.com/ggsuite/gg_one/compare/9.2.1...9.2.2
-[9.2.1]: https://github.com/ggsuite/gg_one/compare/9.2.0...9.2.1
-[9.2.0]: https://github.com/ggsuite/gg_one/compare/9.1.1...9.2.0
-[9.1.1]: https://github.com/ggsuite/gg_one/compare/9.1.0...9.1.1
-[9.1.0]: https://github.com/ggsuite/gg_one/compare/9.0.0...9.1.0
-[9.0.0]: https://github.com/ggsuite/gg_one/compare/8.2.1...9.0.0
-[8.2.1]: https://github.com/ggsuite/gg_one/compare/8.2.0...8.2.1
-[8.2.0]: https://github.com/ggsuite/gg_one/compare/8.1.1...8.2.0
-[8.1.1]: https://github.com/ggsuite/gg_one/compare/8.1.0...8.1.1
-[8.1.0]: https://github.com/ggsuite/gg_one/compare/7.0.5...8.1.0
-[7.0.5]: https://github.com/inlavigo/gg/compare/7.0.4...7.0.5
-[7.0.4]: https://github.com/inlavigo/gg/compare/7.0.3...7.0.4
-[7.0.3]: https://github.com/inlavigo/gg/compare/7.0.2...7.0.3
-[7.0.2]: https://github.com/inlavigo/gg/compare/7.0.1...7.0.2
-[7.0.1]: https://github.com/inlavigo/gg/compare/7.0.0...7.0.1
-[7.0.0]: https://github.com/inlavigo/gg/compare/6.3.1...7.0.0
-[6.3.1]: https://github.com/inlavigo/gg/compare/6.3.0...6.3.1
-[6.3.0]: https://github.com/inlavigo/gg/compare/6.2.0...6.3.0
-[6.2.0]: https://github.com/inlavigo/gg/compare/6.1.4...6.2.0
-[6.1.4]: https://github.com/inlavigo/gg/compare/6.1.3...6.1.4
-[6.1.3]: https://github.com/inlavigo/gg/compare/6.1.2...6.1.3
-[6.1.2]: https://github.com/inlavigo/gg/compare/6.1.1...6.1.2
-[6.1.1]: https://github.com/inlavigo/gg/compare/6.1.0...6.1.1
-[6.1.0]: https://github.com/inlavigo/gg/compare/6.0.5...6.1.0
-[6.0.5]: https://github.com/inlavigo/gg/compare/6.0.4...6.0.5
-[6.0.4]: https://github.com/inlavigo/gg/compare/6.0.3...6.0.4
-[6.0.3]: https://github.com/inlavigo/gg/compare/6.0.2...6.0.3
-[6.0.2]: https://github.com/inlavigo/gg/compare/6.0.1...6.0.2
-[6.0.1]: https://github.com/inlavigo/gg/compare/6.0.0...6.0.1
-[6.0.0]: https://github.com/inlavigo/gg/compare/5.1.0...6.0.0
-[5.1.0]: https://github.com/inlavigo/gg/compare/5.0.1...5.1.0
-[5.0.1]: https://github.com/inlavigo/gg/compare/5.0.0...5.0.1
-[5.0.0]: https://github.com/inlavigo/gg/compare/4.0.7...5.0.0
-[4.0.7]: https://github.com/inlavigo/gg/compare/4.0.6...4.0.7
-[4.0.6]: https://github.com/inlavigo/gg/compare/4.0.5...4.0.6
-[4.0.5]: https://github.com/inlavigo/gg/compare/4.0.4...4.0.5
-[4.0.4]: https://github.com/inlavigo/gg/compare/4.0.3...4.0.4
-[4.0.3]: https://github.com/inlavigo/gg/compare/4.0.2...4.0.3
-[4.0.2]: https://github.com/inlavigo/gg/compare/4.0.1...4.0.2
-[4.0.1]: https://github.com/inlavigo/gg/compare/4.0.0...4.0.1
-[4.0.0]: https://github.com/inlavigo/gg/compare/3.1.1...4.0.0
-[3.1.1]: https://github.com/inlavigo/gg/compare/3.1.0...3.1.1
-[3.1.0]: https://github.com/inlavigo/gg/compare/3.0.25...3.1.0
-[3.0.25]: https://github.com/inlavigo/gg/compare/3.0.24...3.0.25
-[3.0.24]: https://github.com/inlavigo/gg/compare/3.0.23...3.0.24
-[3.0.23]: https://github.com/inlavigo/gg/compare/3.0.22...3.0.23
-[3.0.22]: https://github.com/inlavigo/gg/compare/3.0.21...3.0.22
-[3.0.21]: https://github.com/inlavigo/gg/compare/3.0.20...3.0.21
-[3.0.20]: https://github.com/inlavigo/gg/compare/3.0.19...3.0.20
-[3.0.19]: https://github.com/inlavigo/gg/compare/3.0.18...3.0.19
-[3.0.18]: https://github.com/inlavigo/gg/compare/3.0.17...3.0.18
-[3.0.17]: https://github.com/inlavigo/gg/compare/3.0.16...3.0.17
-[3.0.16]: https://github.com/inlavigo/gg/compare/3.0.15...3.0.16
-[3.0.15]: https://github.com/inlavigo/gg/compare/3.0.14...3.0.15
-[3.0.14]: https://github.com/inlavigo/gg/compare/3.0.13...3.0.14
-[3.0.13]: https://github.com/inlavigo/gg/compare/3.0.12...3.0.13
-[3.0.12]: https://github.com/inlavigo/gg/compare/3.0.11...3.0.12
-[3.0.11]: https://github.com/inlavigo/gg/compare/3.0.10...3.0.11
-[3.0.10]: https://github.com/inlavigo/gg/compare/3.0.9...3.0.10
-[3.0.9]: https://github.com/inlavigo/gg/compare/3.0.8...3.0.9
-[3.0.8]: https://github.com/inlavigo/gg/compare/3.0.7...3.0.8
-[3.0.7]: https://github.com/inlavigo/gg/compare/3.0.6...3.0.7
-[3.0.6]: https://github.com/inlavigo/gg/compare/3.0.5...3.0.6
-[3.0.5]: https://github.com/inlavigo/gg/compare/3.0.4...3.0.5
-[3.0.4]: https://github.com/inlavigo/gg/compare/3.0.3...3.0.4
-[3.0.3]: https://github.com/inlavigo/gg/compare/3.0.2...3.0.3
-[3.0.2]: https://github.com/inlavigo/gg/compare/3.0.1...3.0.2
-[3.0.1]: https://github.com/inlavigo/gg/compare/3.0.0...3.0.1
-[3.0.0]: https://github.com/inlavigo/gg/compare/2.0.5...3.0.0
-[2.0.5]: https://github.com/inlavigo/gg/compare/2.0.4...2.0.5
-[2.0.4]: https://github.com/inlavigo/gg/compare/2.0.3...2.0.4
-[2.0.3]: https://github.com/inlavigo/gg/compare/2.0.2...2.0.3
-[2.0.2]: https://github.com/inlavigo/gg/compare/2.0.1...2.0.2
-[2.0.1]: https://github.com/inlavigo/gg/compare/2.0.0...2.0.1
-[2.0.0]: https://github.com/inlavigo/gg/compare/1.0.16...2.0.0
-[1.0.16]: https://github.com/inlavigo/gg/compare/1.0.15...1.0.16
-[1.0.15]: https://github.com/inlavigo/gg/compare/1.0.14...1.0.15
-[1.0.14]: https://github.com/inlavigo/gg/compare/1.0.12...1.0.14
-[1.0.12]: https://github.com/inlavigo/gg/releases/tag/1.0.12
