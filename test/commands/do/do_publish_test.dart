@@ -1523,6 +1523,83 @@ void main() {
         },
       );
 
+      test(
+        'tags HEAD via AddGitOnlyVersionTag when there is no manifest',
+        () async {
+          // Turn the Dart repo into a manifest-less one: drop pubspec.yaml
+          // and CHANGELOG.md — the project becomes ProjectType.none.
+          await File(join(d.path, 'pubspec.yaml')).delete();
+          final changelog = File(join(d.path, 'CHANGELOG.md'));
+          if (changelog.existsSync()) {
+            await changelog.delete();
+          }
+          await commitFile(d, '.', message: 'Remove manifest');
+
+          // Recompute the success state for the new working tree.
+          await makeLastStateSuccessful();
+
+          final addGitOnlyVersionTag = MockAddGitOnlyVersionTag();
+          when(
+            () => addGitOnlyVersionTag.exec(
+              directory: any(named: 'directory'),
+              increment: VersionIncrement.patch,
+              channel: ReleaseChannel.stable,
+            ),
+          ).thenAnswer((_) async => ggLog('Tag 0.0.1 added.'));
+
+          final localDoPublish = DoPublish(
+            ggLog: ggLog,
+            publish: publish,
+            prepareNextVersion: PrepareNextVersion(
+              ggLog: ggLog,
+              publishedVersion: publishedVersion,
+            ),
+            canPublish: canPublish,
+            isPublished: IsPublished(
+              ggLog: ggLog,
+              publishedVersion: publishedVersion,
+            ),
+            configurePublish: makeConfigurePublish(),
+            publishedVersion: publishedVersion,
+            processWrapper: processWrapper,
+            localBranch: localBranch,
+            confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+            doMerge: noPubGetDoMerge(),
+            addGitOnlyVersionTag: addGitOnlyVersionTag,
+          );
+
+          messages.clear();
+
+          await localDoPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+            versionIncrement: 'patch',
+            message: 'Publish without manifest',
+          );
+
+          final allMessages = messages.join('\n');
+
+          // The prepare-version step was a logged no-op.
+          expect(allMessages, contains('Git-only project'));
+
+          // The git-only tag path (do_publish.dart `_publishGit`) ran.
+          expect(allMessages, contains('Tag 0.0.1 added.'));
+          verify(
+            () => addGitOnlyVersionTag.exec(
+              directory: any(named: 'directory'),
+              increment: VersionIncrement.patch,
+              channel: ReleaseChannel.stable,
+            ),
+          ).called(1);
+
+          // No manifest or CHANGELOG was (re)created.
+          expect(File(join(d.path, 'pubspec.yaml')).existsSync(), isFalse);
+          expect(File(join(d.path, 'CHANGELOG.md')).existsSync(), isFalse);
+        },
+      );
+
       // Builds a DoPublish whose version commit is driven by [commit], on a
       // TypeScript working tree (no CHANGELOG step).
       Future<DoPublish> tsDoPublishWith(Commit commit) async {

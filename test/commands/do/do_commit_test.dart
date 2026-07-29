@@ -589,6 +589,34 @@ void main() {
     });
   });
 
+  group('DoCommit on a project without a manifest', () {
+    setUp(() async {
+      // Remove the manifest — the project becomes ProjectType.none.
+      await File('${d.path}/pubspec.yaml').delete();
+      await commitFile(d, '.', message: 'Remove pubspec.yaml');
+    });
+
+    test('should skip CHANGELOG.md update and commit successfully', () async {
+      // Add uncommitted file
+      await addFileWithoutCommitting(d);
+
+      final changelogFile = File('${d.path}/CHANGELOG.md');
+      final changeLogBefore = await changelogFile.readAsString();
+
+      await doCommit.exec(
+        directory: d,
+        ggLog: ggLog,
+        message: 'My commit',
+        logType: LogType.added,
+      );
+
+      // CHANGELOG.md should not have been touched
+      expect(await changelogFile.readAsString(), changeLogBefore);
+
+      expect(messages.last, yellow('Checks successful. Commit successful.'));
+    });
+  });
+
   group('DoCommit --force', () {
     test('should bypass checks and commit programmatically', () async {
       // Add uncommitted file

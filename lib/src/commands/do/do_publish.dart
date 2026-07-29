@@ -41,6 +41,7 @@ class DoPublish extends DirCommand<void> {
     GgState? state,
     AddVersionTag? addVersionTag,
     AddTypeScriptVersionTag? addTypeScriptVersionTag,
+    AddGitOnlyVersionTag? addGitOnlyVersionTag,
     Commit? commit,
     DoPush? doPush,
     DidCommit? didCommit,
@@ -65,6 +66,12 @@ class DoPublish extends DirCommand<void> {
        _addTypeScriptVersionTag =
            addTypeScriptVersionTag ??
            AddTypeScriptVersionTag(
+             ggLog: (msg) => ggLog('✅ $msg'),
+             processWrapper: processWrapper,
+           ),
+       _addGitOnlyVersionTag =
+           addGitOnlyVersionTag ??
+           AddGitOnlyVersionTag(
              ggLog: (msg) => ggLog('✅ $msg'),
              processWrapper: processWrapper,
            ),
@@ -348,30 +355,45 @@ class DoPublish extends DirCommand<void> {
 
     // Step 8: Publish to the registry (pub.dev/npm). The registry lookup is
     // a safety net: a version that is already visible must not be published
-    // again on a resumed run whose marker got lost.
+    // again on a resumed run whose marker got lost. Packages without a
+    // registry target (`publish_to: none`, projects without a manifest)
+    // skip the whole step — there is no registry version to compare or
+    // lock file to update.
     if (!progress.isStepDone('publish_registry')) {
-      final alreadyPublished = await _versionAlreadyPublished(
-        directory: directory,
-        ggLog: ggLog,
-      );
-
-      if (!alreadyPublished) {
-        final hashBeforePubDev = await _state.currentHash(
+      if (await _shouldPublishToRegistry(directory, ggLog)) {
+        final alreadyPublished = await _versionAlreadyPublished(
           directory: directory,
           ggLog: ggLog,
         );
 
-        await _publishToPubDevIfNeeded(
-          directory: directory,
-          ggLog: ggLog,
-          askBeforePublishing: askBeforePublishing,
-        );
+        if (!alreadyPublished) {
+          final hashBeforePubDev = await _state.currentHash(
+            directory: directory,
+            ggLog: ggLog,
+          );
 
-        await _commitLockFileIfChanged(
-          directory: directory,
-          ggLog: ggLog,
-          hashBefore: hashBeforePubDev,
-          verbose: isVerbose,
+          await _publishToPubDevIfNeeded(
+            directory: directory,
+            ggLog: ggLog,
+            askBeforePublishing: askBeforePublishing,
+          );
+
+          await _commitLockFileIfChanged(
+            directory: directory,
+            ggLog: ggLog,
+            hashBefore: hashBeforePubDev,
+            verbose: isVerbose,
+          );
+        }
+      } else {
+        // Skipping the registry must never be silent — a publish that ends
+        // without an upload looks successful otherwise.
+        final target = await _publishTo.fromDirectory(directory);
+        ggLog(
+          yellow(
+            'Not publishing to a registry: the manifest says '
+            '"$target". Only the version bump, merge and tag run.',
+          ),
         );
       }
       await markStepDone('publish_registry');
@@ -446,6 +468,7 @@ class DoPublish extends DirCommand<void> {
   final GgState _state;
   final AddVersionTag _addVersionTag;
   final AddTypeScriptVersionTag _addTypeScriptVersionTag;
+  final AddGitOnlyVersionTag _addGitOnlyVersionTag;
   final DoPush _doPush;
   final Commit _commit;
   final DidCommit _didCommit;
@@ -565,27 +588,14 @@ class DoPublish extends DirCommand<void> {
     }
   }
 
-  /// Publish to the package registry when the package should be published.
+  /// Publishes to the package registry. Only called from the
+  /// `publish_registry` step after `_shouldPublishToRegistry` returned true —
+  /// registry-less targets are announced and skipped there.
   Future<void> _publishToPubDevIfNeeded({
     required Directory directory,
     required GgLog ggLog,
     required bool? askBeforePublishing,
   }) async {
-    final publishToRegistry = await _shouldPublishToRegistry(directory, ggLog);
-
-    if (!publishToRegistry) {
-      // Skipping the registry must never be silent — a publish that ends
-      // without an upload looks successful otherwise.
-      final target = await _publishTo.fromDirectory(directory);
-      ggLog(
-        yellow(
-          'Not publishing to a registry: the manifest says '
-          '"$target". Only the version bump, merge and tag run.',
-        ),
-      );
-      return;
-    }
-
     final shouldAskBeforePublishing = await _shouldAskBeforePublishing(
       directory,
       ggLog,
@@ -711,10 +721,22 @@ class DoPublish extends DirCommand<void> {
       );
       return;
     }
-    if (checkProjectType(directory) == ProjectType.typescript) {
+    final type = checkProjectType(directory);
+    if (type == ProjectType.typescript) {
       // Bridges tag from package.json too (published as TypeScript).
       // ggLog with `✅` prefix is bound at construction time.
       await _addTypeScriptVersionTag.exec(directory: directory);
+      return;
+    }
+    if (type == ProjectType.none) {
+      // No manifest: the version lives in git tags only. The increment and
+      // channel are always resolved before the steps run and survive a
+      // resume via the runtime .gg/.gg-publish.json.
+      await _addGitOnlyVersionTag.exec(
+        directory: directory,
+        increment: parseVersionIncrement(_explicitVersionIncrement!),
+        channel: parseReleaseChannel(_explicitChannel!),
+      );
     }
   }
 
@@ -744,6 +766,16 @@ class DoPublish extends DirCommand<void> {
   /// Increases the version according to the selected increment.
   Future<void> _addNextVersion(Directory directory, GgLog ggLog) async {
     if (!_shouldIncreaseVersion) {
+      return;
+    }
+
+    // Without a manifest there is no file to bump — the next version is
+    // created as a git tag in the tag step instead.
+    if (checkProjectType(directory) == ProjectType.none) {
+      ggLog(
+        'Git-only project — the next version is created as a git tag '
+        'in the tag step.',
+      );
       return;
     }
 

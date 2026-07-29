@@ -26,6 +26,9 @@ Future<String> readRepositoryUrl(Directory directory) async {
   return switch (type) {
     ProjectType.dart || ProjectType.flutter => _readFromPubspec(directory),
     ProjectType.typescript => _readFromPackageJson(directory),
+    ProjectType.none => throw Exception(
+      'No repository URL: the project has no manifest.',
+    ),
   };
 }
 

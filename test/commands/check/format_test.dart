@@ -77,18 +77,6 @@ void main() {
           );
         });
 
-        test('if the project type cannot be detected', () async {
-          final emptyDir = Directory.systemTemp.createTempSync();
-          try {
-            await expectLater(
-              () => runner.run(['format', '--input', emptyDir.path]),
-              throwsA(isA<Exception>()),
-            );
-          } finally {
-            emptyDir.deleteSync(recursive: true);
-          }
-        });
-
         test('when the injected typescript formatter throws', () async {
           final tsDir = Directory.systemTemp.createTempSync();
           File('${tsDir.path}/package.json').writeAsStringSync('{}');
@@ -151,6 +139,21 @@ void main() {
 
       // .......................................................................
       // Integration tests against the real `dart format` binary.
+      group('should skip', () {
+        test('when the project has no manifest', () async {
+          final emptyDir = Directory.systemTemp.createTempSync();
+          try {
+            await runner.run(['format', '--input', emptyDir.path]);
+            expect(
+              messages.last,
+              contains('Skipping format (no project manifest)'),
+            );
+          } finally {
+            emptyDir.deleteSync(recursive: true);
+          }
+        });
+      });
+
       group('dart formatter integration', () {
         test('fails on GitHub when files need formatting', () async {
           testIsGitHub = true;

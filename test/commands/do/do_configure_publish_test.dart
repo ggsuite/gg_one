@@ -260,6 +260,21 @@ void main() {
         ).configure(directory: d, ggLog: ggLog, mergeMessage: 'msg');
         expect(adapter.capturedOptions.first.first, contains('0.0.0'));
       });
+
+      test(
+        'falls back to the latest git version tag without any manifest',
+        () async {
+          File(join(d.path, 'pubspec.yaml')).deleteSync();
+          await commitFile(d, '.', message: 'Remove pubspec.yaml');
+          await addTags(d, ['3.1.4']);
+
+          final adapter = _StubAdapter([0]);
+          await makeCommand(
+            adapter: adapter,
+          ).configure(directory: d, ggLog: ggLog, mergeMessage: 'msg');
+          expect(adapter.capturedOptions.first.first, contains('3.1.4'));
+        },
+      );
     });
 
     test('refuses to clobber the progress of an unfinished publish', () async {
