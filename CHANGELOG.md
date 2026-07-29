@@ -1,5 +1,28 @@
 # Changelog
 
+## \[11.0.1\] - 2026-07-29
+
+### Added
+
+- do publish now waits after the registry publish until the version is actually visible on pub.dev/npm (via gg\_publish's WaitUntilPublished): a message announces the wait incl. a status url, progress is reported and the wait is bounded by a timeout instead of hanging
+
+### Changed
+
+- do publish: wait visibly until the version appears on pub.dev/npm
+- do publish: keep merge and pull-request wait messages visible
+- do merge: sync main fast-forward-only, reset gg-bookkeeping divergence
+- Refuse to publish ticket repos with a suppressed publish target
+- do publish waits until version is published and pull request is merged
+
+### Fixed
+
+- do publish refuses to publish a repo whose publish target is suppressed by the ticket tooling (`gg multi do add` writes `publish_to: none`). Before, it silently skipped the registry upload and merged `publish_to: none` into the main branch — publish the ticket with `gg multi do publish` instead
+- do publish announces a skipped registry upload instead of skipping silently
+- do merge passes the pull request's source branch to the wait, so a moved HEAD no longer causes "No pull request found for branch main"
+- do merge: updating the local main branch no longer aborts with "You have divergent branches": the pull is fast-forward-only, and when main diverged from origin/main with gg bookkeeping or lock-file drift only, it is reset to origin/main (real local commits still abort with a clear message)
+
+## [11.0.1] - 2026-07-29
+
 ## [11.0.0] - 2026-07-22
 
 ### Added
@@ -733,6 +756,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 - Initial version
 
+[11.0.1]: https://github.com/ggsuite/gg_one/compare/11.0.0...11.0.1
 [11.0.0]: https://github.com/ggsuite/gg_one/compare/10.3.0...11.0.0
 [10.3.0]: https://github.com/ggsuite/gg_one/compare/10.2.2...10.3.0
 [10.2.2]: https://github.com/ggsuite/gg_one/compare/10.2.1...10.2.2

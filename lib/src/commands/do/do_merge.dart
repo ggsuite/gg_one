@@ -293,6 +293,17 @@ class DoMerge extends DirCommand<void> {
       ggLog: <String>[].add,
     );
 
+    // The source branch of the pull request. Captured before anything can
+    // move HEAD, so the wait below never looks for a pull request of the
+    // default branch.
+    final sourceBranch = (await _runGitCommand(
+      directory: directory,
+      arguments: const ['rev-parse', '--abbrev-ref', 'HEAD'],
+      actionDescription: 'determine the pull request source branch',
+      ggLog: ggLog,
+      verbose: verbose,
+    )).trim();
+
     // A resumed run may find its release already on main: the previous run
     // crashed after the provider merged the pull request but before the
     // merge step was marked done. Detected by content (a squash merge
@@ -344,6 +355,20 @@ class DoMerge extends DirCommand<void> {
         );
       }
 
+      // Record »doCommit« and »doPush« for the content that is about to be
+      // merged. A squash merge keeps the tree, and [GgState] hashes the tree
+      // (ignoring `.gg/`), so the hashes written here are exactly the hashes
+      // of the default branch afterwards. Without this, main carries the
+      // hashes of an older feature-branch state and »gg did commit« /
+      // »gg did push« fail on it — blocking CI and the pre-push hook of the
+      // next release. The state must ride along inside the pull request:
+      // main is merged by the provider, so gg cannot push a fix afterwards.
+      await _writeReleaseState(
+        directory: directory,
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+
       // Create the auto-complete pull request on the provider (GitHub/Azure).
       // The merge message becomes the PR title and squash commit message.
       await _doMerge.get(
@@ -357,7 +382,11 @@ class DoMerge extends DirCommand<void> {
       );
 
       // Block until the provider merged the pull request.
-      await _waitForMerge.get(directory: directory, ggLog: ggLog);
+      await _waitForMerge.get(
+        directory: directory,
+        ggLog: ggLog,
+        branch: sourceBranch,
+      );
     }
 
     // Safety net: absorb any dirt that appeared since the pushes (the branch
@@ -377,10 +406,109 @@ class DoMerge extends DirCommand<void> {
       ggLog: ggLog,
       verbose: verbose,
     );
+    await _pullMainSafely(
+      directory: directory,
+      mainBranchName: mainBranchName,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+  }
+
+  /// Writes the `doCommit` and `doPush` success states for the current
+  /// feature-branch content and pushes the resulting bookkeeping commit, so
+  /// the pull request carries them into the default branch.
+  ///
+  /// [GgState] hashes the tracked tree and ignores `.gg/`, so recording the
+  /// state neither changes the hash nor invalidates itself.
+  Future<void> _writeReleaseState({
+    required Directory directory,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    await _state.writeSuccess(directory: directory, key: 'doCommit');
+    await _state.writeSuccess(directory: directory, key: 'doPush');
+
+    // A no-op when the states were already up to date ("Everything
+    // up-to-date"), so this never creates an empty extra round trip.
     await _runGitCommand(
       directory: directory,
-      arguments: const ['pull'],
-      actionDescription: 'pull on $mainBranchName',
+      arguments: const ['push'],
+      actionDescription: 'push the recorded release state',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+  }
+
+  /// Fast-forwards the local main branch to `origin/<main>` — robust against
+  /// the divergence gg itself creates: after a merge, gg's state bookkeeping
+  /// commits `.gg/.gg.json` onto main, and in the pull-request flow main is
+  /// never pushed. The next release then finds main and `origin/<main>`
+  /// diverged, and a plain »git pull« aborts with "You have divergent
+  /// branches". After a pull-request merge origin is the truth for main:
+  /// when the local extra commits carry only gg bookkeeping or lock-file
+  /// drift, main is hard-reset to `origin/<main>`. Real local commits are
+  /// never discarded — the sync fails with a clear message instead.
+  Future<void> _pullMainSafely({
+    required Directory directory,
+    required String mainBranchName,
+    required GgLog ggLog,
+    required bool verbose,
+  }) async {
+    try {
+      await _runGitCommand(
+        directory: directory,
+        arguments: const ['pull', '--ff-only'],
+        actionDescription: 'pull on $mainBranchName',
+        ggLog: ggLog,
+        verbose: verbose,
+      );
+      return;
+    } on Exception {
+      // Not fast-forwardable — decide below whether the local extra commits
+      // may be dropped. The failed pull already fetched, so origin/<main>
+      // is up to date.
+    }
+
+    final localOnlyFiles = await _runGitCommand(
+      directory: directory,
+      arguments: [
+        'log',
+        'origin/$mainBranchName..HEAD',
+        '--name-only',
+        '--pretty=format:',
+      ],
+      actionDescription: 'list local-only commits on $mainBranchName',
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    final realFiles = localOnlyFiles
+        .split('\n')
+        .map((line) => line.trim())
+        .where((file) => file.isNotEmpty)
+        .where((file) => !file.startsWith('.gg/'))
+        .where((file) => !gg_lang.allLockFileNames.contains(file))
+        .toSet();
+
+    if (realFiles.isNotEmpty) {
+      throw Exception(
+        'Local $mainBranchName and origin/$mainBranchName have diverged, '
+        'and the local commits touch ${realFiles.join(', ')}. '
+        'Reconcile $mainBranchName manually (e.g. rebase it onto '
+        'origin/$mainBranchName), then run the command again.',
+      );
+    }
+
+    ggLog(
+      yellow(
+        'Local $mainBranchName diverged from origin/$mainBranchName with '
+        'gg bookkeeping only — resetting it to origin/$mainBranchName.',
+      ),
+    );
+    await _runGitCommand(
+      directory: directory,
+      arguments: ['reset', '--hard', 'origin/$mainBranchName'],
+      actionDescription: 'reset $mainBranchName to origin/$mainBranchName',
       ggLog: ggLog,
       verbose: verbose,
     );
@@ -457,10 +585,9 @@ class DoMerge extends DirCommand<void> {
         ggLog: ggLog,
         verbose: verbose,
       );
-      await _runGitCommand(
+      await _pullMainSafely(
         directory: directory,
-        arguments: const ['pull'],
-        actionDescription: 'pull on $mainBranchName',
+        mainBranchName: mainBranchName,
         ggLog: ggLog,
         verbose: verbose,
       );

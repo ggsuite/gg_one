@@ -53,6 +53,7 @@ void main() {
   // ...........................................................................
   // Mocks
   late Publish publish;
+  late MockWaitUntilPublished waitUntilPublished;
 
   Future<String?> defaultEditMessage(String initialMessage) async {
     return initialMessage;
@@ -144,6 +145,7 @@ void main() {
     );
 
     final cliDoPublish = DoPublish(
+      waitUntilPublished: waitUntilPublished,
       ggLog: ggLog,
       publish: publish,
       prepareNextVersion: PrepareNextVersion(
@@ -275,6 +277,13 @@ void main() {
     );
     registerFallbackValue(d);
     publish = MockPublish();
+    waitUntilPublished = MockWaitUntilPublished();
+    when(
+      () => waitUntilPublished.get(
+        directory: any(named: 'directory'),
+        ggLog: any(named: 'ggLog'),
+      ),
+    ).thenAnswer((_) async {});
     processWrapper = MockGgProcessWrapper();
     localBranch = MockLocalBranch();
 
@@ -331,6 +340,7 @@ void main() {
 
     // Instantiate with mocks
     doPublish = DoPublish(
+      waitUntilPublished: waitUntilPublished,
       ggLog: ggLog,
       publish: publish,
       prepareNextVersion: PrepareNextVersion(
@@ -429,6 +439,15 @@ void main() {
                           ).get(directory: d, ggLog: ggLog),
                           isTrue,
                         );
+
+                        // Did the publish wait for the version to become
+                        // visible on the registry?
+                        verify(
+                          () => waitUntilPublished.get(
+                            directory: any(named: 'directory'),
+                            ggLog: any(named: 'ggLog'),
+                          ),
+                        ).called(1);
                       });
                     }
                   });
@@ -554,6 +573,7 @@ void main() {
           group('not to pub.dev', () {
             test('when »publish_to: none« in pubspec.yaml', () async {
               doPublish = DoPublish(
+                waitUntilPublished: waitUntilPublished,
                 ggLog: ggLog,
                 publish: publish,
                 configurePublish: makeConfigurePublish(),
@@ -594,6 +614,9 @@ void main() {
               expect(allMessages, contains('✅ Increase version'));
               expect(allMessages, contains('Tag 1.0.2 added.'));
 
+              // Skipping the registry is announced, never silent.
+              expect(allMessages, contains('Not publishing to a registry'));
+
               // Was a new version created?
               pubspec = await pubspecFile.readAsString();
               final changeLog = await File(
@@ -618,6 +641,63 @@ void main() {
                 await DidPush(ggLog: ggLog).get(directory: d, ggLog: ggLog),
                 isTrue,
               );
+            });
+          });
+
+          group('refuses to publish a ticket repo whose publish target '
+              'is suppressed', () {
+            // »gg multi do add« writes »publish_to: none« into every ticket
+            // repo and remembers the original value. Publishing such a repo
+            // standalone would skip the registry upload and merge the
+            // suppressed manifest into main.
+            Future<void> writeBackup(String content) async {
+              final ggDir = Directory(join(d.path, '.gg'));
+              if (!ggDir.existsSync()) {
+                await ggDir.create(recursive: true);
+              }
+              await File(
+                join(ggDir.path, '.gg_localize_refs_publish_to_backup.json'),
+              ).writeAsString(content);
+            }
+
+            test('and points to "gg multi do publish"', () async {
+              await writeBackup('{"publish_to_original": null}');
+
+              await expectLater(
+                doPublish.exec(
+                  directory: d,
+                  ggLog: ggLog,
+                  deleteFeatureBranch: false,
+                ),
+                throwsA(
+                  isA<Exception>().having(
+                    (e) => e.toString(),
+                    'message',
+                    allOf(
+                      contains('ticket workspace'),
+                      contains('gg multi do publish'),
+                    ),
+                  ),
+                ),
+              );
+            });
+
+            test('but publishes a genuinely private package', () async {
+              // A package that publishes nowhere outside the ticket either
+              // may be published (i.e. version-bumped + merged) as before.
+              await writeBackup('{"publish_to_original": "none"}');
+              // The new file changed the worktree — re-record the state so
+              // the publish checks see a committed repository again.
+              await makeLastStateSuccessful();
+              mockPublishIsSuccessful(success: true, askBeforePublishing: true);
+
+              await doPublish.exec(
+                directory: d,
+                ggLog: ggLog,
+                deleteFeatureBranch: false,
+              );
+
+              expect(messages.join('\n'), contains('Tag 1.2.4 added.'));
             });
           });
 
@@ -654,6 +734,7 @@ void main() {
 
             var initialMessage = '';
             final doPublishWithEditor = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -707,6 +788,7 @@ void main() {
 
             var initialMessage = 'not set';
             final doPublishWithEditor = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -758,6 +840,7 @@ void main() {
             );
 
             final doPublishWithEditor = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -857,6 +940,7 @@ void main() {
 
             var promptBranchName = '';
             final doPublishWithPrompt = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -915,6 +999,7 @@ void main() {
 
               var promptBranchName = '';
               final doPublishWithPrompt = DoPublish(
+                waitUntilPublished: waitUntilPublished,
                 ggLog: ggLog,
                 publish: publish,
                 prepareNextVersion: PrepareNextVersion(
@@ -966,6 +1051,7 @@ void main() {
             );
 
             final headlessPublish = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -1009,6 +1095,7 @@ void main() {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
 
             final cliDoPublish = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -1069,6 +1156,7 @@ void main() {
 
             // Editor must stay shut when --config supplies both fields.
             final cliDoPublish = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -1127,6 +1215,7 @@ void main() {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
 
             final cliDoPublish = DoPublish(
+              waitUntilPublished: waitUntilPublished,
               ggLog: ggLog,
               publish: publish,
               prepareNextVersion: PrepareNextVersion(
@@ -1173,6 +1262,7 @@ void main() {
               );
 
               final cliDoPublish = DoPublish(
+                waitUntilPublished: waitUntilPublished,
                 ggLog: ggLog,
                 publish: publish,
                 prepareNextVersion: PrepareNextVersion(
@@ -1227,6 +1317,7 @@ void main() {
               await resetTicketFile();
 
               final cliDoPublish = DoPublish(
+                waitUntilPublished: waitUntilPublished,
                 ggLog: ggLog,
                 publish: publish,
                 prepareNextVersion: PrepareNextVersion(
@@ -1457,6 +1548,7 @@ void main() {
         mockPublishedVersion();
 
         return DoPublish(
+          waitUntilPublished: waitUntilPublished,
           ggLog: ggLog,
           publish: publish,
           commit: commit,
@@ -1670,6 +1762,7 @@ void main() {
         mockPublishedVersion();
 
         final azurePublish = DoPublish(
+          waitUntilPublished: waitUntilPublished,
           ggLog: ggLog,
           publish: publish,
           prepareNextVersion: PrepareNextVersion(
@@ -1754,6 +1847,7 @@ void main() {
         EditMessage? editMessage,
         ConfirmDeleteFeatureBranch? confirmDeleteFeatureBranch,
       }) => DoPublish(
+        waitUntilPublished: waitUntilPublished,
         ggLog: ggLog,
         publish: publish,
         prepareNextVersion: PrepareNextVersion(
@@ -1859,6 +1953,7 @@ void main() {
         );
 
         final strictPublish = DoPublish(
+          waitUntilPublished: waitUntilPublished,
           ggLog: ggLog,
           publish: publish,
           prepareNextVersion: PrepareNextVersion(
@@ -2363,6 +2458,7 @@ void main() {
     test('should have a code coverage of 100%', () {
       expect(
         DoPublish(
+          waitUntilPublished: waitUntilPublished,
           ggLog: ggLog,
           configurePublish: makeConfigurePublish(),
           publishedVersion: publishedVersion,

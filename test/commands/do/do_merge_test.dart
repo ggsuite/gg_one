@@ -82,7 +82,7 @@ void main() {
     when(
       () => mockProcessWrapper.run(
         'git',
-        ['pull'],
+        ['pull', '--ff-only'],
         runInShell: true,
         workingDirectory: any(named: 'workingDirectory'),
       ),
@@ -200,7 +200,7 @@ void main() {
         ),
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -219,6 +219,111 @@ void main() {
         ),
         () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
       ]);
+    });
+
+    test('resets a diverged main when only gg bookkeeping differs', () async {
+      stubGitCommands();
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: false,
+          local: false,
+          verbose: false,
+        ),
+      ).thenAnswer((_) async => true);
+
+      // The fast-forward pull fails: main and origin/main have diverged.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['pull', '--ff-only'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer(
+        (_) async => ProcessResult(1, 1, '', 'You have divergent branches ...'),
+      );
+
+      // The local-only commits touch gg bookkeeping and lock files only.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['log', 'origin/main..HEAD', '--name-only', '--pretty=format:'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer(
+        (_) async => ProcessResult(0, 0, '.gg/.gg.json\npubspec.lock\n', ''),
+      );
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['reset', '--hard', 'origin/main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      await doMerge.get(directory: d, ggLog: ggLog);
+
+      verify(
+        () => mockProcessWrapper.run(
+          'git',
+          ['reset', '--hard', 'origin/main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).called(1);
+      expect(messages.any((m) => m.contains('gg bookkeeping only')), isTrue);
+    });
+
+    test('throws when main diverged with real local commits', () async {
+      stubGitCommands();
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['pull', '--ff-only'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer(
+        (_) async => ProcessResult(1, 1, '', 'You have divergent branches ...'),
+      );
+
+      // The local-only commits touch real source files.
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['log', 'origin/main..HEAD', '--name-only', '--pretty=format:'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, 'lib/src/foo.dart\n', ''));
+
+      await expectLater(
+        doMerge.get(directory: d, ggLog: ggLog),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            allOf(contains('have diverged'), contains('lib/src/foo.dart')),
+          ),
+        ),
+      );
+
+      // Real commits are never discarded.
+      verifyNever(
+        () => mockProcessWrapper.run(
+          'git',
+          ['reset', '--hard', 'origin/main'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      );
     });
 
     test('commits pending worktree changes before merge', () async {
@@ -344,7 +449,7 @@ void main() {
       verify(
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -414,7 +519,7 @@ void main() {
           '\$ git rev-parse --abbrev-ref HEAD',
           '\$ git checkout main',
           '\$ git fetch',
-          '\$ git pull',
+          '\$ git pull --ff-only',
           '\$ git checkout feature/x',
         ]),
       );
@@ -507,7 +612,11 @@ void main() {
 
       // Wait until merged.
       when(
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
       ).thenAnswer((_) async => true);
 
       await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
@@ -534,7 +643,7 @@ void main() {
         ),
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -559,7 +668,11 @@ void main() {
           verbose: false,
           deleteSourceBranch: true,
         ),
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
         // Bring local main to the merged state.
         () => mockProcessWrapper.run(
           'git',
@@ -569,7 +682,7 @@ void main() {
         ),
         () => mockProcessWrapper.run(
           'git',
-          ['pull'],
+          ['pull', '--ff-only'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -614,7 +727,11 @@ void main() {
         ).thenAnswer((_) async => true);
 
         when(
-          () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+          () => mockWaitForMerge.get(
+            directory: d,
+            ggLog: ggLog,
+            branch: any(named: 'branch'),
+          ),
         ).thenAnswer((_) async => true);
 
         when(
@@ -776,12 +893,17 @@ void main() {
       ).thenAnswer((_) async => true);
 
       when(
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
       ).thenAnswer((_) async => true);
 
       await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
 
-      // The drift commit was created and pushed with a second push.
+      // The drift commit was created and pushed with a second push; the
+      // third push carries the recorded release state into the PR.
       verify(
         () => mockProcessWrapper.run(
           'git',
@@ -801,8 +923,59 @@ void main() {
           runInShell: true,
           workingDirectory: d.path,
         ),
-      ).called(2);
+      ).called(3);
       expect(statusCalls, 3);
+    });
+
+    test('records doCommit and doPush before creating the pull request, '
+        'so the squashed main passes »gg did commit« and '
+        '»gg did push«', () async {
+      stubGitCommands();
+
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['push'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+          deleteSourceBranch: true,
+        ),
+      ).thenAnswer((_) async => true);
+
+      when(
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
+      ).thenAnswer((_) async => true);
+
+      await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+
+      // Both states are written while the feature branch content is still
+      // the content the squash merge puts on main.
+      verifyInOrder([
+        () => mockGgState.writeSuccess(directory: d, key: 'doCommit'),
+        () => mockGgState.writeSuccess(directory: d, key: 'doPush'),
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: true,
+          local: false,
+          verbose: false,
+          deleteSourceBranch: true,
+        ),
+      ]);
     });
 
     test('forwards the merge message to the pull-request merge', () async {
@@ -830,7 +1003,11 @@ void main() {
       ).thenAnswer((_) async => true);
 
       when(
-        () => mockWaitForMerge.get(directory: d, ggLog: ggLog),
+        () => mockWaitForMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          branch: any(named: 'branch'),
+        ),
       ).thenAnswer((_) async => true);
 
       await doMerge.get(
