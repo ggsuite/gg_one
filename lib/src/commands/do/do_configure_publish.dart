@@ -234,7 +234,7 @@ class DoConfigurePublish extends DirCommand<void> {
     final selection = Select(
       prompt: 'Delete feature branch $branchName on origin?',
       options: const <String>['Yes', 'No'],
-      initialIndex: 1,
+      initialIndex: 0,
     ).interact();
 
     return selection == 0;
@@ -254,7 +254,7 @@ class DoConfigurePublish extends DirCommand<void> {
       help:
           'Whether the feature branch is deleted on origin after '
           'publishing. When given, the interactive prompt is skipped.',
-      defaultsTo: false,
+      defaultsTo: true,
       negatable: true,
     );
   }

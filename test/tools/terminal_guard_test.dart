@@ -10,12 +10,14 @@ import 'package:test/test.dart';
 void main() {
   group('throwWhenNotATerminal', () {
     test('throws an actionable error when stdin is not a terminal', () {
-      // `dart test` runs without a terminal, so the guard must fire here —
-      // exactly the headless situation it protects against.
+      // The headless situation the guard protects against. The check is
+      // injected because `dart test` hands the test isolate a stdin whose
+      // `hasTerminal` differs per platform — on macOS it reports true.
       expect(
         () => throwWhenNotATerminal(
           'the version-increment prompt',
           'provide version_increment via .gg/.gg-publish.json',
+          hasTerminal: () => false,
         ),
         throwsA(
           isA<Exception>().having(
@@ -28,6 +30,17 @@ void main() {
             ),
           ),
         ),
+      );
+    });
+
+    test('does not throw when stdin is a terminal', () {
+      expect(
+        () => throwWhenNotATerminal(
+          'the version-increment prompt',
+          'provide version_increment via .gg/.gg-publish.json',
+          hasTerminal: () => true,
+        ),
+        returnsNormally,
       );
     });
   });

@@ -982,7 +982,7 @@ class DoPublish extends DirCommand<void> {
     argParser.addFlag(
       'delete-feature-branch',
       help: 'Delete the current feature branch on origin after publishing.',
-      defaultsTo: false,
+      defaultsTo: true,
       negatable: true,
     );
 
