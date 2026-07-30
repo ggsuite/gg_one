@@ -7,13 +7,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_changelog/gg_changelog.dart' as changelog;
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:gg_version/gg_version.dart';
@@ -189,12 +189,49 @@ class DoPublish extends DirCommand<void> {
       // Explicit user choice: discard the previous config and progress.
       runtimeFile.deleteSync();
     }
-    final PublishConfig? runtimeConfig = runtimeFile.existsSync()
+    PublishConfig? runtimeConfig = runtimeFile.existsSync()
         ? PublishConfig.load(
             configArg: runtimeFile.path,
             fallbackDir: directory.path,
           )
         : null;
+
+    // Step 1b: Progress that was recorded on a DIFFERENT feature branch does
+    // not belong to this publish — it is a leftover that arrived with a copy
+    // of the repository (the file is gitignored, so copying a workspace
+    // carries it along, e.g. »gg multi do add« copying the master workspace
+    // into a new ticket). Trusting it would skip this publish's version bump
+    // and registry upload and could delete the wrong feature branch — so
+    // discard it. Progress found while HEAD is on the default branch is
+    // kept: a resumed run whose merge already happened legitimately sits
+    // there.
+    if (runtimeConfig != null && runtimeConfig.hasStepProgress) {
+      final staleBranch = runtimeConfig.branch;
+      final currentBranch = await _localBranch.get(
+        directory: directory,
+        ggLog: <String>[].add,
+      );
+      final onDefaultBranch =
+          currentBranch == 'main' || currentBranch == 'master';
+      if (staleBranch != null &&
+          staleBranch != currentBranch &&
+          !onDefaultBranch) {
+        runtimeFile.deleteSync();
+        runtimeConfig = null;
+        final notice =
+            'The progress in ${runtimeFile.path} belongs to the branch '
+            '"$staleBranch", but the current branch is "$currentBranch". '
+            'The file is a stale leftover of another publish and was '
+            'discarded.';
+        if (cliContinue) {
+          throw Exception(
+            '$notice There is nothing to continue — start a fresh '
+            '"gg do publish".',
+          );
+        }
+        ggLog(yellow(notice));
+      }
+    }
 
     // A resumed run continues at the first step that is not done yet.
     // gg_multi forwards its own --continue via [resume].

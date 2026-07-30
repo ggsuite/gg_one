@@ -2137,6 +2137,112 @@ void main() {
         },
       );
 
+      group('stale progress recorded on another branch', () {
+        // Progress that belongs to a different feature branch arrived with a
+        // copy of the repository (the file is gitignored, so e.g. copying
+        // the master workspace into a ticket used to carry it along). It
+        // must never block or corrupt the publish of the current branch.
+        const staleProgress = '''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_other",
+  "done_steps": ["prepare_version", "publish_registry"]
+}
+''';
+
+        test('a fresh run discards it and publishes normally', () async {
+          mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+          runtimeFile.writeAsStringSync(staleProgress);
+
+          await doPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            message: 'Fresh publish',
+            versionIncrement: 'patch',
+            deleteFeatureBranch: false,
+          );
+
+          final allMessages = messages.join('\n');
+          expect(allMessages, contains('stale leftover of another publish'));
+          expect(
+            allMessages,
+            isNot(contains('Resuming the unfinished publish')),
+          );
+          // The upload ran — the alien "publish_registry" marker was not
+          // trusted.
+          verify(
+            () => publish.exec(
+              directory: dMock(),
+              ggLog: ggLog,
+              askBeforePublishing: false,
+            ),
+          ).called(1);
+          // The runtime file is removed after the successful publish.
+          expect(runtimeFile.existsSync(), isFalse);
+        });
+
+        test('--continue refuses and deletes the stale file', () async {
+          runtimeFile.writeAsStringSync(staleProgress);
+          final runner = CommandRunner<void>('gg', 'gg')
+            ..addCommand(makeResumePublish());
+          await expectLater(
+            () => runner.run(['publish', '-i', d.path, '--continue']),
+            throwsA(
+              isA<Exception>().having(
+                (e) => e.toString(),
+                'message',
+                allOf(
+                  contains('stale leftover of another publish'),
+                  contains('There is nothing to continue'),
+                ),
+              ),
+            ),
+          );
+          expect(runtimeFile.existsSync(), isFalse);
+        });
+
+        test('progress is kept when HEAD is on the default branch', () async {
+          // After its merge a resumed run legitimately sits on the default
+          // branch — the branch mismatch does not make the progress stale.
+          when(
+            () => localBranch.get(
+              directory: any(named: 'directory'),
+              ggLog: any(named: 'ggLog'),
+            ),
+          ).thenAnswer((_) async => 'main');
+          runtimeFile.writeAsStringSync('''
+{
+  "version_increment": "patch",
+  "merge_message": "m",
+  "branch": "feat_abc",
+  "done_steps": ["prepare_version", "publish_registry", "merge"]
+}
+''');
+          stubGit(['rev-parse', '--verify', '--quiet', 'refs/heads/main']);
+          final tag = mockAddVersionTag();
+          final resumePublish = makeResumePublish(addVersionTag: tag);
+          final runner = CommandRunner<void>('gg', 'gg')
+            ..addCommand(resumePublish);
+          await runner.run([
+            'publish',
+            '-i',
+            d.path,
+            '--continue',
+            '--no-delete-feature-branch',
+          ]);
+
+          final allMessages = messages.join('\n');
+          expect(allMessages, contains('Resuming the unfinished publish'));
+          expect(
+            allMessages,
+            isNot(contains('stale leftover of another publish')),
+          );
+          expect(runtimeFile.existsSync(), isFalse);
+        });
+      });
+
       test('reuses an existing config file without prompting', () async {
         mockPublishIsSuccessful(success: true, askBeforePublishing: false);
         runtimeFile.writeAsStringSync(
@@ -2293,6 +2399,14 @@ void main() {
       );
 
       test('the persisted branch wins over HEAD for the delete step', () async {
+        // After its merge the resumed run sits on the default branch — the
+        // branch to delete must come from the runtime file, not from HEAD.
+        when(
+          () => localBranch.get(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+          ),
+        ).thenAnswer((_) async => 'main');
         runtimeFile.writeAsStringSync('''
 {
   "version_increment": "patch",
@@ -2336,6 +2450,13 @@ void main() {
       test(
         'a resume reuses the stored delete decision without a prompt',
         () async {
+          // After its merge the resumed run sits on the default branch.
+          when(
+            () => localBranch.get(
+              directory: any(named: 'directory'),
+              ggLog: any(named: 'ggLog'),
+            ),
+          ).thenAnswer((_) async => 'main');
           runtimeFile.writeAsStringSync('''
 {
   "version_increment": "patch",
@@ -2374,7 +2495,14 @@ void main() {
         () async {
           // The delete re-runs on resume (a multi-flow resume may have
           // re-pushed the branch); a remote ref that is already gone must
-          // not fail the run.
+          // not fail the run. After its merge the run sits on the default
+          // branch.
+          when(
+            () => localBranch.get(
+              directory: any(named: 'directory'),
+              ggLog: any(named: 'ggLog'),
+            ),
+          ).thenAnswer((_) async => 'main');
           runtimeFile.writeAsStringSync('''
 {
   "version_increment": "patch",

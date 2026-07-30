@@ -1,5 +1,16 @@
 # Changelog
 
+## 11.2.5 - 2026-07-30
+
+### Fixed
+
+- `do publish` now discards publish progress recorded on a different feature
+branch instead of refusing to run (or, on `--continue`, silently skipping
+the version bump and registry upload and merging without publishing). Such
+progress is a stale leftover that arrived with a copy of the repository —
+e.g. a ticket copy of the master workspace.
+- Fix publishing error
+
 ## 11.2.4 - 2026-07-30
 
 ### Removed
