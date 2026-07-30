@@ -294,6 +294,21 @@ void main() {
       ),
     ).thenAnswer((_) async => 'feat_abc');
 
+    // The delete step looks the remote ref up first. By default both branches
+    // used in the tests still exist on the remote.
+    for (final branch in ['feat_abc', 'feat_other']) {
+      when(
+        () => processWrapper.run('git', [
+          'ls-remote',
+          '--heads',
+          'origin',
+          branch,
+        ], workingDirectory: d.path),
+      ).thenAnswer(
+        (_) async => ProcessResult(0, 0, 'abc123\trefs/heads/$branch\n', ''),
+      );
+    }
+
     when(
       () => processWrapper.run('git', [
         'push',
@@ -905,6 +920,106 @@ void main() {
                 messages[messages.length - 2],
                 contains('Deleted remote feature branch feat_abc.'),
               );
+            },
+          );
+
+          test('deletes a leftover pubspec_overrides.yaml', () async {
+            mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+            final overrides = File(join(d.path, 'pubspec_overrides.yaml'))
+              ..writeAsStringSync(
+                'dependency_overrides:\n  gg_log:\n    path: ../gg_log',
+              );
+
+            await doPublish.exec(
+              directory: d,
+              ggLog: ggLog,
+              askBeforePublishing: false,
+              deleteFeatureBranch: false,
+            );
+
+            expect(overrides.existsSync(), isFalse);
+            expect(
+              messages.join('\n'),
+              contains('Deleted pubspec_overrides.yaml.'),
+            );
+          });
+
+          test(
+            'skips the delete when the remote branch is already gone',
+            () async {
+              mockPublishIsSuccessful(
+                success: true,
+                askBeforePublishing: false,
+              );
+
+              // E.g. the provider deleted the source branch when it merged
+              // the pull request.
+              when(
+                () => processWrapper.run('git', [
+                  'ls-remote',
+                  '--heads',
+                  'origin',
+                  'feat_abc',
+                ], workingDirectory: d.path),
+              ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+
+              await doPublish.exec(
+                directory: d,
+                ggLog: ggLog,
+                askBeforePublishing: false,
+                deleteFeatureBranch: true,
+              );
+
+              verifyNever(
+                () => processWrapper.run('git', [
+                  'push',
+                  'origin',
+                  '--delete',
+                  'feat_abc',
+                ], workingDirectory: d.path),
+              );
+              expect(
+                messages.join('\n'),
+                isNot(contains('feature branch feat_abc')),
+              );
+            },
+          );
+
+          test(
+            'deletes the feature branch when the remote lookup fails',
+            () async {
+              mockPublishIsSuccessful(
+                success: true,
+                askBeforePublishing: false,
+              );
+
+              // A failing lookup (no network, no remote) must not silently skip
+              // the deletion — the delete itself reports the real error.
+              when(
+                () => processWrapper.run('git', [
+                  'ls-remote',
+                  '--heads',
+                  'origin',
+                  'feat_abc',
+                ], workingDirectory: d.path),
+              ).thenAnswer((_) async => ProcessResult(0, 128, '', 'no remote'));
+
+              await doPublish.exec(
+                directory: d,
+                ggLog: ggLog,
+                askBeforePublishing: false,
+                deleteFeatureBranch: true,
+              );
+
+              verify(
+                () => processWrapper.run('git', [
+                  'push',
+                  'origin',
+                  '--delete',
+                  'feat_abc',
+                ], workingDirectory: d.path),
+              ).called(1);
             },
           );
 

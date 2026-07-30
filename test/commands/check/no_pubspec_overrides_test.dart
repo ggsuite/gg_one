@@ -1,0 +1,85 @@
+// @license
+// Copyright (c) 2019 - 2024 Dr. Gabriel Gatzsche. All Rights Reserved.
+//
+// Use of this source code is governed by terms that can be
+// found in the LICENSE file in the root of this package.
+
+import 'dart:io';
+
+import 'package:args/command_runner.dart';
+import 'package:gg_one/gg_one.dart';
+import 'package:path/path.dart';
+import 'package:test/test.dart';
+
+void main() {
+  final messages = <String>[];
+  late NoPubspecOverrides noPubspecOverrides;
+  late CommandRunner<void> runner;
+  late Directory d;
+
+  Future<void> run() => runner.run(['no-pubspec-overrides', '--input', d.path]);
+
+  void writePubspec() {
+    File(join(d.path, 'pubspec.yaml')).writeAsStringSync('name: test\n');
+  }
+
+  void writeOverrides() {
+    File(join(d.path, 'pubspec_overrides.yaml')).writeAsStringSync(
+      'dependency_overrides:\n  gg_log:\n    path: ../gg_log',
+    );
+  }
+
+  setUp(() {
+    messages.clear();
+    noPubspecOverrides = NoPubspecOverrides(ggLog: messages.add);
+    runner = CommandRunner<void>('test', 'test')
+      ..addCommand(noPubspecOverrides);
+    d = Directory.systemTemp.createTempSync('no_pubspec_overrides_test');
+  });
+
+  tearDown(() {
+    d.deleteSync(recursive: true);
+  });
+
+  group('NoPubspecOverrides', () {
+    test('example instance is available', () {
+      expect(NoPubspecOverrides.example(), isA<NoPubspecOverrides>());
+    });
+
+    test('succeeds when no pubspec_overrides.yaml exists', () async {
+      writePubspec();
+      await run();
+      expect(messages.last, contains('✅ No pubspec_overrides.yaml'));
+    });
+
+    test('throws when a pubspec_overrides.yaml exists', () async {
+      writePubspec();
+      writeOverrides();
+      await expectLater(
+        run(),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            allOf(
+              contains('pubspec_overrides.yaml exists'),
+              contains('Delete'),
+            ),
+          ),
+        ),
+      );
+      expect(messages.last, contains('❌ No pubspec_overrides.yaml'));
+    });
+
+    test('skips for non Dart projects', () async {
+      File(join(d.path, 'package.json')).writeAsStringSync('{"name": "x"}');
+      writeOverrides();
+      await run();
+      expect(messages, isEmpty);
+    });
+
+    test('the mock can be used', () {
+      expect(MockNoPubspecOverrides(), isA<NoPubspecOverrides>());
+    });
+  });
+}

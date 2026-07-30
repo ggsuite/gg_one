@@ -102,6 +102,8 @@ void main() {
         expect(messages[count++], yellow('Can publish?'));
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('Current branch is feature branch'));
+        expect(messages[count++], contains('⌛️ No pubspec_overrides.yaml'));
+        expect(messages[count++], contains('✅ No pubspec_overrides.yaml'));
         expect(messages[count++], contains('⌛️ CHANGELOG.md has right format'));
         expect(messages[count++], contains('✅ CHANGELOG.md has right format'));
         expect(messages[count++], 'didCommit');

@@ -171,6 +171,12 @@ class DoPublish extends DirCommand<void> {
       );
     }
 
+    // Step 0b: A pubspec_overrides.yaml redirects dependencies to local
+    // working copies and must not be in effect while publishing. Delete it
+    // before anything else — before »can publish« checks for it, and before
+    // the first bookkeeping commit could carry it into the release.
+    _deletePubspecOverrides(directory: directory, ggLog: ggLog);
+
     // Step 1: Read the runtime .gg/.gg-publish.json (config + progress).
     final runtimeFile = DoConfigurePublish.configFileFor(directory);
     if (cliContinue && !runtimeFile.existsSync()) {
@@ -948,13 +954,23 @@ class DoPublish extends DirCommand<void> {
   bool _supportsChangeLog(Directory directory) =>
       checkProjectType(directory).isDartFamily;
 
-  /// Deletes the provided feature branch on the remote. Idempotent: an
-  /// already-deleted remote ref (a resumed run) is tolerated.
+  /// Deletes the provided feature branch on the remote. Idempotent: the
+  /// remote ref is looked up first, so a branch that is already gone (a
+  /// resumed run, or a pull-request merge that deleted the source branch)
+  /// is silently skipped instead of producing a misleading warning.
   Future<void> _deleteFeatureBranch({
     required Directory directory,
     required String branchName,
     required bool verbose,
   }) async {
+    if (!await _remoteBranchExists(
+      directory: directory,
+      branchName: branchName,
+      verbose: verbose,
+    )) {
+      return;
+    }
+
     final result = await _runProcess(
       'git',
       <String>['push', 'origin', '--delete', branchName],
@@ -973,6 +989,45 @@ class DoPublish extends DirCommand<void> {
     }
 
     ggLog(green('Deleted remote feature branch $branchName.'));
+  }
+
+  /// Deletes a `pubspec_overrides.yaml` left over from local development, so
+  /// the package is published against the versions on pub.dev instead of the
+  /// developer's working copies. Does nothing when there is none.
+  void _deletePubspecOverrides({
+    required Directory directory,
+    required GgLog ggLog,
+  }) {
+    final file = File(join(directory.path, NoPubspecOverrides.fileName));
+    if (!file.existsSync()) {
+      return;
+    }
+
+    file.deleteSync();
+    ggLog(yellow('Deleted ${NoPubspecOverrides.fileName}.'));
+  }
+
+  /// Returns whether [branchName] still exists on the remote. A failing
+  /// lookup (no network, no remote) is treated as »exists« so the actual
+  /// delete decides and reports the real error.
+  Future<bool> _remoteBranchExists({
+    required Directory directory,
+    required String branchName,
+    required bool verbose,
+  }) async {
+    final result = await _runProcess(
+      'git',
+      <String>['ls-remote', '--heads', 'origin', branchName],
+      directory: directory,
+      ggLog: ggLog,
+      verbose: verbose,
+    );
+
+    if (result.exitCode != 0) {
+      return true;
+    }
+
+    return result.stdout.toString().trim().isNotEmpty;
   }
 
   /// Wrapper around `_processWrapper.run` that prints the command in verbose
