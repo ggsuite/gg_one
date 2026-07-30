@@ -51,7 +51,11 @@ class DoCommit extends DirCommand<void> {
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
     GgState? state,
     cl.Add? addToChangeLog,
+    IsFeatureBranch? isFeatureBranch,
+    LocalBranch? localBranch,
   }) : _processWrapper = processWrapper,
+       _isFeatureBranch = isFeatureBranch ?? IsFeatureBranch(ggLog: ggLog),
+       _localBranch = localBranch ?? LocalBranch(ggLog: ggLog),
        _isGitCommitted = isCommitted ?? IsCommitted(ggLog: ggLog),
        _canCommit = canCommit ?? CanCommit(ggLog: ggLog),
        _commit = commit ?? Commit(ggLog: ggLog),
@@ -93,6 +97,10 @@ class DoCommit extends DirCommand<void> {
 
     // Does directory exist?
     await check(directory: directory);
+
+    // Commits must never be created on the default branch. Not even with
+    // --force, because the branch is not something the checks can fix.
+    await _checkIsFeatureBranch(directory: directory);
 
     // Is everything committed?
     final isCommittedViaGit = await _isGitCommitted.get(
@@ -192,6 +200,8 @@ class DoCommit extends DirCommand<void> {
 
   // ...........................................................................
   final GgProcessWrapper _processWrapper;
+  final IsFeatureBranch _isFeatureBranch;
+  final LocalBranch _localBranch;
   final IsCommitted _isGitCommitted;
   final CanCommit _canCommit;
   final Commit _commit;
@@ -219,6 +229,29 @@ class DoCommit extends DirCommand<void> {
       help: 'Commit without running checks (analyze/format/tests).',
       defaultsTo: false,
       negatable: true,
+    );
+  }
+
+  // ...........................................................................
+  /// Throws when the current branch is »main« or »master«.
+  Future<void> _checkIsFeatureBranch({required Directory directory}) async {
+    final isFeatureBranch = await _isFeatureBranch.get(
+      directory: directory,
+      ggLog: (_) {}, // coverage:ignore-line
+    );
+
+    if (isFeatureBranch) {
+      return;
+    }
+
+    final branch = await _localBranch.get(directory: directory, ggLog: (_) {});
+
+    final where = branch.isEmpty ? 'a detached HEAD' : 'branch »$branch«';
+
+    throw Exception(
+      '${red('Cannot commit on $where.\n')}'
+      '${blue('Switch to a feature branch, e.g. '
+      '${yellow('gg do checkout <ticket>')}')}',
     );
   }
 
