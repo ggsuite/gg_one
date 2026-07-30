@@ -26,6 +26,7 @@ class Checks {
     CheckPackageJsonScripts? packageJsonScripts,
     Pana? pana,
     NpmLoggedIn? npmLoggedIn,
+    NoPubspecOverrides? noPubspecOverrides,
     IsPushed? isPushed,
     IsCommitted? isCommitted,
     IsVersioned? isVersioned,
@@ -40,6 +41,8 @@ class Checks {
            packageJsonScripts ?? CheckPackageJsonScripts(ggLog: ggLog),
        pana = pana ?? Pana(ggLog: ggLog),
        npmLoggedIn = npmLoggedIn ?? NpmLoggedIn(ggLog: ggLog),
+       noPubspecOverrides =
+           noPubspecOverrides ?? NoPubspecOverrides(ggLog: ggLog),
        isPushed = isPushed ?? IsPushed(ggLog: ggLog),
        isCommitted = isCommitted ?? IsCommitted(ggLog: ggLog),
        isVersioned = isVersioned ?? IsVersioned(ggLog: ggLog),
@@ -75,6 +78,9 @@ class Checks {
   /// The npm-logged-in command (npm-published TypeScript packages only)
   final NpmLoggedIn npmLoggedIn;
 
+  /// The no-pubspec-overrides check (Dart/Flutter packages only)
+  final NoPubspecOverrides noPubspecOverrides;
+
   /// The isPushed command
   final IsPushed isPushed;
 
@@ -106,6 +112,7 @@ class Checks {
       packageJsonScripts,
       pana,
       npmLoggedIn,
+      noPubspecOverrides,
       isPushed,
       isCommitted,
       isVersioned,

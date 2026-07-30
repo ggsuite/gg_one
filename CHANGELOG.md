@@ -1,5 +1,11 @@
 # Changelog
 
+## 11.2.4 - 2026-07-30
+
+### Removed
+
+- Don't delete branches twice. Remove pubspec_override.yaml before publishing
+
 ## 11.2.3 - 2026-07-30
 
 ### Changed

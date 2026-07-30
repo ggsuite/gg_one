@@ -24,9 +24,11 @@ class CanPublish extends CommandCluster {
     HasRightFormat? changeLogHasRightFormat,
     IsFeatureBranch? isFeatureBranch,
     NpmLoggedIn? npmLoggedIn,
+    NoPubspecOverrides? noPubspecOverrides,
   }) : super(
          commands: [
            isFeatureBranch ?? IsFeatureBranch(ggLog: ggLog),
+           noPubspecOverrides ?? NoPubspecOverrides(ggLog: ggLog),
            changeLogHasRightFormat ?? HasRightFormat(ggLog: ggLog),
            didCommit ?? DidCommit(ggLog: ggLog),
            pana ?? Pana(ggLog: ggLog, publishedOnly: true),
