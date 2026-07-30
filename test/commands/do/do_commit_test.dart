@@ -10,10 +10,48 @@ import 'package:gg_one/src/commands/can/can_commit.dart';
 import 'package:gg_one/src/commands/do/do_commit.dart';
 import 'package:gg_changelog/gg_changelog.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
+
+// .............................................................................
+/// Checks out an existing branch.
+Future<void> checkout(Directory d, String branch) =>
+    Checkout(ggLog: _noLog).get(directory: d, ggLog: _noLog, branch: branch);
+
+/// Returns true when everything in [d] is committed.
+Future<bool> isCommitted(Directory d) =>
+    IsCommitted(ggLog: _noLog).get(directory: d, ggLog: _noLog);
+
+void _noLog(String _) {}
+
+// .............................................................................
+/// Renames the current branch. gg_git has no command for this.
+Future<void> renameBranch(Directory d, String branch) async {
+  final result = await Process.run('git', [
+    'branch',
+    '-m',
+    branch,
+  ], workingDirectory: d.path);
+
+  if (result.exitCode != 0) {
+    throw Exception('Could not rename branch: ${result.stderr}');
+  }
+}
+
+/// Detaches HEAD from the current branch. gg_git has no command for this.
+Future<void> detachHead(Directory d) async {
+  final result = await Process.run('git', [
+    'checkout',
+    '--detach',
+  ], workingDirectory: d.path);
+
+  if (result.exitCode != 0) {
+    throw Exception('Could not detach HEAD: ${result.stderr}');
+  }
+}
 
 void main() {
   late Directory d;
@@ -42,6 +80,10 @@ void main() {
     messages.clear();
     d = await Directory.systemTemp.createTemp();
     await initGit(d);
+
+    // »gg do commit« refuses to run on the default branch
+    await createBranch(d, 'feature');
+
     await addAndCommitSampleFile(d);
 
     // Insert CHANGELOG.md
@@ -498,6 +540,61 @@ void main() {
             exception,
             'Exception: No »repository:« found in pubspec.yaml',
           );
+        });
+
+        group('when commits are not allowed on the current branch', () {
+          Future<String> execAndCatch({bool? force}) async {
+            await addFileWithoutCommitting(d);
+
+            late String exception;
+
+            try {
+              await doCommit.exec(
+                directory: d,
+                ggLog: ggLog,
+                message: 'My message',
+                logType: LogType.fixed,
+                force: force,
+              );
+            } catch (e) {
+              exception = e.toString();
+            }
+
+            // Nothing was committed
+            expect(await isCommitted(d), isFalse);
+
+            return exception;
+          }
+
+          test('- »main«', () async {
+            await checkout(d, 'main');
+
+            final exception = await execAndCatch();
+            expect(exception, contains('Cannot commit on branch »main«.'));
+            expect(exception, contains('gg do checkout <ticket>'));
+          });
+
+          test('- »master«', () async {
+            await checkout(d, 'main');
+            await renameBranch(d, 'master');
+
+            final exception = await execAndCatch();
+            expect(exception, contains('Cannot commit on branch »master«.'));
+          });
+
+          test('- »main«, even with --force', () async {
+            await checkout(d, 'main');
+
+            final exception = await execAndCatch(force: true);
+            expect(exception, contains('Cannot commit on branch »main«.'));
+          });
+
+          test('- a detached HEAD', () async {
+            await detachHead(d);
+
+            final exception = await execAndCatch();
+            expect(exception, contains('Cannot commit on a detached HEAD.'));
+          });
         });
       });
 

@@ -65,7 +65,22 @@ void main() async {
     mockCanPush(true);
     doPush = DoPush(ggLog: ggLog, canPush: canPush);
     canCommit = MockCanCommit();
-    doCommit = DoCommit(ggLog: ggLog, canCommit: canCommit);
+
+    // This test repo lives on »main«, where »gg do commit« refuses to run.
+    // Branch policy is not what these tests are about.
+    final isFeatureBranch = MockIsFeatureBranch();
+    when(
+      () => isFeatureBranch.get(
+        directory: any(named: 'directory'),
+        ggLog: any(named: 'ggLog'),
+      ),
+    ).thenAnswer((_) async => true);
+
+    doCommit = DoCommit(
+      ggLog: ggLog,
+      canCommit: canCommit,
+      isFeatureBranch: isFeatureBranch,
+    );
     isPushed = IsPushed(ggLog: ggLog);
     ggJson = File(join(dLocal.path, '.gg', '.gg.json'));
 

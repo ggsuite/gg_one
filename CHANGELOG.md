@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- No commit in main
+
 ## 11.2.2 - 2026-07-29
 
 ### Changed
