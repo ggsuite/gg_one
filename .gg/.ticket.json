@@ -1,0 +1,10 @@
+{
+  "issue_id": "23_no_commit_in_main",
+  "description": "No commit in main",
+  "repositories": [
+    {
+      "name": "gg_one",
+      "url": "git@github.com:ggsuite/gg_one.git"
+    }
+  ]
+}
