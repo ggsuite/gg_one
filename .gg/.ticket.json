@@ -1,0 +1,10 @@
+{
+  "issue_id": "36_don_allow_committing_in_master_folder",
+  "description": "Don't allow gg do commit in master",
+  "repositories": [
+    {
+      "name": "gg_one",
+      "url": "git@github.com:ggsuite/gg_one.git"
+    }
+  ]
+}
