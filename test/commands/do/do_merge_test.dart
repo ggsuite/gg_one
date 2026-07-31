@@ -354,7 +354,8 @@ void main() {
           [
             'commit',
             '-m',
-            'Commit pending changes before merge (e.g. release formatting)',
+            '#gg: Commit pending changes before merge '
+                '(e.g. release formatting)',
           ],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
@@ -392,7 +393,8 @@ void main() {
           [
             'commit',
             '-m',
-            'Commit pending changes before merge (e.g. release formatting)',
+            '#gg: Commit pending changes before merge '
+                '(e.g. release formatting)',
           ],
           runInShell: true,
           workingDirectory: d.path,
@@ -543,7 +545,7 @@ void main() {
       when(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', 'Remove .gg/ticket.json before merge'],
+          ['commit', '-m', '#gg: Remove .gg/ticket.json before merge'],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
         ),
@@ -573,7 +575,7 @@ void main() {
       verify(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', 'Remove .gg/ticket.json before merge'],
+          ['commit', '-m', '#gg: Remove .gg/ticket.json before merge'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -603,7 +605,7 @@ void main() {
       when(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', 'Remove .gg/ticket.json before merge'],
+          ['commit', '-m', '#gg: Remove .gg/ticket.json before merge'],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
         ),
@@ -912,7 +914,8 @@ void main() {
           [
             'commit',
             '-m',
-            'Commit pending changes before merge (e.g. release formatting)',
+            '#gg: Commit pending changes before merge '
+                '(e.g. release formatting)',
           ],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
@@ -957,7 +960,8 @@ void main() {
           [
             'commit',
             '-m',
-            'Commit pending changes before merge (e.g. release formatting)',
+            '#gg: Commit pending changes before merge '
+                '(e.g. release formatting)',
           ],
           runInShell: true,
           workingDirectory: d.path,

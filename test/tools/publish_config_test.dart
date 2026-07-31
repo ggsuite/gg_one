@@ -515,10 +515,11 @@ void main() {
       expect(allowedVersionIncrements, equals({'patch', 'minor', 'major'}));
     });
 
-    test('allowedPublishStatuses covers exactly pending/published/failed', () {
+    test('allowedPublishStatuses covers exactly '
+        'pending/published/failed/skipped', () {
       expect(
         allowedPublishStatuses,
-        equals({'pending', 'published', 'failed'}),
+        equals({'pending', 'published', 'failed', 'skipped'}),
       );
     });
 
@@ -542,6 +543,23 @@ void main() {
           fallbackDir: tmp.path,
         );
         expect(cfg.repos['foo']!.status, 'published');
+      });
+
+      test('parses the skipped per-repo status', () async {
+        await writeConfig('release.json', '''
+{
+  "version_increment": "patch",
+  "merge_message": "x",
+  "repos": {
+    "foo": { "status": "skipped" }
+  }
+}
+''');
+        final cfg = PublishConfig.load(
+          configArg: 'release.json',
+          fallbackDir: tmp.path,
+        );
+        expect(cfg.repos['foo']!.status, 'skipped');
       });
 
       test('rejects an unknown status with an enumerating error', () async {

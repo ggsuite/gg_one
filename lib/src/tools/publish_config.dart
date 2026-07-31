@@ -22,8 +22,15 @@ const Set<String> allowedReleaseChannels = {'stable', 'rc'};
 /// Allowed values for the per-repo `status` progress marker written into a
 /// `.gg-publish.json` file while `gg_multi do publish` runs. `published` means
 /// the repo finished publishing and may be skipped on a `--continue` re-run;
+/// `skipped` means the run decided the repo does not need a release (no
+/// breaking dependency bump and no manual changes) and left it untouched;
 /// `pending`/`failed` mean it still has to be (re-)published.
-const Set<String> allowedPublishStatuses = {'pending', 'published', 'failed'};
+const Set<String> allowedPublishStatuses = {
+  'pending',
+  'published',
+  'failed',
+  'skipped',
+};
 
 /// Allowed entries of the repo-level `done_steps` progress list written into
 /// `<repo>/.gg/gg-publish.json` while `gg do publish` runs. Steps not listed

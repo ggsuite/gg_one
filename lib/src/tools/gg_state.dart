@@ -333,7 +333,7 @@ class GgState {
     // - If everything was committed and pushed, create a new commit
     // - If everything was committed but not pushed, ammend to last commit
     final message = everythingWasPushed
-        ? 'Add: .gg/gg.json check results'
+        ? '#gg: Add .gg/gg.json check results'
         : await _headMessage.get(
             directory: directory,
             ggLog: ggLog,

@@ -95,7 +95,7 @@ class EnsurePublishConfigIgnored {
     final result = await _processWrapper.run('git', [
       'commit',
       '-m',
-      'Ignore $entry publish runtime file',
+      '#gg: Ignore $entry publish runtime file',
       '--',
       ...paths,
     ], workingDirectory: directory.path);
