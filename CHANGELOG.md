@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 11.2.6 - 2026-07-31
 
 ### Changed
 
