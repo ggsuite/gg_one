@@ -621,7 +621,7 @@ void main() {
           },
         );
         // Parent `.gg/` does not exist yet — save() must create it.
-        final file = File(p.join(tmp.path, '.gg', '.gg-publish.json'));
+        final file = File(p.join(tmp.path, '.gg', 'gg-publish.json'));
         await cfg.save(file: file);
         expect(file.existsSync(), isTrue);
 

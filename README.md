@@ -84,7 +84,7 @@ All interactive decisions are made **up front**: when the command is
 started without a resolved configuration it runs
 `gg one do configure-publish`, which asks for the version increment
 (`patch` / `minor` / `major`) and the merge message and writes them to
-`<repo>/.gg/.gg-publish.json`. Pass `-m <message>` to skip the
+`<repo>/.gg/gg-publish.json`. Pass `-m <message>` to skip the
 merge-message prompt. You can also run `gg one do configure-publish`
 on its own to prepare the file ahead of time. The file is gitignored
 automatically (the `.gitignore` entry is appended and committed once
@@ -93,7 +93,7 @@ per repo).
 ### Resuming a failed publish
 
 While the publish runs, its per-step progress (`done_steps`) is
-recorded in the same `.gg/.gg-publish.json`; the file is deleted after
+recorded in the same `.gg/gg-publish.json`; the file is deleted after
 a fully successful publish. If a step fails partway through — even the
 final version tag — fix the cause and resume with:
 

@@ -16,7 +16,7 @@ void main() {
       expect(
         () => throwWhenNotATerminal(
           'the version-increment prompt',
-          'provide version_increment via .gg/.gg-publish.json',
+          'provide version_increment via .gg/gg-publish.json',
           hasTerminal: () => false,
         ),
         throwsA(
@@ -37,7 +37,7 @@ void main() {
       expect(
         () => throwWhenNotATerminal(
           'the version-increment prompt',
-          'provide version_increment via .gg/.gg-publish.json',
+          'provide version_increment via .gg/gg-publish.json',
           hasTerminal: () => true,
         ),
         returnsNormally,

@@ -124,7 +124,7 @@ class DoMerge extends DirCommand<void> {
 
     // The publish step runs build/test (incl. formatters like
     // »prettier --write«) after the last commit, and gg writes run state into
-    // the tracked ».gg/.gg.json«. Commit those leftovers first, otherwise the
+    // the tracked ».gg/gg.json«. Commit those leftovers first, otherwise the
     // upcoming »git checkout <main>« aborts with "local changes would be
     // overwritten by checkout" and the release fails halfway through.
     await _commitPendingChanges(
@@ -180,7 +180,7 @@ class DoMerge extends DirCommand<void> {
   /// before the merge switches branches. During a release the publish step
   /// can leave tracked files dirty after the last commit — e.g. a
   /// `prettier --write` in the build→test chain reformats `pubspec.yaml`, or
-  /// gg records run state in the tracked `.gg/.gg.json` — which makes
+  /// gg records run state in the tracked `.gg/gg.json` — which makes
   /// `git checkout <main>` abort with "local changes would be overwritten by
   /// checkout". These are post-check release artifacts, so committing them
   /// keeps the merge robust instead of failing mid-publish. Untracked files
@@ -233,40 +233,55 @@ class DoMerge extends DirCommand<void> {
     return true;
   }
 
-  /// Removes the `.gg/.ticket.json` marker (force-added by `gg do add`) before
+  /// Removes the `.gg/ticket.json` marker (force-added by `gg do add`) before
   /// merging and commits the removal onto the feature branch, so the marker
   /// never reaches the main branch. A no-op when the marker is absent.
+  ///
+  /// The hidden `.gg/.ticket.json` of the days before the files inside `.gg`
+  /// were unhidden is removed alongside it: a branch created back then still
+  /// carries it, and it must not reach the main branch either.
   Future<void> _removeTicketJson({
     required Directory directory,
     required GgLog ggLog,
     required bool verbose,
   }) async {
-    final ticketJson = File(p.join(directory.path, '.gg', '.ticket.json'));
-    if (!ticketJson.existsSync()) {
+    final markers = <File>[
+      File(p.join(directory.path, '.gg', 'ticket.json')),
+      File(p.join(directory.path, '.gg', '.ticket.json')),
+    ].where((f) => f.existsSync()).toList();
+
+    if (markers.isEmpty) {
       return;
     }
 
     await _runGitCommand(
       directory: directory,
-      arguments: const ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
-      actionDescription: 'remove .gg/.ticket.json',
+      arguments: <String>[
+        'rm',
+        '-f',
+        '--ignore-unmatch',
+        ...markers.map((f) => '.gg/${p.basename(f.path)}'),
+      ],
+      actionDescription: 'remove .gg/ticket.json',
       ggLog: ggLog,
       verbose: verbose,
     );
     // `git rm` removes a tracked file; delete a still-present (untracked) copy
     // explicitly so the worktree is clean either way.
-    if (ticketJson.existsSync()) {
-      ticketJson.deleteSync();
+    for (final marker in markers) {
+      if (marker.existsSync()) {
+        marker.deleteSync();
+      }
     }
 
     await _runGitCommand(
       directory: directory,
-      arguments: const ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
-      actionDescription: 'commit removal of .gg/.ticket.json',
+      arguments: const ['commit', '-m', 'Remove .gg/ticket.json before merge'],
+      actionDescription: 'commit removal of .gg/ticket.json',
       ggLog: ggLog,
       verbose: verbose,
     );
-    ggLog(darkGray('Removed .gg/.ticket.json before merge.'));
+    ggLog(darkGray('Removed .gg/ticket.json before merge.'));
   }
 
   /// Merges the feature branch through an auto-complete pull request and blocks
@@ -442,7 +457,7 @@ class DoMerge extends DirCommand<void> {
 
   /// Fast-forwards the local main branch to `origin/<main>` — robust against
   /// the divergence gg itself creates: after a merge, gg's state bookkeeping
-  /// commits `.gg/.gg.json` onto main, and in the pull-request flow main is
+  /// commits `.gg/gg.json` onto main, and in the pull-request flow main is
   /// never pushed. The next release then finds main and `origin/<main>`
   /// diverged, and a plain »git pull« aborts with "You have divergent
   /// branches". After a pull-request merge origin is the truth for main:

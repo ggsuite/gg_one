@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Don't hide files in .gg folder
+
 ## 11.2.5 - 2026-07-30
 
 ### Fixed

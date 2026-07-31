@@ -194,7 +194,7 @@ void main() {
       await ggDir.create(recursive: true);
     }
 
-    await File(join(ggDir.path, '.gg.json')).writeAsString(
+    await File(join(ggDir.path, 'gg.json')).writeAsString(
       '{"canCommit":{"success":{"hash":$successHash}},'
       '"doCommit":{"success":{"hash":$successHash}},'
       '"canPush":{"success":{"hash":$successHash}},'
@@ -267,7 +267,7 @@ void main() {
     );
     await pushLocalChangesUpstream(d, 'feat_abc');
 
-    // Create a .gg/.gg.json that has all preconditions for publishing
+    // Create a .gg/gg.json that has all preconditions for publishing
     needsChangeHash = 12345;
 
     // Mock publishing
@@ -440,7 +440,7 @@ void main() {
                         ).get(directory: d, ggLog: ggLog);
                         expect(headMessage, 'Ticket merge message');
 
-                        // Did .gg/.gg.json mark commit, push and publish done?
+                        // Did .gg/gg.json mark commit, push and publish done?
                         expect(
                           await DidCommit(
                             ggLog: ggLog,
@@ -561,7 +561,7 @@ void main() {
             // the release commits existed. Without a fresh doPush state on
             // the release commit, »gg did push« fails on a CI checkout.
             await DirectJson.writeFile(
-              file: File(join(d.path, '.gg', '.gg.json')),
+              file: File(join(d.path, '.gg', 'gg.json')),
               path: 'doPush/success/hash',
               value: needsChangeHash,
             );
@@ -646,7 +646,7 @@ void main() {
               ).get(directory: d, ggLog: ggLog);
               expect(headMessage, 'Ticket merge message');
 
-              // Did .gg/.gg.json mark commit, push and publish done?
+              // Did .gg/gg.json mark commit, push and publish done?
               expect(
                 await DidCommit(ggLog: ggLog).get(directory: d, ggLog: ggLog),
                 isTrue,
@@ -665,13 +665,17 @@ void main() {
             // repo and remembers the original value. Publishing such a repo
             // standalone would skip the registry upload and merge the
             // suppressed manifest into main.
-            Future<void> writeBackup(String content) async {
+            Future<void> writeBackup(
+              String content, {
+              bool hidden = false,
+            }) async {
               final ggDir = Directory(join(d.path, '.gg'));
               if (!ggDir.existsSync()) {
                 await ggDir.create(recursive: true);
               }
+              const name = 'gg_localize_refs_publish_to_backup.json';
               await File(
-                join(ggDir.path, '.gg_localize_refs_publish_to_backup.json'),
+                join(ggDir.path, hidden ? '.$name' : name),
               ).writeAsString(content);
             }
 
@@ -696,6 +700,33 @@ void main() {
                 ),
               );
             });
+
+            test(
+              'also when the backup still carries the hidden name',
+              () async {
+                // A ticket repo checked out before the files inside .gg were
+                // unhidden must not slip past the guard.
+                await writeBackup(
+                  '{"publish_to_original": null}',
+                  hidden: true,
+                );
+
+                await expectLater(
+                  doPublish.exec(
+                    directory: d,
+                    ggLog: ggLog,
+                    deleteFeatureBranch: false,
+                  ),
+                  throwsA(
+                    isA<Exception>().having(
+                      (e) => e.toString(),
+                      'message',
+                      contains('gg multi do publish'),
+                    ),
+                  ),
+                );
+              },
+            );
 
             test('but publishes a genuinely private package', () async {
               // A package that publishes nowhere outside the ticket either
@@ -1108,7 +1139,7 @@ void main() {
                 askBeforePublishing: false,
               );
               // Config-only runtime file without the new field.
-              File(join(d.path, '.gg', '.gg-publish.json')).writeAsStringSync(
+              File(join(d.path, '.gg', 'gg-publish.json')).writeAsStringSync(
                 '{"version_increment":"patch","merge_message":"msg"}',
               );
 
@@ -1160,7 +1191,7 @@ void main() {
 
           test('reads delete_feature_branch from the config file', () async {
             mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-            File(join(d.path, '.gg', '.gg-publish.json')).writeAsStringSync(
+            File(join(d.path, '.gg', 'gg-publish.json')).writeAsStringSync(
               '{"version_increment":"patch","merge_message":"msg",'
               '"delete_feature_branch":true}',
             );
@@ -2014,7 +2045,7 @@ void main() {
       late File runtimeFile;
 
       setUp(() {
-        runtimeFile = File(join(d.path, '.gg', '.gg-publish.json'));
+        runtimeFile = File(join(d.path, '.gg', 'gg-publish.json'));
       });
 
       void stubGit(List<String> args, {int exitCode = 0}) {

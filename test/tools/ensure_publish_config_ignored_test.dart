@@ -63,11 +63,11 @@ void main() {
 
       expect(changed, isTrue);
       final content = File(join(d.path, '.gitignore')).readAsStringSync();
-      expect(content, '.gg/.gg-publish.json\n');
+      expect(content, '.gg/gg-publish.json\n');
       // The change was committed — the working tree is clean again.
       expect(await gitStatus(), isEmpty);
-      expect(await headMessage(), contains('Ignore .gg/.gg-publish.json'));
-      expect(messages, contains('Added .gg/.gg-publish.json to .gitignore.'));
+      expect(await headMessage(), contains('Ignore .gg/gg-publish.json'));
+      expect(messages, contains('Added .gg/gg-publish.json to .gitignore.'));
     });
 
     test(
@@ -81,7 +81,7 @@ void main() {
         final changed = await ensure.ensure(directory: d);
 
         expect(changed, isTrue);
-        expect(gitignore.readAsStringSync(), 'build/\n.gg/.gg-publish.json\n');
+        expect(gitignore.readAsStringSync(), 'build/\n.gg/gg-publish.json\n');
         expect(await gitStatus(), isEmpty);
       },
     );

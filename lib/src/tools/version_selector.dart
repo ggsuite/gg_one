@@ -27,7 +27,7 @@ class DefaultInteractAdapter implements InteractAdapter {
   }) async {
     throwWhenNotATerminal(
       'the version-increment prompt',
-      'provide version_increment via .gg/.gg-publish.json '
+      'provide version_increment via .gg/gg-publish.json '
           '(gg do configure-publish) or --config',
     );
     final select = Select(prompt: message, options: options);

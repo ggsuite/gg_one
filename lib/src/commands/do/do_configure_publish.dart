@@ -27,7 +27,7 @@ typedef EditMessage = Future<String?> Function(String initialMessage);
 /// Typedef for confirming feature branch deletion.
 typedef ConfirmDeleteFeatureBranch = bool Function(String branchName);
 
-/// Interactively builds the `.gg/.gg-publish.json` publish configuration for
+/// Interactively builds the `.gg/gg-publish.json` publish configuration for
 /// the current repository: version increment (patch/minor/major) plus merge
 /// message. `gg do publish` runs this automatically when it is started
 /// without a configuration, so every interactive decision is made up front —
@@ -39,7 +39,7 @@ class DoConfigurePublish extends DirCommand<void> {
     required super.ggLog,
     super.name = 'configure-publish',
     super.description =
-        'Interactively create the .gg/.gg-publish.json publish '
+        'Interactively create the .gg/gg-publish.json publish '
         'configuration for the current repository.',
     VersionSelector? versionSelector,
     FromPubspec? fromPubspec,
@@ -67,9 +67,22 @@ class DoConfigurePublish extends DirCommand<void> {
   final LocalBranch _localBranch;
   final EnsurePublishConfigIgnored _ensureIgnored;
 
-  /// Returns the `.gg/.gg-publish.json` file for [repoDir].
-  static File configFileFor(Directory repoDir) =>
-      File(join(repoDir.path, '.gg', '.gg-publish.json'));
+  /// Returns the `.gg/gg-publish.json` file for [repoDir].
+  ///
+  /// The files inside `.gg` are no longer hidden. A publish that was
+  /// interrupted before that change left its progress under the old
+  /// `.gg/.gg-publish.json`; renaming it here keeps `--continue` working
+  /// across the upgrade instead of reporting "nothing to continue".
+  static File configFileFor(Directory repoDir) {
+    final file = File(join(repoDir.path, '.gg', 'gg-publish.json'));
+    final legacy = File(join(repoDir.path, '.gg', '.gg-publish.json'));
+
+    if (!file.existsSync() && legacy.existsSync()) {
+      legacy.renameSync(file.path);
+    }
+
+    return file;
+  }
 
   @override
   Future<void> get({required Directory directory, required GgLog ggLog}) async {
@@ -86,8 +99,8 @@ class DoConfigurePublish extends DirCommand<void> {
   }
 
   /// Builds the publish configuration for [directory], writes it to
-  /// `<repo>/.gg/.gg-publish.json` and returns it. Before the file is
-  /// written, `.gg/.gg-publish.json` is added to the repository's
+  /// `<repo>/.gg/gg-publish.json` and returns it. Before the file is
+  /// written, `.gg/gg-publish.json` is added to the repository's
   /// `.gitignore` (and that change committed) so the runtime file never
   /// shows up as an untracked file.
   ///
@@ -224,7 +237,7 @@ class DoConfigurePublish extends DirCommand<void> {
   static Future<String?> _defaultEditMessage(String initialMessage) async {
     throwWhenNotATerminal(
       'the merge message prompt',
-      'pass -m <message> or provide a .gg/.gg-publish.json (--config)',
+      'pass -m <message> or provide a .gg/gg-publish.json (--config)',
     );
     return Input(
       prompt: 'Edit merge message',
@@ -239,7 +252,7 @@ class DoConfigurePublish extends DirCommand<void> {
     throwWhenNotATerminal(
       'the delete-feature-branch prompt',
       'pass --delete-feature-branch / --no-delete-feature-branch or set '
-          'delete_feature_branch in .gg/.gg-publish.json',
+          'delete_feature_branch in .gg/gg-publish.json',
     );
     final selection = Select(
       prompt: 'Delete feature branch $branchName on origin?',
