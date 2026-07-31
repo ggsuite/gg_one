@@ -9,4 +9,4 @@
 // coverage:ignore-file
 
 /// The version of the `gg_one` package.
-const String ggOneVersion = '11.2.6';
+const String ggOneVersion = '11.3.0';

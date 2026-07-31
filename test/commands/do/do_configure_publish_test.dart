@@ -101,7 +101,7 @@ void main() {
 
         // The runtime file was gitignored before it was written.
         final gitignore = File(join(d.path, '.gitignore')).readAsStringSync();
-        expect(gitignore, contains('.gg/.gg-publish.json'));
+        expect(gitignore, contains('.gg/gg-publish.json'));
         expect(messages.join('\n'), contains('Wrote publish configuration'));
       },
     );
@@ -275,6 +275,37 @@ void main() {
           expect(adapter.capturedOptions.first.first, contains('3.1.4'));
         },
       );
+    });
+
+    group('configFileFor()', () {
+      test('renames the hidden runtime file of an interrupted publish', () {
+        // A publish that stopped before the files inside .gg were unhidden
+        // left its progress behind - --continue has to find it.
+        final ggDir = Directory(join(d.path, '.gg'))..createSync();
+        final legacy = File(join(ggDir.path, '.gg-publish.json'))
+          ..writeAsStringSync('{"done_steps":["prepare_version"]}');
+
+        final file = DoConfigurePublish.configFileFor(d);
+
+        expect(file.path, join(ggDir.path, 'gg-publish.json'));
+        expect(file.readAsStringSync(), '{"done_steps":["prepare_version"]}');
+        expect(legacy.existsSync(), isFalse);
+      });
+
+      test('keeps the current runtime file when a hidden one also exists', () {
+        final ggDir = Directory(join(d.path, '.gg'))..createSync();
+        File(
+          join(ggDir.path, '.gg-publish.json'),
+        ).writeAsStringSync('{"merge_message":"legacy"}');
+        File(
+          join(ggDir.path, 'gg-publish.json'),
+        ).writeAsStringSync('{"merge_message":"current"}');
+
+        expect(
+          DoConfigurePublish.configFileFor(d).readAsStringSync(),
+          '{"merge_message":"current"}',
+        );
+      });
     });
 
     test('refuses to clobber the progress of an unfinished publish', () async {

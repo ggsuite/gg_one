@@ -55,7 +55,7 @@ void main() {
   group('CheckState', () {
     group('writeSuccess(directory, success)', () {
       group('with success == true', () {
-        test('should write last change hash to .gg/.gg.json', () async {
+        test('should write last change hash to .gg/gg.json', () async {
           await addAndCommitSampleFile(dLocal);
 
           // Get last changes hash
@@ -67,19 +67,19 @@ void main() {
           await ggState.writeSuccess(directory: dLocal, key: 'can-commit');
 
           // Check the file
-          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          final checkJson = File(join(dLocal.path, '.gg', 'gg.json'));
           await expectLater(await checkJson.exists(), isTrue);
           final contentsString = await checkJson.readAsString();
           final contents = json.decode(contentsString);
           expect(contents['can-commit']['success']['hash'], hash);
         });
 
-        test('should prune obsolete keys from .gg/.gg.json', () async {
+        test('should prune obsolete keys from .gg/gg.json', () async {
           await addAndCommitSampleFile(dLocal);
 
           // A .gg.json written by an earlier gg version still carries
           // publish/merge states.
-          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          final checkJson = File(join(dLocal.path, '.gg', 'gg.json'));
           checkJson.parent.createSync(recursive: true);
           checkJson.writeAsStringSync(
             '{"canCommit":{"success":{"hash":123}},'
@@ -105,7 +105,7 @@ void main() {
         test('should prune only once per directory', () async {
           await addAndCommitSampleFile(dLocal);
 
-          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          final checkJson = File(join(dLocal.path, '.gg', 'gg.json'));
           checkJson.parent.createSync(recursive: true);
           checkJson.writeAsStringSync('{"doPublish":{"success":{"hash":1}}}');
 
@@ -130,10 +130,10 @@ void main() {
           expect(contents2.containsKey('canPush'), isTrue);
         });
 
-        test('should tolerate an empty .gg/.gg.json when pruning', () async {
+        test('should tolerate an empty .gg/gg.json when pruning', () async {
           await addAndCommitSampleFile(dLocal);
 
-          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          final checkJson = File(join(dLocal.path, '.gg', 'gg.json'));
           checkJson.parent.createSync(recursive: true);
           checkJson.writeAsStringSync('');
 
@@ -145,14 +145,14 @@ void main() {
           expect(contents.containsKey('doCommit'), isTrue);
         });
 
-        test('should leave .gg/.gg.json untouched when no obsolete '
+        test('should leave .gg/gg.json untouched when no obsolete '
             'keys exist', () async {
           await addAndCommitSampleFile(dLocal);
 
           await ggState.writeSuccess(directory: dLocal, key: 'canCommit');
           await ggState.writeSuccess(directory: dLocal, key: 'doCommit');
 
-          final checkJson = File(join(dLocal.path, '.gg', '.gg.json'));
+          final checkJson = File(join(dLocal.path, '.gg', 'gg.json'));
           final contents =
               json.decode(await checkJson.readAsString())
                   as Map<String, dynamic>;
@@ -160,7 +160,7 @@ void main() {
         });
       });
 
-      group('should ammend changes to .gg/.gg.json to the last commit', () {
+      group('should ammend changes to .gg/gg.json to the last commit', () {
         test('when previous changes were not already pushed', () async {
           // Let's create an inital commit
           await addAndCommitSampleFile(dLocal, fileName: 'file1.txt');
@@ -202,7 +202,7 @@ void main() {
               ggLog: ggLog,
               force: true,
             ),
-            ['.gg/.gg.json', 'file1.txt'],
+            ['.gg/gg.json', 'file1.txt'],
           );
         });
       });
@@ -248,7 +248,7 @@ void main() {
           );
           expect(commitCount0, initialCommitCount + 1);
 
-          // - i.e. only .gg/.gg.json should be shown as modified in the last
+          // - i.e. only .gg/gg.json should be shown as modified in the last
           //   commit
           expect(
             await modifiedFiles.get(
@@ -256,7 +256,7 @@ void main() {
               ggLog: ggLog,
               force: true,
             ),
-            ['.gg/.gg.json'],
+            ['.gg/gg.json'],
           );
 
           // Executing the cluster again should not change anything
@@ -297,9 +297,9 @@ void main() {
     group('readSuccess(directory, key, ggLog)', () {
       group('should return', () {
         group('false', () {
-          test('if no .gg/.gg.json exists', () async {
+          test('if no .gg/gg.json exists', () async {
             expect(
-              await File(join(dLocal.path, '.gg', '.gg.json')).exists(),
+              await File(join(dLocal.path, '.gg', 'gg.json')).exists(),
               isFalse,
             );
             final result = await ggState.readSuccess(
@@ -310,12 +310,12 @@ void main() {
             expect(result, isFalse);
           });
 
-          test('if .gg/.gg.json is empty', () async {
+          test('if .gg/gg.json is empty', () async {
             final ggDir = Directory(join(dLocal.path, '.gg'));
             if (!ggDir.existsSync()) {
               ggDir.createSync(recursive: true);
             }
-            File(join(dLocal.path, '.gg', '.gg.json')).writeAsStringSync('{}');
+            File(join(dLocal.path, '.gg', 'gg.json')).writeAsStringSync('{}');
 
             final result = await ggState.readSuccess(
               directory: dLocal,
@@ -396,7 +396,7 @@ void main() {
     });
 
     group('updateHash()', () {
-      group('replaces the hash in .gg/.gg.json with the current hash', () {
+      group('replaces the hash in .gg/gg.json with the current hash', () {
         test('when current hash is different', () async {
           // Get last changes hash
           final hash = await LastChangesHash(
@@ -468,6 +468,54 @@ void main() {
           isFalse,
         );
       });
+    });
+
+    group('migration of the hidden state file', () {
+      test('renames .gg/.gg.json to .gg/gg.json and keeps the state', () async {
+        await ggState.writeSuccess(directory: dLocal, key: 'can-commit');
+
+        // Turn the state file back into what an earlier gg version wrote.
+        final ggDir = Directory(join(dLocal.path, '.gg'));
+        final current = File(join(ggDir.path, GgState.configFileName));
+        final legacy = File(join(ggDir.path, GgState.legacyConfigFileName));
+        current.renameSync(legacy.path);
+        expect(current.existsSync(), isFalse);
+
+        expect(
+          await ggState.readSuccess(
+            directory: dLocal,
+            ggLog: messages.add,
+            key: 'can-commit',
+          ),
+          isTrue,
+        );
+        expect(current.existsSync(), isTrue);
+        expect(legacy.existsSync(), isFalse);
+      });
+
+      test(
+        'keeps the current state file when a hidden one also exists',
+        () async {
+          await ggState.writeSuccess(directory: dLocal, key: 'can-commit');
+
+          final ggDir = Directory(join(dLocal.path, '.gg'));
+          final current = File(join(ggDir.path, GgState.configFileName));
+          final currentContent = current.readAsStringSync();
+          File(
+            join(ggDir.path, GgState.legacyConfigFileName),
+          ).writeAsStringSync('{}');
+
+          expect(
+            await ggState.readSuccess(
+              directory: dLocal,
+              ggLog: messages.add,
+              key: 'can-commit',
+            ),
+            isTrue,
+          );
+          expect(current.readAsStringSync(), currentContent);
+        },
+      );
     });
   });
 }

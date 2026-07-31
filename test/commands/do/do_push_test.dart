@@ -82,7 +82,7 @@ void main() async {
       isFeatureBranch: isFeatureBranch,
     );
     isPushed = IsPushed(ggLog: ggLog);
-    ggJson = File(join(dLocal.path, '.gg', '.gg.json'));
+    ggJson = File(join(dLocal.path, '.gg', 'gg.json'));
 
     // Init pubspec.yaml
     await File(
@@ -230,7 +230,7 @@ void main() async {
                 isTrue,
               );
 
-              // Run ggDoPush should update .gg/.gg.json
+              // Run ggDoPush should update .gg/gg.json
               final ggJsonBefore = await ggJson.readAsString();
               await doPush.exec(directory: dLocal, ggLog: ggLog);
               final ggJsonAfter = await ggJson.readAsString();

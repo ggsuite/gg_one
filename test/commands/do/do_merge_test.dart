@@ -255,7 +255,7 @@ void main() {
           workingDirectory: d.path,
         ),
       ).thenAnswer(
-        (_) async => ProcessResult(0, 0, '.gg/.gg.json\npubspec.lock\n', ''),
+        (_) async => ProcessResult(0, 0, '.gg/gg.json\npubspec.lock\n', ''),
       );
 
       when(
@@ -528,14 +528,14 @@ void main() {
     test('removes and commits the ticket marker before merge', () async {
       // The marker as force-added by do add.
       final ggDir = Directory('${d.path}/.gg')..createSync();
-      final ticketJson = File('${ggDir.path}/.ticket.json')
+      final ticketJson = File('${ggDir.path}/ticket.json')
         ..writeAsStringSync('{"issue_id":"x"}');
 
       stubGitCommands();
       when(
         () => mockProcessWrapper.run(
           'git',
-          ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+          ['rm', '-f', '--ignore-unmatch', '.gg/ticket.json'],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
         ),
@@ -543,7 +543,7 @@ void main() {
       when(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+          ['commit', '-m', 'Remove .gg/ticket.json before merge'],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
         ),
@@ -565,7 +565,7 @@ void main() {
       verify(
         () => mockProcessWrapper.run(
           'git',
-          ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+          ['rm', '-f', '--ignore-unmatch', '.gg/ticket.json'],
           runInShell: true,
           workingDirectory: d.path,
         ),
@@ -573,15 +573,62 @@ void main() {
       verify(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', 'Remove .gg/.ticket.json before merge'],
+          ['commit', '-m', 'Remove .gg/ticket.json before merge'],
           runInShell: true,
           workingDirectory: d.path,
         ),
       ).called(1);
       expect(
         messages,
-        contains(darkGray('Removed .gg/.ticket.json before merge.')),
+        contains(darkGray('Removed .gg/ticket.json before merge.')),
       );
+    });
+
+    test('removes the hidden ticket marker of an older branch too', () async {
+      // A branch created before the files inside .gg were unhidden carries
+      // `.gg/.ticket.json` - it must not reach main either.
+      final ggDir = Directory('${d.path}/.gg')..createSync();
+      final legacyTicketJson = File('${ggDir.path}/.ticket.json')
+        ..writeAsStringSync('{"issue_id":"x"}');
+
+      stubGitCommands();
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+      when(
+        () => mockProcessWrapper.run(
+          'git',
+          ['commit', '-m', 'Remove .gg/ticket.json before merge'],
+          runInShell: true,
+          workingDirectory: any(named: 'workingDirectory'),
+        ),
+      ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
+      when(
+        () => mockGgMergeDoMerge.get(
+          directory: d,
+          ggLog: ggLog,
+          automerge: false,
+          local: false,
+          verbose: false,
+        ),
+      ).thenAnswer((_) async => true);
+
+      await doMerge.get(directory: d, ggLog: ggLog);
+
+      expect(legacyTicketJson.existsSync(), isFalse);
+      verify(
+        () => mockProcessWrapper.run(
+          'git',
+          ['rm', '-f', '--ignore-unmatch', '.gg/.ticket.json'],
+          runInShell: true,
+          workingDirectory: d.path,
+        ),
+      ).called(1);
     });
 
     test('merges via a pull request and waits for it, then updates '
@@ -777,7 +824,7 @@ void main() {
             workingDirectory: any(named: 'workingDirectory'),
           ),
         ).thenAnswer(
-          (_) async => ProcessResult(0, 0, '.gg/.gg.json\npubspec.lock\n', ''),
+          (_) async => ProcessResult(0, 0, '.gg/gg.json\npubspec.lock\n', ''),
         );
 
         await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);

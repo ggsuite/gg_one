@@ -24,10 +24,10 @@ import 'package:pub_semver/pub_semver.dart';
 ///
 /// All interactive decisions (version increment, merge message, feature
 /// branch deletion) are resolved up front — from explicit parameters,
-/// `--config`, an existing `.gg/.gg-publish.json` or an automatic
+/// `--config`, an existing `.gg/gg-publish.json` or an automatic
 /// `do configure-publish` — so no prompt ever sits between the irreversible
 /// publish steps. While the publish runs, its per-step progress is recorded
-/// in `<repo>/.gg/.gg-publish.json` (see [allowedPublishSteps]); a failed
+/// in `<repo>/.gg/gg-publish.json` (see [allowedPublishSteps]); a failed
 /// run can be resumed with `--continue` and skips the steps already done.
 /// The file is deleted after a fully successful publish.
 class DoPublish extends DirCommand<void> {
@@ -177,7 +177,7 @@ class DoPublish extends DirCommand<void> {
     // the first bookkeeping commit could carry it into the release.
     _deletePubspecOverrides(directory: directory, ggLog: ggLog);
 
-    // Step 1: Read the runtime .gg/.gg-publish.json (config + progress).
+    // Step 1: Read the runtime .gg/gg-publish.json (config + progress).
     final runtimeFile = DoConfigurePublish.configFileFor(directory);
     if (cliContinue && !runtimeFile.existsSync()) {
       throw Exception(
@@ -253,7 +253,7 @@ class DoPublish extends DirCommand<void> {
     // Step 4: Resolve version increment, merge message and the
     // delete-feature-branch decision. Precedence: explicit parameters (the
     // gg_multi flow) / CLI flags > --config > the runtime
-    // .gg/.gg-publish.json > an interactive `do configure-publish`. Every
+    // .gg/gg-publish.json > an interactive `do configure-publish`. Every
     // interactive decision happens HERE — never between the irreversible
     // publish steps.
     String? resolvedIncrement = versionIncrement;
@@ -476,7 +476,7 @@ class DoPublish extends DirCommand<void> {
     // merged the PR, so skip the direct main push there.
     if (!viaPullRequest) {
       // Push through DoPush.get, not raw gitPush: it writes the »doPush«
-      // success state into .gg/.gg.json (amended into the release commit)
+      // success state into .gg/gg.json (amended into the release commit)
       // before pushing, so »gg did push« passes on a fresh CI checkout of
       // main. The doPush state carried over from the feature branch belongs
       // to an older hash and would make CI red on every released package.
@@ -542,9 +542,21 @@ class DoPublish extends DirCommand<void> {
 
   /// The file »gg multi do add« writes when it replaces a repo's publish
   /// target with »none« for the duration of a ticket.
-  static File publishToBackupFile(Directory directory) => File(
-    join(directory.path, '.gg', '.gg_localize_refs_publish_to_backup.json'),
-  );
+  ///
+  /// A checkout made before the files inside `.gg` were unhidden still carries
+  /// the dot-prefixed name. The guard below has to see it too — otherwise a
+  /// standalone publish of such a ticket repo would silently release the
+  /// suppressed manifest.
+  static File publishToBackupFile(Directory directory) {
+    const name = 'gg_localize_refs_publish_to_backup.json';
+    final file = File(join(directory.path, '.gg', name));
+    if (file.existsSync()) {
+      return file;
+    }
+
+    final legacy = File(join(directory.path, '.gg', '.$name'));
+    return legacy.existsSync() ? legacy : file;
+  }
 
   /// Throws when the manifest's publish target was replaced by the ticket
   /// tooling. `gg multi do add` sets `publish_to: none` in every ticket repo
@@ -797,7 +809,7 @@ class DoPublish extends DirCommand<void> {
     if (type == ProjectType.none) {
       // No manifest: the version lives in git tags only. The increment and
       // channel are always resolved before the steps run and survive a
-      // resume via the runtime .gg/.gg-publish.json.
+      // resume via the runtime .gg/gg-publish.json.
       await _addGitOnlyVersionTag.exec(
         directory: directory,
         increment: parseVersionIncrement(_explicitVersionIncrement!),
@@ -1170,7 +1182,7 @@ class DoPublish extends DirCommand<void> {
       'continue',
       help:
           'Resume a previously failed publish from where it stopped, '
-          'reusing .gg/.gg-publish.json and skipping the steps already done.',
+          'reusing .gg/gg-publish.json and skipping the steps already done.',
       defaultsTo: false,
       negatable: false,
     );
@@ -1178,7 +1190,7 @@ class DoPublish extends DirCommand<void> {
     argParser.addFlag(
       'reconfigure',
       help:
-          'Discard an existing .gg/.gg-publish.json (config and progress) '
+          'Discard an existing .gg/gg-publish.json (config and progress) '
           'and configure the publish again.',
       defaultsTo: false,
       negatable: true,

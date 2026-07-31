@@ -39,10 +39,25 @@ class GgState {
   final GgLog ggLog;
 
   // ...........................................................................
+  /// The name of the state file inside `.gg`.
+  static const configFileName = 'gg.json';
+
+  /// The name earlier gg versions used, back when the files inside `.gg` were
+  /// still hidden. Kept so an existing checkout can be migrated.
+  static const legacyConfigFileName = '.gg.json';
+
+  // ...........................................................................
   /// The file that might be ignored while reading the hash
+  ///
+  /// The entries are matched against the paths git reports, so the hidden
+  /// names of the days before the files inside `.gg` were unhidden are listed
+  /// as well: a repository being migrated carries both for one commit and
+  /// must not look changed because of it.
   static const ignoreFiles = [
     '.gg/',
     '.gg.json',
+    '.gg/gg.json',
+    '.gg/gg-publish.json',
     '.gg/.gg.json',
     '.gg/.gg-publish.json',
     'CHANGELOG.md',
@@ -51,8 +66,8 @@ class GgState {
 
   // ...........................................................................
   /// State keys of earlier gg versions that must not survive in the tracked
-  /// `.gg/.gg.json`: publish/merge progress lives in the git-ignored
-  /// `.gg/.gg-publish.json` now. They are pruned whenever a state is written.
+  /// `.gg/gg.json`: publish/merge progress lives in the git-ignored
+  /// `.gg/gg-publish.json` now. They are pruned whenever a state is written.
   static const obsoleteKeys = [
     'doPrepareVersion',
     'doPublishPubDev',
@@ -86,7 +101,7 @@ class GgState {
       return false;
     }
 
-    // Get the hash written to .gg/.gg.json
+    // Get the hash written to .gg/gg.json
     final hashInCheckJson = await DirectJson.readFile<int>(
       file: _configFile(directory: directory),
       path: _hashPath(key).join('/'),
@@ -99,7 +114,7 @@ class GgState {
   }
 
   // ...........................................................................
-  /// Updates .gg/.gg.json and writes the success state for this key.
+  /// Updates .gg/gg.json and writes the success state for this key.
   Future<void> writeSuccess({
     required Directory directory,
     required String key,
@@ -133,14 +148,14 @@ class GgState {
       ignoreUnstaged: ignoreUnstaged,
     );
 
-    // Write the hash to .gg/.gg.json
+    // Write the hash to .gg/gg.json
     await DirectJson.writeFile(
       file: _configFile(directory: directory),
       path: _hashPath(key).join('/'),
       value: hash,
     );
 
-    // Ammend changes to .gg/.gg.json
+    // Ammend changes to .gg/gg.json
     await _commitOrAmmendStateChanges(directory);
   }
 
@@ -160,7 +175,7 @@ class GgState {
   }
 
   // ...........................................................................
-  /// Replaces the hash in .gg/.gg.json with the current hash
+  /// Replaces the hash in .gg/gg.json with the current hash
   Future<void> updateHash({
     required int hash,
     required Directory directory,
@@ -210,7 +225,7 @@ class GgState {
   static final Set<String> _prunedDirectories = {};
 
   // ...........................................................................
-  /// Removes [obsoleteKeys] from `.gg/.gg.json` when present. An empty file
+  /// Removes [obsoleteKeys] from `.gg/gg.json` when present. An empty file
   /// carries nothing to prune; other malformed files need no handling here:
   /// the preceding [readSuccess] rejects them.
   Future<void> _removeObsoleteKeys(Directory directory) async {
@@ -252,18 +267,28 @@ class GgState {
   }
 
   // ...........................................................................
-  /// Returns the configuration file `.gg/.gg.json` inside the given
+  /// Returns the configuration file `.gg/gg.json` inside the given
   /// [directory].
+  ///
+  /// The files inside `.gg` are no longer hidden. A checkout made before that
+  /// change still carries the state under [legacyConfigFileName]; it is
+  /// renamed on first access, so the recorded check results survive the
+  /// upgrade instead of being silently recomputed.
   File _configFile({required Directory directory}) {
     final dir = _configDirectory(directory: directory);
-    final filePath = join(dir.path, '.gg.json');
-    final file = File(filePath);
+    final file = File(join(dir.path, configFileName));
+    final legacy = File(join(dir.path, legacyConfigFileName));
+
+    if (!file.existsSync() && legacy.existsSync()) {
+      legacy.renameSync(file.path);
+    }
+
     return file;
   }
 
   // ...........................................................................
   Future<void> _commitOrAmmendStateChanges(Directory directory) async {
-    // Check if only .gg/.gg.json is currently changed
+    // Check if only .gg/gg.json is currently changed
     final modifiedFiles = await _modifiedFiles.get(
       directory: directory,
       ggLog: ggLog,
@@ -274,9 +299,16 @@ class GgState {
       return;
     }
 
+    // The deleted legacy file is part of the set right after the migration in
+    // _configFile — the rename must not stop the state commit.
     final onlyGgJsonChanged =
         modifiedFiles.isNotEmpty &&
-        modifiedFiles.every((p) => p == '.gg/' || p == '.gg/.gg.json');
+        modifiedFiles.every(
+          (p) =>
+              p == '.gg/' ||
+              p == '.gg/$configFileName' ||
+              p == '.gg/$legacyConfigFileName',
+        );
 
     // Remember if everything is committed and pushed
     final everythingWasCommitted = onlyGgJsonChanged;
@@ -288,7 +320,7 @@ class GgState {
     }
 
     // ...................................
-    // Otherwise commit or ammend .gg/.gg.json
+    // Otherwise commit or ammend .gg/gg.json
 
     // Check if the repository has a remote
     final hasRemote = await _hasRemote.get(directory: directory, ggLog: ggLog);
@@ -297,11 +329,11 @@ class GgState {
 
     // ...........................
     // To have a clean git history,
-    // we will ammend changes to .gg/.gg.json to the last commit.
+    // we will ammend changes to .gg/gg.json to the last commit.
     // - If everything was committed and pushed, create a new commit
     // - If everything was committed but not pushed, ammend to last commit
     final message = everythingWasPushed
-        ? 'Add: .gg/.gg.json check results'
+        ? 'Add: .gg/gg.json check results'
         : await _headMessage.get(
             directory: directory,
             ggLog: ggLog,

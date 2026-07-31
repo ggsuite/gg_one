@@ -26,7 +26,7 @@ const Set<String> allowedReleaseChannels = {'stable', 'rc'};
 const Set<String> allowedPublishStatuses = {'pending', 'published', 'failed'};
 
 /// Allowed entries of the repo-level `done_steps` progress list written into
-/// `<repo>/.gg/.gg-publish.json` while `gg do publish` runs. Steps not listed
+/// `<repo>/.gg/gg-publish.json` while `gg do publish` runs. Steps not listed
 /// here (the feature/main/tag pushes and the feature-branch deletion) are
 /// idempotent and always re-run on a `--continue`, so they are not tracked.
 const Set<String> allowedPublishSteps = {
@@ -86,7 +86,7 @@ class PublishConfig {
 
   /// Top-level `delete_feature_branch` (single-repo): bypasses the
   /// interactive delete-feature-branch prompt when set, so a `--config` /
-  /// `.gg/.gg-publish.json` driven publish is fully headless.
+  /// `.gg/gg-publish.json` driven publish is fully headless.
   final bool? deleteFeatureBranch;
 
   /// Top-level `pr`: whether the final merge goes through an auto-merge pull

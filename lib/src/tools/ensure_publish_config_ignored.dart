@@ -13,7 +13,7 @@ import 'package:path/path.dart';
 
 import 'gg_state.dart';
 
-/// Makes sure `.gg/.gg-publish.json` is listed in a repository's `.gitignore`.
+/// Makes sure `.gg/gg-publish.json` is listed in a repository's `.gitignore`.
 ///
 /// The runtime publish file must be invisible to git: as an untracked file it
 /// would break every is-committed check in the middle of a publish, and as a
@@ -37,12 +37,12 @@ class EnsurePublishConfigIgnored {
   final GgProcessWrapper _processWrapper;
 
   /// The `.gitignore` entry that hides the runtime publish file from git.
-  static const String entry = '.gg/.gg-publish.json';
+  static const String entry = '.gg/gg-publish.json';
 
   /// Ensures [entry] is present in `<directory>/.gitignore`. Returns true
   /// when the file was changed (or created). With [commit] the change is
   /// committed immediately (only `.gitignore` plus the hash-transplanted
-  /// `.gg/.gg.json` — other working-tree changes are left alone); without it
+  /// `.gg/gg.json` — other working-tree changes are left alone); without it
   /// the caller's next commit is expected to pick the change up.
   Future<bool> ensure({
     required Directory directory,
@@ -76,12 +76,12 @@ class EnsurePublishConfigIgnored {
     return true;
   }
 
-  /// Commits only `.gitignore` and the hash-transplanted `.gg/.gg.json`, so
+  /// Commits only `.gitignore` and the hash-transplanted `.gg/gg.json`, so
   /// unrelated working-tree changes are never swept into this commit.
   Future<void> _commitGitignore(Directory directory) async {
     final paths = <String>['.gitignore'];
-    if (File(join(directory.path, '.gg', '.gg.json')).existsSync()) {
-      paths.add('.gg/.gg.json');
+    if (File(join(directory.path, '.gg', 'gg.json')).existsSync()) {
+      paths.add('.gg/gg.json');
     }
 
     final add = await _processWrapper.run('git', [

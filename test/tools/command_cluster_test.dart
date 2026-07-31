@@ -136,7 +136,7 @@ void main() {
           if (!ggDir.existsSync()) {
             ggDir.createSync(recursive: true);
           }
-          final ggJson = await File(join(ggDir.path, '.gg.json')).create();
+          final ggJson = await File(join(ggDir.path, 'gg.json')).create();
           final ggJsonBefore = await ggJson.readAsString();
 
           // Run the command with save-state == false
