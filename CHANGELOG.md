@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Never publish ticket.json
+
+### Fixed
+
+- Remove the `.gg/ticket.json` ticket marker before the version bump and registry upload, so it is no longer shipped to pub.dev/npm inside the published package (previously it was only removed at merge time, after the upload)
+
 ## 12.0.0 - 2026-07-31
 
 ### Changed

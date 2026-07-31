@@ -135,7 +135,7 @@ class DoMerge extends DirCommand<void> {
 
     // Drop the ticket marker (written by `gg do add`) so it never lands on
     // the main branch.
-    await _removeTicketJson(
+    await removeTicketJson(
       directory: directory,
       ggLog: ggLog,
       verbose: verbose,
@@ -233,14 +233,18 @@ class DoMerge extends DirCommand<void> {
     return true;
   }
 
-  /// Removes the `.gg/ticket.json` marker (force-added by `gg do add`) before
-  /// merging and commits the removal onto the feature branch, so the marker
-  /// never reaches the main branch. A no-op when the marker is absent.
+  /// Removes the `.gg/ticket.json` marker (force-added by `gg do add`) and
+  /// commits the removal onto the current branch, so the marker never
+  /// reaches the main branch. A no-op when the marker is absent.
+  ///
+  /// Public because `do publish` calls it too — the registry upload happens
+  /// BEFORE the merge, so waiting for the merge-time removal would ship the
+  /// marker to pub.dev/npm inside the published package.
   ///
   /// The hidden `.gg/.ticket.json` of the days before the files inside `.gg`
   /// were unhidden is removed alongside it: a branch created back then still
   /// carries it, and it must not reach the main branch either.
-  Future<void> _removeTicketJson({
+  Future<void> removeTicketJson({
     required Directory directory,
     required GgLog ggLog,
     required bool verbose,
@@ -276,16 +280,12 @@ class DoMerge extends DirCommand<void> {
 
     await _runGitCommand(
       directory: directory,
-      arguments: const [
-        'commit',
-        '-m',
-        '#gg: Remove .gg/ticket.json before merge',
-      ],
+      arguments: const ['commit', '-m', '#gg: Remove .gg/ticket.json'],
       actionDescription: 'commit removal of .gg/ticket.json',
       ggLog: ggLog,
       verbose: verbose,
     );
-    ggLog(darkGray('Removed .gg/ticket.json before merge.'));
+    ggLog(darkGray('Removed .gg/ticket.json.'));
   }
 
   /// Merges the feature branch through an auto-complete pull request and blocks
