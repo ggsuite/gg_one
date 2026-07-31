@@ -392,6 +392,16 @@ class DoPublish extends DirCommand<void> {
       await _checkoutDefaultBranch(directory);
     }
 
+    // Drop the ticket marker (written by `gg do add`) BEFORE version bump and
+    // registry upload — the upload happens before the merge, so the
+    // merge-time removal alone would ship `.gg/ticket.json` to pub.dev/npm
+    // inside the published package. Idempotent, so resumes are safe.
+    await _doMerge.removeTicketJson(
+      directory: directory,
+      ggLog: ggLog,
+      verbose: isVerbose,
+    );
+
     await _doPush.gitPush(directory: directory, force: false);
 
     // Step 7: Prepare version + changelog.

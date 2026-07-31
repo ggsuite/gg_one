@@ -1948,6 +1948,59 @@ void main() {
         },
       );
 
+      test('removes the .gg/ticket.json marker before the registry '
+          'upload', () async {
+        // »gg multi do add« force-adds the marker to the feature branch. The
+        // registry upload happens BEFORE the merge, so waiting for the
+        // merge-time removal would ship the marker to pub.dev/npm inside the
+        // published package.
+        final ggDir = Directory(join(d.path, '.gg'));
+        if (!ggDir.existsSync()) {
+          ggDir.createSync();
+        }
+        final marker = File(join(ggDir.path, 'ticket.json'))
+          ..writeAsStringSync('{"issue_id":"feat_abc"}');
+        await Process.run('git', [
+          'add',
+          '-f',
+          '.gg/ticket.json',
+        ], workingDirectory: d.path);
+        await Process.run('git', [
+          'commit',
+          '-m',
+          'Add ticket marker',
+        ], workingDirectory: d.path);
+        await pushLocalChangesUpstream(d, 'feat_abc');
+        await makeLastStateSuccessful();
+
+        var markerPresentAtUpload = true;
+        when(
+          () => publish.exec(
+            directory: dMock(),
+            ggLog: ggLog,
+            askBeforePublishing: false,
+          ),
+        ).thenAnswer((_) async {
+          markerPresentAtUpload = marker.existsSync();
+          publishedVersionValue = Version.parse('1.2.4');
+          ggLog('Publishing was successful.');
+        });
+        publishedVersionValue = Version(1, 2, 3);
+        mockPublishedVersion();
+        messages.clear();
+
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+        );
+
+        expect(markerPresentAtUpload, isFalse);
+        expect(marker.existsSync(), isFalse);
+        expect(messages.join('\n'), contains('Removed .gg/ticket.json.'));
+      });
+
       test('merges via a pull request on a protected (Azure) remote', () async {
         final mockDoMerge = MockDoMerge();
         when(
@@ -1960,6 +2013,13 @@ void main() {
             verbose: any(named: 'verbose'),
             viaPullRequest: any(named: 'viaPullRequest'),
             deleteSourceBranch: any(named: 'deleteSourceBranch'),
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockDoMerge.removeTicketJson(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+            verbose: any(named: 'verbose'),
           ),
         ).thenAnswer((_) async {});
 

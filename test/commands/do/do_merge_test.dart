@@ -545,7 +545,7 @@ void main() {
       when(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', '#gg: Remove .gg/ticket.json before merge'],
+          ['commit', '-m', '#gg: Remove .gg/ticket.json'],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
         ),
@@ -575,15 +575,12 @@ void main() {
       verify(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', '#gg: Remove .gg/ticket.json before merge'],
+          ['commit', '-m', '#gg: Remove .gg/ticket.json'],
           runInShell: true,
           workingDirectory: d.path,
         ),
       ).called(1);
-      expect(
-        messages,
-        contains(darkGray('Removed .gg/ticket.json before merge.')),
-      );
+      expect(messages, contains(darkGray('Removed .gg/ticket.json.')));
     });
 
     test('removes the hidden ticket marker of an older branch too', () async {
@@ -605,7 +602,7 @@ void main() {
       when(
         () => mockProcessWrapper.run(
           'git',
-          ['commit', '-m', '#gg: Remove .gg/ticket.json before merge'],
+          ['commit', '-m', '#gg: Remove .gg/ticket.json'],
           runInShell: true,
           workingDirectory: any(named: 'workingDirectory'),
         ),
