@@ -54,6 +54,7 @@ export 'src/tools/formatter.dart';
 export 'src/tools/command_cluster.dart';
 export 'src/tools/ensure_publish_config_ignored.dart';
 export 'src/tools/gg_state.dart';
+export 'src/tools/master_folder_guard.dart';
 export 'src/tools/publish_config.dart';
 export 'src/tools/repository_url.dart';
 export 'src/tools/terminal_guard.dart';
