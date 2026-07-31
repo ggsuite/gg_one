@@ -14,6 +14,7 @@ import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 // .............................................................................
@@ -595,6 +596,69 @@ void main() {
             final exception = await execAndCatch();
             expect(exception, contains('Cannot commit on a detached HEAD.'));
           });
+        });
+      });
+
+      group('when the repo lies inside the ».master« folder', () {
+        late Directory workspace;
+        late Directory repo;
+
+        setUp(() async {
+          // The master workspace mirrors the repos as .master/<org>/<repo>
+          workspace = await Directory.systemTemp.createTemp();
+          repo = Directory(
+            path.join(workspace.path, '.master', 'ggsuite', 'gg_one'),
+          );
+          await repo.create(recursive: true);
+          await initGit(repo);
+
+          // Not even a feature branch makes the master folder committable
+          await createBranch(repo, 'feature');
+          await addAndCommitSampleFile(repo);
+          await addFileWithoutCommitting(repo);
+        });
+
+        tearDown(() async {
+          await workspace.delete(recursive: true);
+        });
+
+        test('should throw', () async {
+          late String exception;
+
+          try {
+            await doCommit.exec(
+              directory: repo,
+              ggLog: ggLog,
+              message: 'My message',
+              logType: LogType.fixed,
+            );
+          } catch (e) {
+            exception = e.toString();
+          }
+
+          expect(exception, contains(yellow('gg do commit')));
+          expect(exception, contains(green('».master«')));
+          expect(exception, contains(blue('gg do checkout <ticket>')));
+          expect(exception, contains(blue('gg do commit --force')));
+
+          // Nothing was committed
+          expect(await isCommitted(repo), isFalse);
+        });
+
+        test('should commit with --force', () async {
+          await doCommit.exec(
+            directory: repo,
+            ggLog: ggLog,
+            message: 'My message',
+            logType: LogType.fixed,
+            force: true,
+          );
+
+          expect(await isCommitted(repo), isTrue);
+          expect(
+            messages.last,
+            yellow('Checks successful. Commit successful.'),
+          );
         });
       });
 
