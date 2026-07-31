@@ -1,5 +1,11 @@
 # Changelog
 
+## 11.2.6 - 2026-07-31
+
+### Changed
+
+- Don't allow gg do commit in master
+
 ## 11.2.5 - 2026-07-30
 
 ### Fixed
