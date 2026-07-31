@@ -217,7 +217,7 @@ class DoMerge extends DirCommand<void> {
       arguments: const [
         'commit',
         '-m',
-        'Commit pending changes before merge (e.g. release formatting)',
+        '#gg: Commit pending changes before merge (e.g. release formatting)',
       ],
       actionDescription: 'commit pending changes before merge',
       ggLog: ggLog,
@@ -276,7 +276,11 @@ class DoMerge extends DirCommand<void> {
 
     await _runGitCommand(
       directory: directory,
-      arguments: const ['commit', '-m', 'Remove .gg/ticket.json before merge'],
+      arguments: const [
+        'commit',
+        '-m',
+        '#gg: Remove .gg/ticket.json before merge',
+      ],
       actionDescription: 'commit removal of .gg/ticket.json',
       ggLog: ggLog,
       verbose: verbose,

@@ -836,7 +836,7 @@ class DoPublish extends DirCommand<void> {
       ggLog: ggLog,
       directory: directory,
       doStage: true,
-      message: 'Prepare changelog for release',
+      message: '#gg: Prepare changelog for release',
       ammendWhenNotPushed: true,
     );
   }
@@ -889,7 +889,7 @@ class DoPublish extends DirCommand<void> {
         ggLog: ggLog,
         directory: directory,
         doStage: true,
-        message: 'Finish development of version $newVersion',
+        message: '#gg: Finish development of version $newVersion',
         ammendWhenNotPushed: false,
       );
     } on Exception catch (e) {
@@ -982,7 +982,7 @@ class DoPublish extends DirCommand<void> {
       ggLog: ggLog,
       directory: directory,
       doStage: true,
-      message: 'Update $lockFile',
+      message: '#gg: Update $lockFile',
       ammendWhenNotPushed: true,
     );
   }
