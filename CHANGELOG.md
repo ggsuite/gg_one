@@ -11,7 +11,6 @@
 ### Changed
 
 - Make gg do commit work in main branch using --push
-  > > > > > > > origin/main
 
 ## 12.0.1 - 2026-07-31
 
