@@ -573,6 +573,7 @@ void main() {
             final exception = await execAndCatch();
             expect(exception, contains('Cannot commit on branch »main«.'));
             expect(exception, contains('gg do checkout <ticket>'));
+            expect(exception, contains('gg do commit --force'));
           });
 
           test('- »master«', () async {
@@ -583,11 +584,19 @@ void main() {
             expect(exception, contains('Cannot commit on branch »master«.'));
           });
 
-          test('- »main«, even with --force', () async {
+          test('- but not with --force', () async {
             await checkout(d, 'main');
+            await addFileWithoutCommitting(d);
 
-            final exception = await execAndCatch(force: true);
-            expect(exception, contains('Cannot commit on branch »main«.'));
+            await doCommit.exec(
+              directory: d,
+              ggLog: ggLog,
+              message: 'My message',
+              logType: LogType.fixed,
+              force: true,
+            );
+
+            expect(await isCommitted(d), isTrue);
           });
 
           test('- a detached HEAD', () async {

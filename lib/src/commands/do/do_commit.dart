@@ -105,9 +105,11 @@ class DoCommit extends DirCommand<void> {
       throwWhenInMasterFolder(directory);
     }
 
-    // Commits must never be created on the default branch. Not even with
-    // --force, because the branch is not something the checks can fix.
-    await _checkIsFeatureBranch(directory: directory);
+    // Commits must never be created on the default branch. --force bypasses
+    // the guard, so a main branch can still be fixed in place.
+    if (force != true) {
+      await _checkIsFeatureBranch(directory: directory);
+    }
 
     // Is everything committed?
     final isCommittedViaGit = await _isGitCommitted.get(
@@ -241,6 +243,9 @@ class DoCommit extends DirCommand<void> {
 
   // ...........................................................................
   /// Throws when the current branch is »main« or »master«.
+  ///
+  /// Callers skip the guard when »--force« is given — the message names that
+  /// escape hatch.
   Future<void> _checkIsFeatureBranch({required Directory directory}) async {
     final isFeatureBranch = await _isFeatureBranch.get(
       directory: directory,
@@ -258,7 +263,9 @@ class DoCommit extends DirCommand<void> {
     throw Exception(
       '${red('Cannot commit on $where.\n')}'
       '${blue('Switch to a feature branch, e.g. '
-      '${yellow('gg do checkout <ticket>')}')}',
+      '${yellow('gg do checkout <ticket>')}')}\n'
+      '${blue('Or commit anyway using ')}'
+      '${blue('gg do commit --force')}',
     );
   }
 
