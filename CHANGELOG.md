@@ -9,6 +9,7 @@
 ### Changed
 
 - \#gg: changed references to git
+- \#gg: changed references to pub.dev
 
 ## 12.0.2 - 2026-08-01
 
