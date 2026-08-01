@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.0.2 - 2026-08-01
+
+### Changed
+
+- Make gg do commit work in main branch using --push
+
 ## 12.0.1 - 2026-07-31
 
 ### Changed
