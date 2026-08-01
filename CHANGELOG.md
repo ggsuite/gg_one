@@ -5,6 +5,7 @@
 ### Changed
 
 - Throw an error on unknown gg one sub commands, also if option -h is given
+- Throw an error when gg on do publish is called within a ticket repo
 
 ## 12.3.0 - 2026-08-01
 

@@ -172,6 +172,10 @@ class DoPublish extends DirCommand<void> {
     await check(directory: directory);
     void noLog(_) {} // coverage:ignore-line
 
+    // A ticket folder is no repository — publishing it would fail somewhere
+    // deep inside git. Point at »gg multi do publish« right away instead.
+    throwWhenInWorkspaceFolder(directory);
+
     // Never publish a repo whose registry target is currently suppressed by
     // the ticket tooling (»gg multi do add« writes »publish_to: none« and
     // backs the original value up). Without this guard the publish silently
