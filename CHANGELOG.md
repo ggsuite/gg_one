@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.3.0 - 2026-08-01
+
+### Changed
+
+- Do not upload ticket.json. Share it manually and import it using "gg do checkout"
+
 ## 12.2.1 - 2026-08-01
 
 ### Changed
