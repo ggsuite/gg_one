@@ -7,22 +7,26 @@
 import 'dart:io';
 
 import 'package:gg_one/gg_one.dart';
-import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_lang/gg_lang.dart' as gg_lang;
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
+import 'package:mocktail/mocktail.dart' as mocktail;
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart' as gg_publish;
 import 'package:path/path.dart' as p;
 
 /// Performs the merge operation.
-class DoMerge extends DirCommand<void> {
+///
+/// This is a plain tool, not a CLI command: `gg do merge` was folded into
+/// `gg do publish --merge-only`, which runs the whole publish flow without
+/// any release artifact. What is left is the merge *implementation*
+/// [DoPublish] drives (the merge step itself and [removeTicketJson]), so both
+/// a real publish and a merge-only run go through exactly one code path.
+class MergeFlow {
   /// Constructor
-  DoMerge({
-    required super.ggLog,
-    super.name = 'merge',
-    super.description = 'Performs the merge operation.',
+  MergeFlow({
+    required this.ggLog,
     GgState? state,
     gg_merge.DoMerge? doMerge,
     gg_merge.WaitForMerge? waitForMerge,
@@ -32,50 +36,10 @@ class DoMerge extends DirCommand<void> {
        _doMerge = doMerge ?? gg_merge.DoMerge(ggLog: ggLog),
        _waitForMerge = waitForMerge ?? gg_merge.WaitForMerge(ggLog: ggLog),
        _mainBranch = mainBranch ?? gg_publish.MainBranch(ggLog: ggLog),
-       _processWrapper = processWrapper {
-    argParser.addFlag(
-      'automerge',
-      abbr: 'a',
-      help: 'Set PR/MR to automerge after CI.',
-      negatable: true,
-      defaultsTo: false,
-    );
-    argParser.addFlag(
-      'local',
-      abbr: 'l',
-      help: 'Perform a local merge instead of remote PR/MR.',
-      negatable: true,
-      defaultsTo: true,
-    );
-    argParser.addFlag(
-      'via-pull-request',
-      help:
-          'Merge through an auto-complete pull request and wait until it is '
-          'merged (for protected branches, e.g. Azure DevOps).',
-      negatable: true,
-      defaultsTo: false,
-    );
-    argParser.addFlag(
-      'delete-source-branch',
-      help:
-          'Let the provider delete the source branch after a pull-request '
-          'merge.',
-      negatable: true,
-      defaultsTo: true,
-    );
-    argParser.addOption(
-      'message',
-      abbr: 'm',
-      help: 'The merge commit message.',
-    );
-    argParser.addFlag(
-      'verbose',
-      abbr: 'v',
-      help: 'Prints each executed command before running it.',
-      defaultsTo: false,
-      negatable: false,
-    );
-  }
+       _processWrapper = processWrapper;
+
+  /// The log function
+  final GgLog ggLog;
 
   final GgState _state;
   final gg_merge.DoMerge _doMerge;
@@ -83,28 +47,8 @@ class DoMerge extends DirCommand<void> {
   final gg_publish.MainBranch _mainBranch;
   final GgProcessWrapper _processWrapper;
 
-  @override
-  Future<void> exec({
-    required Directory directory,
-    required GgLog ggLog,
-    bool? automerge,
-    bool? local,
-    String? message,
-    bool? verbose,
-    bool? viaPullRequest,
-    bool? deleteSourceBranch,
-  }) => get(
-    directory: directory,
-    ggLog: ggLog,
-    automerge: automerge,
-    local: local,
-    message: message,
-    verbose: verbose,
-    viaPullRequest: viaPullRequest,
-    deleteSourceBranch: deleteSourceBranch,
-  );
-
-  @override
+  /// Merges the current feature branch into the default branch — locally or
+  /// through an auto-complete pull request ([viaPullRequest]).
   Future<void> get({
     required Directory directory,
     required GgLog ggLog,
@@ -115,12 +59,11 @@ class DoMerge extends DirCommand<void> {
     bool? viaPullRequest,
     bool? deleteSourceBranch,
   }) async {
-    automerge ??= argResults?['automerge'] as bool? ?? false;
-    local ??= argResults?['local'] as bool? ?? false;
-    message ??= argResults?['message'] as String?;
-    verbose ??= argResults?['verbose'] as bool? ?? false;
-    viaPullRequest ??= argResults?['via-pull-request'] as bool? ?? false;
-    deleteSourceBranch ??= argResults?['delete-source-branch'] as bool? ?? true;
+    automerge ??= false;
+    local ??= false;
+    verbose ??= false;
+    viaPullRequest ??= false;
+    deleteSourceBranch ??= true;
 
     // The publish step runs build/test (incl. formatters like
     // »prettier --write«) after the last commit, and gg writes run state into
@@ -652,5 +595,5 @@ class DoMerge extends DirCommand<void> {
   }
 }
 
-/// Mock for [DoMerge].
-class MockDoMerge extends MockDirCommand<void> implements DoMerge {}
+/// Mock for [MergeFlow].
+class MockMergeFlow extends mocktail.Mock implements MergeFlow {}

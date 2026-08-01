@@ -25,7 +25,7 @@ void main() {
   late Directory d;
   final messages = <String>[];
   final ggLog = messages.add;
-  late DoMerge doMerge;
+  late MergeFlow mergeFlow;
   late MockGgMergeDoMerge mockGgMergeDoMerge;
   late MockGgMergeWaitForMerge mockWaitForMerge;
   late MockGgState mockGgState;
@@ -121,7 +121,7 @@ void main() {
     mockGgState = MockGgState();
     mockMainBranch = MockMainBranch();
     mockProcessWrapper = MockGgProcessWrapper();
-    doMerge = DoMerge(
+    mergeFlow = MergeFlow(
       ggLog: ggLog,
       doMerge: mockGgMergeDoMerge,
       waitForMerge: mockWaitForMerge,
@@ -143,24 +143,22 @@ void main() {
     await d.delete(recursive: true);
   });
 
-  group('DoMerge', () {
+  group('MergeFlow', () {
     group('constructor', () {
       test('should initialize with defaults', () {
-        final instance = DoMerge(ggLog: ggLog);
-        expect(instance.name, 'merge');
-        expect(instance.description, 'Performs the merge operation.');
+        final instance = MergeFlow(ggLog: ggLog);
+        expect(instance.ggLog, ggLog);
       });
 
       test('should initialize with provided parameters', () {
-        final instance = DoMerge(
+        final instance = MergeFlow(
           ggLog: ggLog,
           state: mockGgState,
           doMerge: mockGgMergeDoMerge,
           mainBranch: mockMainBranch,
           processWrapper: mockProcessWrapper,
         );
-        // Verify argParser flags are added
-        expect(instance.argParser.commands.isEmpty, isTrue);
+        expect(instance.ggLog, ggLog);
       });
     });
 
@@ -177,7 +175,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog);
+      await mergeFlow.get(directory: d, ggLog: ggLog);
 
       verifyInOrder([
         () => mockProcessWrapper.run(
@@ -267,7 +265,7 @@ void main() {
         ),
       ).thenAnswer((_) async => ProcessResult(0, 0, '', ''));
 
-      await doMerge.get(directory: d, ggLog: ggLog);
+      await mergeFlow.get(directory: d, ggLog: ggLog);
 
       verify(
         () => mockProcessWrapper.run(
@@ -305,7 +303,7 @@ void main() {
       ).thenAnswer((_) async => ProcessResult(0, 0, 'lib/src/foo.dart\n', ''));
 
       await expectLater(
-        doMerge.get(directory: d, ggLog: ggLog),
+        mergeFlow.get(directory: d, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -372,7 +370,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog);
+      await mergeFlow.get(directory: d, ggLog: ggLog);
 
       // Staged and committed before the branch switch.
       verifyInOrder([
@@ -430,7 +428,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog);
+      await mergeFlow.get(directory: d, ggLog: ggLog);
 
       verifyNever(
         () => mockProcessWrapper.run(
@@ -471,7 +469,7 @@ void main() {
       ).thenAnswer((_) async => ProcessResult(0, 1, '', 'fetch failed'));
 
       await expectLater(
-        doMerge.get(directory: d, ggLog: ggLog),
+        mergeFlow.get(directory: d, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -513,7 +511,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog, verbose: true);
+      await mergeFlow.get(directory: d, ggLog: ggLog, verbose: true);
 
       expect(
         messages,
@@ -560,7 +558,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog);
+      await mergeFlow.get(directory: d, ggLog: ggLog);
 
       // git rm is mocked, so the command deletes the leftover file itself.
       expect(ticketJson.existsSync(), isFalse);
@@ -617,7 +615,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog);
+      await mergeFlow.get(directory: d, ggLog: ggLog);
 
       expect(legacyTicketJson.existsSync(), isFalse);
       verify(
@@ -665,7 +663,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+      await mergeFlow.get(directory: d, ggLog: ggLog, viaPullRequest: true);
 
       verifyInOrder([
         // _fetchAndPullMain refreshes the remote-tracking refs.
@@ -787,7 +785,7 @@ void main() {
           ),
         ).thenAnswer((_) async {});
 
-        await doMerge.get(
+        await mergeFlow.get(
           directory: d,
           ggLog: ggLog,
           viaPullRequest: true,
@@ -826,7 +824,7 @@ void main() {
           (_) async => ProcessResult(0, 0, '.gg/gg.json\npubspec.lock\n', ''),
         );
 
-        await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+        await mergeFlow.get(directory: d, ggLog: ggLog, viaPullRequest: true);
 
         // No push, no pull request, no waiting — straight to main.
         verifyNever(
@@ -947,7 +945,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+      await mergeFlow.get(directory: d, ggLog: ggLog, viaPullRequest: true);
 
       // The drift commit was created and pushed with a second push; the
       // third push carries the recorded release state into the PR.
@@ -1008,7 +1006,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(directory: d, ggLog: ggLog, viaPullRequest: true);
+      await mergeFlow.get(directory: d, ggLog: ggLog, viaPullRequest: true);
 
       // Both states are written while the feature branch content is still
       // the content the squash merge puts on main.
@@ -1058,7 +1056,7 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      await doMerge.get(
+      await mergeFlow.get(
         directory: d,
         ggLog: ggLog,
         viaPullRequest: true,
@@ -1078,8 +1076,8 @@ void main() {
       ).called(1);
     });
 
-    group('exec', () {
-      test('should call get with provided parameters', () async {
+    group('get', () {
+      test('forwards the provided parameters to the gg_merge merge', () async {
         stubGitCommands();
 
         when(
@@ -1092,7 +1090,7 @@ void main() {
           ),
         ).thenAnswer((_) async => true);
 
-        await doMerge.exec(
+        await mergeFlow.get(
           directory: d,
           ggLog: ggLog,
           automerge: true,

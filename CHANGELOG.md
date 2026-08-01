@@ -5,6 +5,16 @@
 ### Changed
 
 - Do not upload ticket.json. Share it manually and import it using &quot;gg do checkout&quot;
+## 12.2.1 - 2026-08-01
+
+### Changed
+
+- Merge gg one do merge to gg one do publish --merge-only
+
+### Removed
+
+- The »gg do merge« command — use »gg do publish --merge-only«, which runs the same flow without version bump, changelog heading, registry upload and tag
+- The »DoMerge« class — its merge implementation is now the plain tool »MergeFlow« (lib/src/tools/merge_flow.dart), driven by »DoPublish«
 
 ## 12.2.0 - 2026-08-01
 
