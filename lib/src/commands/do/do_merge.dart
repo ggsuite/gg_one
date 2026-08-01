@@ -17,6 +17,12 @@ import 'package:gg_publish/gg_publish.dart' as gg_publish;
 import 'package:path/path.dart' as p;
 
 /// Performs the merge operation.
+///
+/// This is **not** a CLI command anymore: `gg do merge` was folded into
+/// `gg do publish --merge-only`, which runs the whole publish flow without
+/// any release artifact. The class stays as the merge *implementation*
+/// [DoPublish] drives (the merge step itself and [removeTicketJson]), so both
+/// a real publish and a merge-only run go through exactly one code path.
 class DoMerge extends DirCommand<void> {
   /// Constructor
   DoMerge({
@@ -32,50 +38,7 @@ class DoMerge extends DirCommand<void> {
        _doMerge = doMerge ?? gg_merge.DoMerge(ggLog: ggLog),
        _waitForMerge = waitForMerge ?? gg_merge.WaitForMerge(ggLog: ggLog),
        _mainBranch = mainBranch ?? gg_publish.MainBranch(ggLog: ggLog),
-       _processWrapper = processWrapper {
-    argParser.addFlag(
-      'automerge',
-      abbr: 'a',
-      help: 'Set PR/MR to automerge after CI.',
-      negatable: true,
-      defaultsTo: false,
-    );
-    argParser.addFlag(
-      'local',
-      abbr: 'l',
-      help: 'Perform a local merge instead of remote PR/MR.',
-      negatable: true,
-      defaultsTo: true,
-    );
-    argParser.addFlag(
-      'via-pull-request',
-      help:
-          'Merge through an auto-complete pull request and wait until it is '
-          'merged (for protected branches, e.g. Azure DevOps).',
-      negatable: true,
-      defaultsTo: false,
-    );
-    argParser.addFlag(
-      'delete-source-branch',
-      help:
-          'Let the provider delete the source branch after a pull-request '
-          'merge.',
-      negatable: true,
-      defaultsTo: true,
-    );
-    argParser.addOption(
-      'message',
-      abbr: 'm',
-      help: 'The merge commit message.',
-    );
-    argParser.addFlag(
-      'verbose',
-      abbr: 'v',
-      help: 'Prints each executed command before running it.',
-      defaultsTo: false,
-      negatable: false,
-    );
-  }
+       _processWrapper = processWrapper;
 
   final GgState _state;
   final gg_merge.DoMerge _doMerge;
@@ -115,12 +78,11 @@ class DoMerge extends DirCommand<void> {
     bool? viaPullRequest,
     bool? deleteSourceBranch,
   }) async {
-    automerge ??= argResults?['automerge'] as bool? ?? false;
-    local ??= argResults?['local'] as bool? ?? false;
-    message ??= argResults?['message'] as String?;
-    verbose ??= argResults?['verbose'] as bool? ?? false;
-    viaPullRequest ??= argResults?['via-pull-request'] as bool? ?? false;
-    deleteSourceBranch ??= argResults?['delete-source-branch'] as bool? ?? true;
+    automerge ??= false;
+    local ??= false;
+    verbose ??= false;
+    viaPullRequest ??= false;
+    deleteSourceBranch ??= true;
 
     // The publish step runs build/test (incl. formatters like
     // »prettier --write«) after the last commit, and gg writes run state into

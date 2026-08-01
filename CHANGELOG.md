@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Removed
+
+- The »gg do merge« command — use »gg do publish --merge-only«, which runs the same flow without version bump, changelog heading, registry upload and tag
+
 ## 12.2.0 - 2026-08-01
 
 ### Changed
