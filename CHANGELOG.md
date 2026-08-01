@@ -6,6 +6,10 @@
 
 - Fix: Skipping unchanged repos from publishing does not work
 
+### Fixed
+
+- Fixes
+
 ## 12.1.1 - 2026-08-01
 
 ### Changed
