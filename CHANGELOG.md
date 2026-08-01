@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- »gg do create ticket« no longer applies a stash it did not create: »git stash create« probes the worktree first, so a clean worktree skips stashing entirely and a foreign stash entry is never restored into the fresh ticket branch. The own entry is pushed with a »gg:<branch>« message and popped instead of applied, so the stash stack no longer grows with every ticket.
+- Fix: read push state from untranslated git status --porcelain=v2
+
 ## 12.3.0 - 2026-08-01
 
 ### Changed
