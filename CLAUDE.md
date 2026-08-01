@@ -60,6 +60,10 @@ All commands extend `DirCommand<T>` from `gg_args`. The primary logic lives in `
 
 Used for commands that aggregate multiple sub-checks. For example, `CanCommit` (in `can/`) runs `analyze`, `format`, and `tests` as a cluster, short-circuiting on the first failure.
 
+### Unknown subcommands
+
+`args` evaluates `--help` **before** the remaining positional arguments (`CommandRunner.runCommand`), so `gg do xyz -h` printed the usage of `do` and exited with 0 — the unknown `xyz` was swallowed; only without `-h` did it fail. `tools/unknown_subcommand_guard.dart` closes that hole: `unknownSubcommandError(command:, args:)` walks the command tree itself and returns the message for the first positional argument that should be a subcommand but is none (`null` when there is none). `bin/gg_one.dart` calls it before `GgCommandRunner`, prints the message in red and sets `exitCode = 1`. The walk skips what is not a command name: options and their values (`--m value`, `--m=value`, abbreviation clusters, negated flags), everything behind `--`, and the positional arguments of a leaf command (`gg do create ticket 69`).
+
 ## Testing Conventions
 
 - 100% code coverage is required. Exempt lines with `// coverage:ignore-line` or `// coverage:ignore-start` / `// coverage:ignore-end`.
