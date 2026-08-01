@@ -52,7 +52,20 @@ void main() {
       expect(messages.last, contains('✅ No pubspec_overrides.yaml'));
     });
 
-    test('throws when a pubspec_overrides.yaml exists', () async {
+    test('succeeds when the overrides only pin git refs', () async {
+      writePubspec();
+      File(join(d.path, 'pubspec_overrides.yaml')).writeAsStringSync(
+        'dependency_overrides:\n'
+        '  gg_log:\n'
+        '    git:\n'
+        '      url: git@github.com:user/gg_log.git\n'
+        '      ref: feature123\n',
+      );
+      await run();
+      expect(messages.last, contains('✅ No pubspec_overrides.yaml'));
+    });
+
+    test('throws when a pubspec_overrides.yaml redirects to a path', () async {
       writePubspec();
       writeOverrides();
       await expectLater(
@@ -108,6 +121,26 @@ void main() {
 
       test('is false when the document is no mapping', () {
         expect(withOverrides('- a\n- b\n'), isFalse);
+      });
+
+      test('is false for a git override', () {
+        expect(
+          withOverrides(
+            'dependency_overrides:\n'
+            '  gg_log:\n'
+            '    git:\n'
+            '      url: git@github.com:user/gg_log.git\n'
+            '      ref: feature123\n',
+          ),
+          isFalse,
+        );
+      });
+
+      test('is false for a plain version override', () {
+        expect(
+          withOverrides('dependency_overrides:\n  gg_log: ^1.0.0\n'),
+          isFalse,
+        );
       });
 
       test('is true for a path override', () {
