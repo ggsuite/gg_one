@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Fix: Skipping unchanged repos from publishing does not work
+
+## 12.1.1 - 2026-08-01
+
+### Changed
+
+- Make sure package is already published in registry before publishing
+
 ## 12.1.0 - 2026-08-01
 
 ### Added
