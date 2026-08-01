@@ -81,5 +81,49 @@ void main() {
     test('the mock can be used', () {
       expect(MockNoPubspecOverrides(), isA<NoPubspecOverrides>());
     });
+
+    group('hasLocalizedRefs()', () {
+      // Writes pubspec_overrides.yaml with [content] and asks the check.
+      bool withOverrides(String content) {
+        File(join(d.path, 'pubspec_overrides.yaml')).writeAsStringSync(content);
+        return NoPubspecOverrides.hasLocalizedRefs(d);
+      }
+
+      test('is false without a pubspec_overrides.yaml', () {
+        expect(NoPubspecOverrides.hasLocalizedRefs(d), isFalse);
+      });
+
+      test('is false for an empty file', () {
+        expect(withOverrides('\n  \n'), isFalse);
+      });
+
+      test('is false for an empty dependency_overrides mapping', () {
+        expect(withOverrides('dependency_overrides:\n'), isFalse);
+        expect(withOverrides('dependency_overrides: {}\n'), isFalse);
+      });
+
+      test('is false without a dependency_overrides key', () {
+        expect(withOverrides('name: test\n'), isFalse);
+      });
+
+      test('is false when the document is no mapping', () {
+        expect(withOverrides('- a\n- b\n'), isFalse);
+      });
+
+      test('is true for a path override', () {
+        expect(
+          withOverrides('dependency_overrides:\n  gg_log:\n    path: ../x'),
+          isTrue,
+        );
+      });
+
+      test('is true when dependency_overrides is no mapping', () {
+        expect(withOverrides('dependency_overrides: broken\n'), isTrue);
+      });
+
+      test('is true for an unparsable file', () {
+        expect(withOverrides('dependency_overrides:\n  - : :\n\t x'), isTrue);
+      });
+    });
   });
 }
