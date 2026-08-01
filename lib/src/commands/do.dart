@@ -37,7 +37,6 @@ class Do extends Command<void> {
     addSubcommand(deps.doConfigurePublish);
     addSubcommand(deps.doUpgrade);
     addSubcommand(DoMaintain(ggLog: ggLog));
-    addSubcommand(deps.doMerge);
     addSubcommand(deps.doCheckout);
   }
 }
@@ -54,7 +53,6 @@ class DepsOfDo {
     DoPublish? doPublish,
     DoConfigurePublish? doConfigurePublish,
     DoUpgrade? doUpgrade,
-    DoMerge? doMerge,
     DoCheckout? doCheckout,
   }) : create = create ?? Create(ggLog: ggLog),
        doCommit = doCommit ?? DoCommit(ggLog: ggLog),
@@ -63,7 +61,6 @@ class DepsOfDo {
        doConfigurePublish =
            doConfigurePublish ?? DoConfigurePublish(ggLog: ggLog),
        doUpgrade = doUpgrade ?? DoUpgrade(ggLog: ggLog),
-       doMerge = doMerge ?? DoMerge(ggLog: ggLog),
        doCheckout = doCheckout ?? DoCheckout(ggLog: ggLog);
 
   /// The log function
@@ -86,9 +83,6 @@ class DepsOfDo {
 
   /// The do upgrade command
   final DoUpgrade doUpgrade;
-
-  /// The do merge command
-  final DoMerge doMerge;
 
   /// The do checkout command
   final DoCheckout doCheckout;
