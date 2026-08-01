@@ -12,6 +12,7 @@ import 'package:gg_log/gg_log.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart' as mocktail;
 import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
 // #############################################################################
 
@@ -39,6 +40,47 @@ class NoPubspecOverrides extends DirCommand<void> {
 
   /// The name of the file that must not exist when publishing.
   static const String fileName = 'pubspec_overrides.yaml';
+
+  // ...........................................................................
+  /// Whether [directory] currently has *effective* localized references — a
+  /// [fileName] that really redirects at least one dependency to a local
+  /// working copy.
+  ///
+  /// A missing file, an empty one and one whose `dependency_overrides` mapping
+  /// is empty all count as »no localized refs«: they change nothing about how
+  /// the package resolves. An unparsable file counts as localized — it cannot
+  /// prove the opposite, and the callers use this to *refuse* an operation.
+  ///
+  /// Used by `gg do merge`, which may only merge a ticket into the main branch
+  /// when no repository still points at a working copy.
+  static bool hasLocalizedRefs(Directory directory) {
+    final file = File(p.join(directory.path, fileName));
+    if (!file.existsSync()) {
+      return false;
+    }
+
+    final content = file.readAsStringSync();
+    if (content.trim().isEmpty) {
+      return false;
+    }
+
+    final dynamic parsed;
+    try {
+      parsed = loadYaml(content);
+    } catch (_) {
+      return true;
+    }
+
+    if (parsed is! Map) {
+      return false;
+    }
+
+    final overrides = parsed['dependency_overrides'];
+    if (overrides == null) {
+      return false;
+    }
+    return overrides is Map ? overrides.isNotEmpty : true;
+  }
 
   // ...........................................................................
   @override
