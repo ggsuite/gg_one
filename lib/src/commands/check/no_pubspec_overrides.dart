@@ -16,14 +16,18 @@ import 'package:yaml/yaml.dart';
 
 // #############################################################################
 
-/// Checks that the package has no `pubspec_overrides.yaml`.
+/// Checks that the package has no `pubspec_overrides.yaml` redirecting a
+/// dependency to a local path.
 ///
-/// A `pubspec_overrides.yaml` redirects dependencies to local paths (written by
-/// `gg_localize_refs` / a multi-repo workspace). Publishing a package while it
-/// is in effect resolves the package against the developer's working copies
-/// instead of the versions on pub.dev — the upload succeeds but the published
-/// package is not reproducible. The file must therefore be deleted before
-/// publishing.
+/// A `path` override (written by `gg_localize_refs` / a multi-repo workspace)
+/// resolves the package against the developer's working copies instead of the
+/// versions on pub.dev — the upload succeeds but the published package is not
+/// reproducible. Such a file must therefore be gone before publishing.
+///
+/// A `git` override is a different story: `gg do review` pins every repository
+/// of a ticket to its feature branch that way, so the repositories are reviewed
+/// against each other. That ref resolves for everybody, and `do publish`
+/// removes the file before the upload anyway — so it does not block a publish.
 ///
 /// The check only applies to Dart/Flutter packages; other project types have no
 /// such file.
@@ -46,9 +50,10 @@ class NoPubspecOverrides extends DirCommand<void> {
   /// [fileName] that really redirects at least one dependency to a local
   /// working copy.
   ///
-  /// A missing file, an empty one and one whose `dependency_overrides` mapping
-  /// is empty all count as »no localized refs«: they change nothing about how
-  /// the package resolves. An unparsable file counts as localized — it cannot
+  /// A missing file, an empty one, one whose `dependency_overrides` mapping is
+  /// empty and one that only pins git refs all count as »no localized refs«:
+  /// none of them makes the package resolve against something that exists on
+  /// this machine only. An unparsable file counts as localized — it cannot
   /// prove the opposite, and the callers use this to *refuse* an operation.
   ///
   /// Used by `gg do merge`, which may only merge a ticket into the main branch
@@ -79,8 +84,19 @@ class NoPubspecOverrides extends DirCommand<void> {
     if (overrides == null) {
       return false;
     }
-    return overrides is Map ? overrides.isNotEmpty : true;
+    if (overrides is! Map) {
+      return true;
+    }
+
+    return overrides.values.any(_isPathOverride);
   }
+
+  /// Whether [override] redirects a dependency to a local working copy.
+  ///
+  /// Anything that is not a mapping is a version constraint and resolves
+  /// remotely; a mapping counts as local exactly when it declares a `path`.
+  static bool _isPathOverride(dynamic override) =>
+      override is Map && override.containsKey('path');
 
   // ...........................................................................
   @override
@@ -98,7 +114,7 @@ class NoPubspecOverrides extends DirCommand<void> {
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
     final file = File(p.join(directory.path, fileName));
-    if (!file.existsSync()) {
+    if (!hasLocalizedRefs(directory)) {
       statusPrinter.logStatus(GgStatusPrinterStatus.success);
       return;
     }

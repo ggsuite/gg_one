@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Use pubspec_overrides.yaml for git references
+
 ## 12.1.2 - 2026-08-01
 
 ### Changed
