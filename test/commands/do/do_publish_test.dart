@@ -77,8 +77,8 @@ void main() {
         confirmDeleteFeatureBranch ?? defaultConfirmDeleteFeatureBranch,
   );
 
-  // DoMerge variant for the bare test repo.
-  DoMerge noPubGetDoMerge() => DoMerge(
+  // MergeFlow variant for the bare test repo.
+  MergeFlow noPubGetMergeFlow() => MergeFlow(
     ggLog: ggLog,
     doMerge: gg_merge.DoMerge(
       ggLog: ggLog,
@@ -162,7 +162,7 @@ void main() {
       processWrapper: processWrapper,
       localBranch: localBranch,
       confirmDeleteFeatureBranch: (_) => false,
-      doMerge: noPubGetDoMerge(),
+      mergeFlow: noPubGetMergeFlow(),
     );
 
     final runner = CommandRunner<void>('gg', 'gg')..addCommand(cliDoPublish);
@@ -372,7 +372,7 @@ void main() {
       processWrapper: processWrapper,
       localBranch: localBranch,
       confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-      doMerge: noPubGetDoMerge(),
+      mergeFlow: noPubGetMergeFlow(),
     );
 
     await makeLastStateSuccessful();
@@ -595,7 +595,7 @@ void main() {
                 processWrapper: processWrapper,
                 localBranch: localBranch,
                 confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-                doMerge: noPubGetDoMerge(),
+                mergeFlow: noPubGetMergeFlow(),
               );
 
               // Prepare pubspec.yaml
@@ -802,7 +802,7 @@ void main() {
               processWrapper: processWrapper,
               localBranch: localBranch,
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             await doPublishWithEditor.exec(
@@ -856,7 +856,7 @@ void main() {
               processWrapper: processWrapper,
               localBranch: localBranch,
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             await doPublishWithEditor.exec(
@@ -907,7 +907,7 @@ void main() {
               processWrapper: processWrapper,
               localBranch: localBranch,
               confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             await doPublishWithEditor.exec(
@@ -1111,7 +1111,7 @@ void main() {
               localBranch: localBranch,
               confirmDeleteFeatureBranch: (_) =>
                   fail('DoPublish itself must not prompt here.'),
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             await doPublishWithPrompt.exec(
@@ -1168,7 +1168,7 @@ void main() {
                   promptBranchName = branchName;
                   return true;
                 },
-                doMerge: noPubGetDoMerge(),
+                mergeFlow: noPubGetMergeFlow(),
               );
 
               await doPublishWithPrompt.exec(
@@ -1218,7 +1218,7 @@ void main() {
               localBranch: localBranch,
               confirmDeleteFeatureBranch: (_) =>
                   fail('The config decides — no prompt allowed.'),
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             await headlessPublish.exec(
@@ -1260,7 +1260,7 @@ void main() {
               confirmDeleteFeatureBranch: (_) {
                 fail('Prompt must not be used when flag is provided.');
               },
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             final runner = CommandRunner<void>('gg', 'gg')
@@ -1329,7 +1329,7 @@ void main() {
               // prompt and no CLI flag needed.
               confirmDeleteFeatureBranch: (_) =>
                   fail('The --config file decides — no prompt allowed.'),
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             final runner = CommandRunner<void>('gg', 'gg')
@@ -1378,7 +1378,7 @@ void main() {
               processWrapper: processWrapper,
               localBranch: localBranch,
               confirmDeleteFeatureBranch: (_) => false,
-              doMerge: noPubGetDoMerge(),
+              mergeFlow: noPubGetMergeFlow(),
             );
 
             final runner = CommandRunner<void>('gg', 'gg')
@@ -1427,7 +1427,7 @@ void main() {
                 confirmDeleteFeatureBranch: (_) {
                   fail('Prompt must not be used when flag is provided.');
                 },
-                doMerge: noPubGetDoMerge(),
+                mergeFlow: noPubGetMergeFlow(),
               );
 
               final runner = CommandRunner<void>('gg', 'gg')
@@ -1486,7 +1486,7 @@ void main() {
                 processWrapper: processWrapper,
                 localBranch: localBranch,
                 confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-                doMerge: noPubGetDoMerge(),
+                mergeFlow: noPubGetMergeFlow(),
               );
 
               final runner = CommandRunner<void>('gg', 'gg')
@@ -1710,7 +1710,7 @@ void main() {
             processWrapper: processWrapper,
             localBranch: localBranch,
             confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-            doMerge: noPubGetDoMerge(),
+            mergeFlow: noPubGetMergeFlow(),
             addGitOnlyVersionTag: addGitOnlyVersionTag,
           );
 
@@ -1789,7 +1789,7 @@ void main() {
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-          doMerge: noPubGetDoMerge(),
+          mergeFlow: noPubGetMergeFlow(),
         );
       }
 
@@ -1889,7 +1889,7 @@ void main() {
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-          doMerge: noPubGetDoMerge(),
+          mergeFlow: noPubGetMergeFlow(),
         );
       }
 
@@ -2116,9 +2116,9 @@ void main() {
       });
 
       test('merges via a pull request on a protected (Azure) remote', () async {
-        final mockDoMerge = MockDoMerge();
+        final mockMergeFlow = MockMergeFlow();
         when(
-          () => mockDoMerge.get(
+          () => mockMergeFlow.get(
             directory: any(named: 'directory'),
             ggLog: any(named: 'ggLog'),
             automerge: any(named: 'automerge'),
@@ -2130,7 +2130,7 @@ void main() {
           ),
         ).thenAnswer((_) async {});
         when(
-          () => mockDoMerge.removeTicketJson(
+          () => mockMergeFlow.removeTicketJson(
             directory: any(named: 'directory'),
             ggLog: any(named: 'ggLog'),
             verbose: any(named: 'verbose'),
@@ -2176,7 +2176,7 @@ void main() {
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-          doMerge: mockDoMerge,
+          mergeFlow: mockMergeFlow,
         );
 
         messages.clear();
@@ -2190,7 +2190,7 @@ void main() {
         // The merge went through the pull-request path, forwarding the
         // delete decision to the provider.
         verify(
-          () => mockDoMerge.get(
+          () => mockMergeFlow.get(
             directory: any(named: 'directory'),
             ggLog: any(named: 'ggLog'),
             automerge: any(named: 'automerge'),
@@ -2267,7 +2267,7 @@ void main() {
         localBranch: localBranch,
         confirmDeleteFeatureBranch:
             confirmDeleteFeatureBranch ?? defaultConfirmDeleteFeatureBranch,
-        doMerge: noPubGetDoMerge(),
+        mergeFlow: noPubGetMergeFlow(),
       );
 
       test('--continue without a saved run throws a clear error', () async {
@@ -2476,7 +2476,7 @@ void main() {
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
-          doMerge: noPubGetDoMerge(),
+          mergeFlow: noPubGetMergeFlow(),
         );
 
         await strictPublish.exec(
@@ -3248,7 +3248,7 @@ void main() {
           processWrapper: processWrapper,
           localBranch: localBranch,
           confirmDeleteFeatureBranch: (_) => false,
-          doMerge: noPubGetDoMerge(),
+          mergeFlow: noPubGetMergeFlow(),
         );
 
         final runner = CommandRunner<void>('gg', 'gg')

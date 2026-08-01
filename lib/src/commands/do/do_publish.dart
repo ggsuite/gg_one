@@ -62,7 +62,7 @@ class DoPublish extends DirCommand<void> {
     IsPublished? isPublished,
     changelog.Release? release,
     PublishTo? publishTo,
-    DoMerge? doMerge,
+    MergeFlow? mergeFlow,
     PublishedVersion? publishedVersion,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
     LocalBranch? localBranch,
@@ -99,7 +99,7 @@ class DoPublish extends DirCommand<void> {
        _releaseChangelog = release ?? changelog.Release(ggLog: ggLog),
        _isPublished = isPublished ?? IsPublished(ggLog: ggLog),
        _publishTo = publishTo ?? PublishTo(ggLog: ggLog),
-       _doMerge = doMerge ?? DoMerge(ggLog: ggLog),
+       _mergeFlow = mergeFlow ?? MergeFlow(ggLog: ggLog),
        _publishedVersion = publishedVersion,
        _processWrapper = processWrapper,
        _localBranch = localBranch ?? LocalBranch(ggLog: ggLog),
@@ -424,7 +424,7 @@ class DoPublish extends DirCommand<void> {
     // registry upload — the upload happens before the merge, so the
     // merge-time removal alone would ship `.gg/ticket.json` to pub.dev/npm
     // inside the published package. Idempotent, so resumes are safe.
-    await _doMerge.removeTicketJson(
+    await _mergeFlow.removeTicketJson(
       directory: directory,
       ggLog: ggLog,
       verbose: isVerbose,
@@ -592,7 +592,7 @@ class DoPublish extends DirCommand<void> {
   final changelog.Release _releaseChangelog;
   final IsPublished _isPublished;
   final PublishTo _publishTo;
-  final DoMerge _doMerge;
+  final MergeFlow _mergeFlow;
   PublishedVersion? _publishedVersion;
   final GgProcessWrapper _processWrapper;
   final LocalBranch _localBranch;
@@ -764,7 +764,7 @@ class DoPublish extends DirCommand<void> {
       );
     }
 
-    await _doMerge.get(
+    await _mergeFlow.get(
       directory: directory,
       ggLog: ggLog,
       automerge: false,
