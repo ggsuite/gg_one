@@ -30,6 +30,17 @@ import 'package:pub_semver/pub_semver.dart';
 /// in `<repo>/.gg/gg-publish.json` (see [allowedPublishSteps]); a failed
 /// run can be resumed with `--continue` and skips the steps already done.
 /// The file is deleted after a fully successful publish.
+///
+/// With `--merge-only` the very same flow runs, minus every step that would
+/// release the package: the version is not increased, no `CHANGELOG.md`
+/// release heading is written, nothing is uploaded to a package registry and
+/// no version tag is created. That mode powers `gg do merge`, which brings a
+/// ticket onto the main branch without releasing it — the branch keeps the
+/// released version and its »## Unreleased« entries, and the next real
+/// publish releases them. Because the merged state is never resolvable
+/// against a registry, it is refused while
+/// [NoPubspecOverrides.hasLocalizedRefs] reports localized references —
+/// `--force` overrides that.
 class DoPublish extends DirCommand<void> {
   /// Constructor
   DoPublish({
@@ -120,6 +131,8 @@ class DoPublish extends DirCommand<void> {
     String? channel,
     bool? resume,
     bool? pr,
+    bool? mergeOnly,
+    bool? force,
   }) => get(
     directory: directory,
     ggLog: ggLog,
@@ -131,6 +144,8 @@ class DoPublish extends DirCommand<void> {
     channel: channel,
     resume: resume,
     pr: pr,
+    mergeOnly: mergeOnly,
+    force: force,
   );
 
   @override
@@ -145,8 +160,12 @@ class DoPublish extends DirCommand<void> {
     String? channel,
     bool? resume,
     bool? pr,
+    bool? mergeOnly,
+    bool? force,
   }) async {
     final isVerbose = verbose ?? _verboseFromArgs;
+    final isMergeOnly = mergeOnly ?? _mergeOnlyFromArgs;
+    final isForce = force ?? _forceFromArgs;
     _publishedVersion ??= PublishedVersion(ggLog: ggLog);
 
     // Does directory exist?
@@ -175,6 +194,15 @@ class DoPublish extends DirCommand<void> {
     // working copies and must not be in effect while publishing. Delete it
     // before anything else — before »can publish« checks for it, and before
     // the first bookkeeping commit could carry it into the release.
+    //
+    // A merge-only run refuses instead of just deleting: it puts the branch on
+    // the main branch WITHOUT releasing it, so a dependency that only exists
+    // as a local working copy would never become resolvable for anybody else.
+    // »--force« says the user knows and wants it merged regardless — then the
+    // file is deleted like in a normal publish.
+    if (isMergeOnly && !isForce) {
+      _throwIfRefsAreLocalized(directory);
+    }
     _deletePubspecOverrides(directory: directory, ggLog: ggLog);
 
     // Step 1: Read the runtime .gg/gg-publish.json (config + progress).
@@ -404,8 +432,26 @@ class DoPublish extends DirCommand<void> {
 
     await _doPush.gitPush(directory: directory, force: false);
 
-    // Step 7: Prepare version + changelog.
-    if (!progress.isStepDone('prepare_version')) {
+    // A merge-only run stops short of every release artifact. Announced once,
+    // because a run that ends without a release looks like a failed publish
+    // otherwise.
+    if (isMergeOnly) {
+      ggLog(
+        darkGray(
+          'Merge only: not increasing the version, not releasing the '
+          'changelog, not publishing to a package registry and not tagging '
+          'the release.',
+        ),
+      );
+    }
+
+    // Step 7: Prepare version + changelog. Skipped by a merge-only run: the
+    // version number, the CHANGELOG.md release heading and the git tag are
+    // one unit, so bumping the manifest while neither of the other two
+    // follows would leave the main branch claiming a version that was never
+    // released. The main branch keeps the released version plus its
+    // »## Unreleased« entries, and the next real publish releases them.
+    if (!isMergeOnly && !progress.isStepDone('prepare_version')) {
       await _prepareVersion(directory: directory, ggLog: ggLog, noLog: noLog);
       await markStepDone('prepare_version');
     }
@@ -416,7 +462,12 @@ class DoPublish extends DirCommand<void> {
     // registry target (`publish_to: none`, projects without a manifest)
     // skip the whole step — there is no registry version to compare or
     // lock file to update.
-    if (!progress.isStepDone('publish_registry')) {
+    //
+    // A merge-only run never uploads anything, so the step (and the wait for
+    // registry visibility that follows it) is skipped entirely. No step is
+    // marked as done either — the markers would let a later `gg do publish
+    // --continue` believe the release already happened.
+    if (!isMergeOnly && !progress.isStepDone('publish_registry')) {
       if (await _shouldPublishToRegistry(directory, ggLog)) {
         final alreadyPublished = await _versionAlreadyPublished(
           directory: directory,
@@ -461,8 +512,11 @@ class DoPublish extends DirCommand<void> {
     // url, reporting progress and bounded by a timeout instead of hanging.
     // Idempotent (returns immediately once the version is visible), so it
     // also runs on resumed runs; packages that publish to no registry are
-    // skipped inside.
-    await _waitUntilPublished.get(directory: directory, ggLog: ggLog);
+    // skipped inside. Nothing was uploaded in a merge-only run, so there is
+    // nothing to wait for.
+    if (!isMergeOnly) {
+      await _waitUntilPublished.get(directory: directory, ggLog: ggLog);
+    }
 
     // Step 9: Merge into the default branch. (When the step is already done
     // on a resumed run, the default branch was checked out before Step 6.)
@@ -507,12 +561,15 @@ class DoPublish extends DirCommand<void> {
       );
     }
 
-    // Step 11: Tag the release and push the tags.
-    if (!progress.isStepDone('tag')) {
-      await _publishGit(directory: directory, ggLog: ggLog);
-      await markStepDone('tag');
+    // Step 11: Tag the release and push the tags. A merge-only run marks no
+    // release, so it creates no tag — and has none to push.
+    if (!isMergeOnly) {
+      if (!progress.isStepDone('tag')) {
+        await _publishGit(directory: directory, ggLog: ggLog);
+        await markStepDone('tag');
+      }
+      await _doPush.gitPush(directory: directory, force: false, pushTags: true);
     }
-    await _doPush.gitPush(directory: directory, force: false, pushTags: true);
 
     // Step 12: Fully published — the runtime file has served its purpose.
     if (runtimeFile.existsSync()) {
@@ -1050,6 +1107,25 @@ class DoPublish extends DirCommand<void> {
     ggLog(green('Deleted remote feature branch $branchName.'));
   }
 
+  /// Throws when [directory] still redirects dependencies to local working
+  /// copies. A merge-only run does not release the package, so such a
+  /// reference would never become resolvable for anyone but the developer who
+  /// merged it — the main branch would carry a package nobody can build.
+  void _throwIfRefsAreLocalized(Directory directory) {
+    if (!NoPubspecOverrides.hasLocalizedRefs(directory)) {
+      return;
+    }
+
+    throw Exception(
+      [
+        'Project depends on other local projects. ',
+        'Just merging is not possible.',
+        '  - Either run ${blue('gg do publish')} ',
+        '  - Or publish anyway adding ${blue('--force')} option.',
+      ].join(('\n')),
+    );
+  }
+
   /// Deletes a `pubspec_overrides.yaml` left over from local development, so
   /// the package is published against the versions on pub.dev instead of the
   /// developer's working copies. Does nothing when there is none.
@@ -1123,6 +1199,10 @@ class DoPublish extends DirCommand<void> {
       argResults?.wasParsed('delete-feature-branch') ?? false;
 
   bool get _prFromArgs => argResults?['pr'] as bool? ?? true;
+
+  bool get _mergeOnlyFromArgs => argResults?['merge-only'] as bool? ?? false;
+
+  bool get _forceFromArgs => argResults?['force'] as bool? ?? false;
 
   bool get _prWasProvided => argResults?.wasParsed('pr') ?? false;
 
@@ -1204,6 +1284,20 @@ class DoPublish extends DirCommand<void> {
           'and configure the publish again.',
       defaultsTo: false,
       negatable: true,
+    );
+
+    argParser.addFlag(
+      'merge-only',
+      help: 'Merge without releasing: no version bump, no tag.',
+      defaultsTo: false,
+      negatable: false,
+    );
+
+    argParser.addFlag(
+      'force',
+      help: 'Merge although local refs are still in place.',
+      defaultsTo: false,
+      negatable: false,
     );
 
     argParser.addFlag(

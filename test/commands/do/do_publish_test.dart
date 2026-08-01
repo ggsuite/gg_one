@@ -2951,6 +2951,213 @@ void main() {
       });
     });
 
+    group('merge only', () {
+      // Reads the tags of the test repository.
+      Future<List<String>> tagsOf(Directory dir) async {
+        final result = await Process.run('git', [
+          'tag',
+          '--list',
+        ], workingDirectory: dir.path);
+        return (result.stdout as String)
+            .split('\n')
+            .map((t) => t.trim())
+            .where((t) => t.isNotEmpty)
+            .toList();
+      }
+
+      test('merges without producing any release artifact', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+          mergeOnly: true,
+        );
+
+        // The version stays at the released one — no bump, and the changelog
+        // keeps its »## Unreleased« section instead of a release heading.
+        expect(
+          await File(join(d.path, 'pubspec.yaml')).readAsString(),
+          contains('version: 1.2.3'),
+        );
+        final changelog = await File(
+          join(d.path, 'CHANGELOG.md'),
+        ).readAsString();
+        expect(changelog, contains('## Unreleased'));
+        expect(changelog, isNot(contains('## 1.2.4')));
+
+        // Nothing was uploaded and no tag was created.
+        verifyNever(
+          () => publish.exec(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+            askBeforePublishing: any(named: 'askBeforePublishing'),
+          ),
+        );
+        verifyNever(
+          () => waitUntilPublished.get(
+            directory: any(named: 'directory'),
+            ggLog: any(named: 'ggLog'),
+          ),
+        );
+        expect(await tagsOf(d), isEmpty);
+
+        final allMessages = messages.join('\n');
+        expect(allMessages, contains('not increasing the version'));
+        expect(allMessages, contains('not publishing to a package registry'));
+        expect(allMessages, isNot(contains('Tag 1.2.4 added')));
+      });
+
+      test('records no publish step at all', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        final steps = <List<String>>[];
+        final runtimeFile = DoConfigurePublish.configFileFor(d);
+        // Capture the recorded steps while the run is still in progress —
+        // the file is deleted when the run succeeds.
+        await doPublish.exec(
+          directory: d,
+          ggLog: (msg) {
+            if (runtimeFile.existsSync()) {
+              steps.add(
+                PublishConfig.load(
+                  configArg: runtimeFile.path,
+                  fallbackDir: d.path,
+                ).doneSteps,
+              );
+            }
+            ggLog(msg);
+          },
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+          mergeOnly: true,
+        );
+
+        // No step ran, so none may be recorded — a marker would make a
+        // later »gg do publish --continue« believe the release happened.
+        expect(steps, isNotEmpty);
+        expect(steps.expand((s) => s), isEmpty);
+      });
+
+      test('refuses when references are still localized', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        File(join(d.path, 'pubspec_overrides.yaml')).writeAsStringSync(
+          'dependency_overrides:\n  gg_log:\n    path: ../gg_log',
+        );
+
+        late String message;
+        try {
+          await doPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+            mergeOnly: true,
+          );
+        } catch (e) {
+          message = e.toString();
+        }
+
+        expect(message, contains('Project depends on other local projects'));
+        expect(message, contains('Just merging is not possible'));
+        // Both escape hatches are named.
+        expect(message, contains('gg do publish'));
+        expect(message, contains('--force'));
+        // The guard runs before anything is changed.
+        expect(
+          File(join(d.path, 'pubspec_overrides.yaml')).existsSync(),
+          isTrue,
+        );
+      });
+
+      test('merges localized references when --force is given', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        final overrides = File(join(d.path, 'pubspec_overrides.yaml'))
+          ..writeAsStringSync(
+            'dependency_overrides:\n  gg_log:\n    path: ../gg_log',
+          );
+
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+          mergeOnly: true,
+          force: true,
+        );
+
+        expect(overrides.existsSync(), isFalse);
+        expect(await tagsOf(d), isEmpty);
+      });
+
+      test('tolerates an overrides file without effective refs', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        // An empty `dependency_overrides` redirects nothing.
+        File(
+          join(d.path, 'pubspec_overrides.yaml'),
+        ).writeAsStringSync('dependency_overrides:\n');
+
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+          mergeOnly: true,
+        );
+
+        expect(await tagsOf(d), isEmpty);
+      });
+
+      test('is available as --merge-only on the command line', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        final cliDoPublish = DoPublish(
+          waitUntilPublished: waitUntilPublished,
+          ggLog: ggLog,
+          publish: publish,
+          prepareNextVersion: PrepareNextVersion(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          canPublish: canPublish,
+          isPublished: IsPublished(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          configurePublish: makeConfigurePublish(),
+          publishedVersion: publishedVersion,
+          processWrapper: processWrapper,
+          localBranch: localBranch,
+          confirmDeleteFeatureBranch: (_) => false,
+          doMerge: noPubGetDoMerge(),
+        );
+
+        final runner = CommandRunner<void>('gg', 'gg')
+          ..addCommand(cliDoPublish);
+
+        await runner.run(<String>[
+          'publish',
+          '-i',
+          d.path,
+          '--merge-only',
+          '--force',
+          '--no-delete-feature-branch',
+          '--no-ask-before-publishing',
+        ]);
+
+        expect(await tagsOf(d), isEmpty);
+        expect(
+          messages.join('\n'),
+          contains('not publishing to a package registry'),
+        );
+      });
+    });
+
     test('should have a code coverage of 100%', () {
       expect(
         DoPublish(
