@@ -711,7 +711,11 @@ class DoPublish extends DirCommand<void> {
 
     // CHANGELOG.md release is Dart/Flutter only; TS uses manifest versioning.
     if (_supportsChangeLog(directory)) {
-      await _prepareChangelog(directory: directory, ggLog: noLog);
+      await _prepareChangelog(
+        directory: directory,
+        ggLog: noLog,
+        reportLog: ggLog,
+      );
     }
   }
 
@@ -886,9 +890,13 @@ class DoPublish extends DirCommand<void> {
   }
 
   /// Prepare the changelog for release and commit the result.
+  ///
+  /// [ggLog] receives the step's own chatter (silenced by the caller),
+  /// [reportLog] the messages the user has to see.
   Future<void> _prepareChangelog({
     required Directory directory,
     required GgLog ggLog,
+    required GgLog reportLog,
   }) async {
     final hashBefore = await _state.currentHash(
       directory: directory,
@@ -899,13 +907,27 @@ class DoPublish extends DirCommand<void> {
 
     await _state.updateHash(hash: hashBefore, directory: directory);
 
-    await _commit.commit(
-      ggLog: ggLog,
-      directory: directory,
-      doStage: true,
-      message: '#gg: Prepare changelog for release',
-      ammendWhenNotPushed: true,
-    );
+    try {
+      await _commit.commit(
+        ggLog: ggLog,
+        directory: directory,
+        doStage: true,
+        message: '#gg: Prepare changelog for release',
+        ammendWhenNotPushed: true,
+      );
+    } on Exception catch (e) {
+      // The changelog release is a no-op once the version already has a
+      // section in CHANGELOG.md — a run that bumped the version and released
+      // the changelog but died before the registry upload reaches exactly
+      // that state. Tolerate the empty commit like [_addNextVersion] does,
+      // otherwise the repair run cannot get past the step that is already
+      // done and the package is never published.
+      if (e.toString().contains('Nothing to commit')) {
+        reportLog('The changelog is already released — nothing to commit.');
+      } else {
+        rethrow;
+      }
+    }
   }
 
   /// Increases the version according to the selected increment.

@@ -1861,6 +1861,120 @@ void main() {
       });
     });
 
+    group('changelog step idempotency (Dart project)', () {
+      // Builds a DoPublish whose commits are driven by [commit], on a Dart
+      // working tree — so the CHANGELOG step runs.
+      Future<DoPublish> dartDoPublishWith(Commit commit) async {
+        await makeLastStateSuccessful();
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+        publishedVersionValue = Version(1, 2, 3);
+        mockPublishedVersion();
+
+        return DoPublish(
+          waitUntilPublished: waitUntilPublished,
+          ggLog: ggLog,
+          publish: publish,
+          commit: commit,
+          prepareNextVersion: PrepareNextVersion(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          canPublish: canPublish,
+          isPublished: IsPublished(
+            ggLog: ggLog,
+            publishedVersion: publishedVersion,
+          ),
+          configurePublish: makeConfigurePublish(),
+          publishedVersion: publishedVersion,
+          processWrapper: processWrapper,
+          localBranch: localBranch,
+          confirmDeleteFeatureBranch: defaultConfirmDeleteFeatureBranch,
+          doMerge: noPubGetDoMerge(),
+        );
+      }
+
+      test('tolerates an empty changelog commit when resuming', () async {
+        // A run that bumped the version and released the changelog but died
+        // before the registry upload leaves both steps done. The changelog
+        // release is then a no-op, so its commit reports "Nothing to commit"
+        // — »do publish« must continue to the upload instead of crashing,
+        // otherwise the package can never be published.
+        final commit = _MockCommit();
+        when(
+          () => commit.commit(
+            ggLog: any(named: 'ggLog'),
+            directory: any(named: 'directory'),
+            doStage: any(named: 'doStage'),
+            message: any(named: 'message'),
+            ammendWhenNotPushed: any(named: 'ammendWhenNotPushed'),
+          ),
+        ).thenThrow(Exception('Nothing to commit. No uncommitted changes.'));
+
+        final doPublish = await dartDoPublishWith(commit);
+        messages.clear();
+
+        // The downstream merge is not the subject here; we only assert the
+        // idempotent branch logged its message before continuing.
+        try {
+          await doPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+          );
+        } catch (_) {
+          // ignore later steps
+        }
+
+        expect(
+          messages.join('\n'),
+          contains('The changelog is already released — nothing to commit.'),
+        );
+      });
+
+      test('rethrows non-empty-commit failures during changelog', () async {
+        final commit = _MockCommit();
+        var callCount = 0;
+        when(
+          () => commit.commit(
+            ggLog: any(named: 'ggLog'),
+            directory: any(named: 'directory'),
+            doStage: any(named: 'doStage'),
+            message: any(named: 'message'),
+            ammendWhenNotPushed: any(named: 'ammendWhenNotPushed'),
+          ),
+        ).thenAnswer((_) async {
+          // The version commit is tolerated, the changelog commit fails for
+          // an unrelated reason and must surface.
+          callCount++;
+          throw Exception(
+            callCount == 1
+                ? 'Nothing to commit. No uncommitted changes.'
+                : 'disk full',
+          );
+        });
+
+        final doPublish = await dartDoPublishWith(commit);
+        messages.clear();
+
+        await expectLater(
+          doPublish.exec(
+            directory: d,
+            ggLog: ggLog,
+            askBeforePublishing: false,
+            deleteFeatureBranch: false,
+          ),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('disk full'),
+            ),
+          ),
+        );
+      });
+    });
+
     group('merge strategy detection', () {
       test('uses the local merge flow when origin has no remote', () async {
         // git config exits non-zero → no provider → local merge.
