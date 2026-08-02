@@ -6,6 +6,7 @@
 
 - Throw an error on unknown gg one sub commands, also if option -h is given
 - Throw an error when gg on do publish is called within a ticket repo
+- Use gg_args 2.1.0 which reports unknown sub commands itself
 
 ## 12.3.0 - 2026-08-01
 

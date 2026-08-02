@@ -58,7 +58,6 @@ export 'src/tools/merge_flow.dart';
 export 'src/tools/publish_config.dart';
 export 'src/tools/repository_url.dart';
 export 'src/tools/terminal_guard.dart';
-export 'src/tools/unknown_subcommand_guard.dart';
 export 'src/tools/workspace_folder_guard.dart';
 export 'src/tools/version_selector.dart';
 // Project-type detection and package-manager handling now live in gg_lang
