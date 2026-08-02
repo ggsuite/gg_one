@@ -384,6 +384,17 @@ void main() {
         );
       });
 
+      test('accepts a missing increment for a merge-only run', () {
+        // A merge-only run releases nothing, so it needs no increment.
+        final cfg = PublishConfig(mergeMessage: 'merge X');
+        final r = cfg.resolveSingle(
+          configPath: 'release.json',
+          requireVersionIncrement: false,
+        );
+        expect(r.versionIncrement, isNull);
+        expect(r.mergeMessage, 'merge X');
+      });
+
       test('hard errors when merge_message is missing', () {
         final cfg = PublishConfig(versionIncrement: 'minor');
         expect(
@@ -449,6 +460,20 @@ void main() {
         final r = cfg.forRepo(repoName: 'unknown', configPath: 'release.json');
         expect(r.versionIncrement, 'patch');
         expect(r.mergeMessage, 'default');
+      });
+
+      test('accepts a missing increment for a merge-only run', () {
+        final cfg = PublishConfig(
+          mergeMessage: 'default',
+          repos: {'app_core': RepoOverride(mergeMessage: 'merge it')},
+        );
+        final r = cfg.forRepo(
+          repoName: 'app_core',
+          configPath: 'release.json',
+          requireVersionIncrement: false,
+        );
+        expect(r.versionIncrement, isNull);
+        expect(r.mergeMessage, 'merge it');
       });
 
       test(
