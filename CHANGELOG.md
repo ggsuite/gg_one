@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `CreatePullRequest` (`lib/src/tools/create_pull_request.dart`): opens — or reuses — the pull request of the current feature branch on GitHub/Azure DevOps and returns its url. It is created **without** auto-merge, so `gg_multi do review` can open a pull request while the ticket is still being worked on; only `do publish` adds the auto-merge flag.
+
+### Changed
+
+- Create pull request as part of the review
+
 ## 12.3.0 - 2026-08-01
 
 ### Changed
