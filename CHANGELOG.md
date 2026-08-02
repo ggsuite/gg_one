@@ -6,6 +6,17 @@
 
 - »gg do create ticket« no longer applies a stash it did not create: »git stash create« probes the worktree first, so a clean worktree skips stashing entirely and a foreign stash entry is never restored into the fresh ticket branch. The own entry is pushed with a »gg:<branch>« message and popped instead of applied, so the stash stack no longer grows with every ticket
 - Fix git errors: own stash in create ticket, locale-independent push state
+## 12.4.0 - 2026-08-02
+
+### Changed
+
+- Throw an error on unknown gg one sub commands, also if option -h is given
+- Throw an error when gg on do publish is called within a ticket repo
+- Use gg_args 2.1.0 which reports unknown sub commands itself
+
+### Removed
+
+- Remove gg do merge, use gg do publish --merge-only which asks for no version increment
 
 ## 12.3.0 - 2026-08-01
 
