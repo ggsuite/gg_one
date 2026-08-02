@@ -48,11 +48,19 @@ void main() {
   void mockGitCommand(
     List<String> args, {
     int exitCode = 0,
+    String stdout = '',
     String stderr = '',
   }) {
     when(
       () => processWrapper.run('git', args, workingDirectory: d.path),
-    ).thenAnswer((_) async => ProcessResult(0, exitCode, '', stderr));
+    ).thenAnswer((_) async => ProcessResult(0, exitCode, stdout, stderr));
+  }
+
+  /// Mocks a dirty worktree, i.e. »git stash create« returns a commit hash.
+  void mockStash(String branchName) {
+    mockGitCommand(['stash', 'create'], stdout: 'abc123\n');
+    mockGitCommand(['stash', 'push', '-m', 'gg:$branchName']);
+    mockGitCommand(['stash', 'pop']);
   }
 
   group('CreateTicket', () {
@@ -65,9 +73,8 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      mockGitCommand(['stash']);
+      mockStash('feat_test');
       mockGitCommand(['checkout', '-b', 'feat_test']);
-      mockGitCommand(['stash', 'apply']);
 
       await createTicket.exec(
         directory: d,
@@ -88,9 +95,8 @@ void main() {
       ).thenAnswer((_) async => false);
 
       mockGitCommand(['reset', '--soft', 'origin/main']);
-      mockGitCommand(['stash']);
+      mockStash('feat_test');
       mockGitCommand(['checkout', '-b', 'feat_test']);
-      mockGitCommand(['stash', 'apply']);
 
       await createTicket.exec(
         directory: d,
@@ -114,7 +120,12 @@ void main() {
         ], workingDirectory: d.path),
       ).called(1);
       verify(
-        () => processWrapper.run('git', ['stash'], workingDirectory: d.path),
+        () => processWrapper.run('git', [
+          'stash',
+          'push',
+          '-m',
+          'gg:feat_test',
+        ], workingDirectory: d.path),
       ).called(1);
       verify(
         () => processWrapper.run('git', [
@@ -126,7 +137,7 @@ void main() {
       verify(
         () => processWrapper.run('git', [
           'stash',
-          'apply',
+          'pop',
         ], workingDirectory: d.path),
       ).called(1);
     });
@@ -140,9 +151,8 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      mockGitCommand(['stash']);
+      mockStash('feat_test');
       mockGitCommand(['checkout', '-b', 'feat_test']);
-      mockGitCommand(['stash', 'apply']);
 
       await createTicket.exec(
         directory: d,
@@ -159,7 +169,12 @@ void main() {
         ], workingDirectory: d.path),
       );
       verify(
-        () => processWrapper.run('git', ['stash'], workingDirectory: d.path),
+        () => processWrapper.run('git', [
+          'stash',
+          'push',
+          '-m',
+          'gg:feat_test',
+        ], workingDirectory: d.path),
       ).called(1);
       verify(
         () => processWrapper.run('git', [
@@ -171,7 +186,7 @@ void main() {
       verify(
         () => processWrapper.run('git', [
           'stash',
-          'apply',
+          'pop',
         ], workingDirectory: d.path),
       ).called(1);
     });
@@ -185,9 +200,8 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      mockGitCommand(['stash']);
+      mockStash('feat_cli');
       mockGitCommand(['checkout', '-b', 'feat_cli']);
-      mockGitCommand(['stash', 'apply']);
 
       await runner.run([
         'ticket',
@@ -215,7 +229,7 @@ void main() {
       expect(content['description'], equals('CLI message'));
     });
 
-    test('should apply stash and rethrow when checkout fails', () async {
+    test('should pop stash and rethrow when checkout fails', () async {
       when(
         () => isPushed.get(
           directory: d,
@@ -224,13 +238,12 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      mockGitCommand(['stash']);
+      mockStash('feat_test');
       mockGitCommand(
         ['checkout', '-b', 'feat_test'],
         exitCode: 1,
         stderr: 'Checkout error',
       );
-      mockGitCommand(['stash', 'apply']);
 
       await expectLater(
         () => createTicket.exec(
@@ -249,7 +262,12 @@ void main() {
 
       verify(() => canCheckout.exec(directory: d, ggLog: ggLog)).called(1);
       verify(
-        () => processWrapper.run('git', ['stash'], workingDirectory: d.path),
+        () => processWrapper.run('git', [
+          'stash',
+          'push',
+          '-m',
+          'gg:feat_test',
+        ], workingDirectory: d.path),
       ).called(1);
       verify(
         () => processWrapper.run('git', [
@@ -261,7 +279,7 @@ void main() {
       verify(
         () => processWrapper.run('git', [
           'stash',
-          'apply',
+          'pop',
         ], workingDirectory: d.path),
       ).called(1);
     });
@@ -299,7 +317,7 @@ void main() {
       );
     });
 
-    test('should throw when stash fails', () async {
+    test('should throw when stash push fails', () async {
       when(
         () => isPushed.get(
           directory: d,
@@ -308,7 +326,12 @@ void main() {
         ),
       ).thenAnswer((_) async => true);
 
-      mockGitCommand(['stash'], exitCode: 1, stderr: 'Some error');
+      mockGitCommand(['stash', 'create'], stdout: 'abc123\n');
+      mockGitCommand(
+        ['stash', 'push', '-m', 'gg:feat_test'],
+        exitCode: 1,
+        stderr: 'Some error',
+      );
 
       expect(
         () => createTicket.exec(
@@ -320,9 +343,118 @@ void main() {
           isA<Exception>().having(
             (e) => e.toString(),
             'toString()',
-            'Exception: git stash failed: Some error',
+            'Exception: git stash push failed: Some error',
           ),
         ),
+      );
+    });
+
+    test('should throw when stash create fails', () async {
+      when(
+        () => isPushed.get(
+          directory: d,
+          ggLog: ggLog,
+          ignoreUnCommittedChanges: true,
+        ),
+      ).thenAnswer((_) async => true);
+
+      mockGitCommand(['stash', 'create'], exitCode: 1, stderr: 'Some error');
+
+      await expectLater(
+        () => createTicket.exec(
+          directory: d,
+          ggLog: ggLog,
+          branchName: 'feat_test',
+        ),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'toString()',
+            'Exception: git stash create failed: Some error',
+          ),
+        ),
+      );
+    });
+
+    test('should not stash nor restore when the worktree is clean', () async {
+      when(
+        () => isPushed.get(
+          directory: d,
+          ggLog: ggLog,
+          ignoreUnCommittedChanges: true,
+        ),
+      ).thenAnswer((_) async => true);
+
+      // An empty »git stash create« output means: nothing to stash.
+      mockGitCommand(['stash', 'create']);
+      mockGitCommand(['checkout', '-b', 'feat_test']);
+
+      await createTicket.exec(
+        directory: d,
+        ggLog: ggLog,
+        branchName: 'feat_test',
+      );
+
+      verify(
+        () => processWrapper.run('git', [
+          'checkout',
+          '-b',
+          'feat_test',
+        ], workingDirectory: d.path),
+      ).called(1);
+      verifyNever(
+        () => processWrapper.run('git', [
+          'stash',
+          'push',
+          '-m',
+          'gg:feat_test',
+        ], workingDirectory: d.path),
+      );
+      verifyNever(
+        () => processWrapper.run('git', [
+          'stash',
+          'pop',
+        ], workingDirectory: d.path),
+      );
+    });
+
+    test('should not restore a foreign stash when checkout fails on a clean '
+        'worktree', () async {
+      when(
+        () => isPushed.get(
+          directory: d,
+          ggLog: ggLog,
+          ignoreUnCommittedChanges: true,
+        ),
+      ).thenAnswer((_) async => true);
+
+      mockGitCommand(['stash', 'create']);
+      mockGitCommand(
+        ['checkout', '-b', 'feat_test'],
+        exitCode: 1,
+        stderr: 'Checkout error',
+      );
+
+      await expectLater(
+        () => createTicket.exec(
+          directory: d,
+          ggLog: ggLog,
+          branchName: 'feat_test',
+        ),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'toString()',
+            'Exception: git checkout -b feat_test failed: Checkout error',
+          ),
+        ),
+      );
+
+      verifyNever(
+        () => processWrapper.run('git', [
+          'stash',
+          'pop',
+        ], workingDirectory: d.path),
       );
     });
 
@@ -376,9 +508,8 @@ void main() {
           ),
         ).thenAnswer((_) async => true);
 
-        mockGitCommand(['stash']);
+        mockStash('feat_test');
         mockGitCommand(['checkout', '-b', 'feat_test']);
-        mockGitCommand(['stash', 'apply']);
 
         await createTicket.exec(
           directory: d,
@@ -408,9 +539,8 @@ void main() {
           ),
         ).thenAnswer((_) async => true);
 
-        mockGitCommand(['stash']);
+        mockStash('feat_test');
         mockGitCommand(['checkout', '-b', 'feat_test']);
-        mockGitCommand(['stash', 'apply']);
 
         await createTicket.exec(
           directory: d,
