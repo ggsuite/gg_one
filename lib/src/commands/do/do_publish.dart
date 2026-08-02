@@ -34,10 +34,10 @@ import 'package:pub_semver/pub_semver.dart';
 /// With `--merge-only` the very same flow runs, minus every step that would
 /// release the package: the version is not increased, no `CHANGELOG.md`
 /// release heading is written, nothing is uploaded to a package registry and
-/// no version tag is created. That mode powers `gg do merge`, which brings a
-/// ticket onto the main branch without releasing it — the branch keeps the
-/// released version and its »## Unreleased« entries, and the next real
-/// publish releases them. Because the merged state is never resolvable
+/// no version tag is created — and no version increment is asked for either.
+/// It brings a ticket onto the main branch without releasing it: the branch
+/// keeps the released version and its »## Unreleased« entries, and the next
+/// real publish releases them. Because the merged state is never resolvable
 /// against a registry, it is refused while
 /// [NoPubspecOverrides.hasLocalizedRefs] reports localized references —
 /// `--force` overrides that.
@@ -299,13 +299,20 @@ class DoPublish extends DirCommand<void> {
     if (resolvedPr == null && _prWasProvided) {
       resolvedPr = _prFromArgs;
     }
-    if (resolvedIncrement == null || resolvedMessage == null) {
+    // A merge-only run creates no release, so it needs no version increment —
+    // neither from a config file nor from a prompt.
+    final needsIncrement = !isMergeOnly;
+    if ((needsIncrement && resolvedIncrement == null) ||
+        resolvedMessage == null) {
       if (configArg != null) {
         final config = PublishConfig.load(
           configArg: configArg,
           fallbackDir: join(directory.path, '.gg'),
         );
-        final resolved = config.resolveSingle(configPath: configArg);
+        final resolved = config.resolveSingle(
+          configPath: configArg,
+          requireVersionIncrement: needsIncrement,
+        );
         resolvedIncrement ??= resolved.versionIncrement;
         resolvedMessage ??= resolved.mergeMessage;
         resolvedChannel ??= config.channel;
@@ -314,6 +321,7 @@ class DoPublish extends DirCommand<void> {
       } else if (runtimeConfig != null) {
         final resolved = runtimeConfig.resolveSingle(
           configPath: runtimeFile.path,
+          requireVersionIncrement: needsIncrement,
         );
         resolvedIncrement ??= resolved.versionIncrement;
         resolvedMessage ??= resolved.mergeMessage;
@@ -327,6 +335,7 @@ class DoPublish extends DirCommand<void> {
           versionIncrement: resolvedIncrement,
           mergeMessage: resolvedMessage,
           deleteFeatureBranch: resolvedDelete,
+          mergeOnly: isMergeOnly,
         );
         resolvedIncrement = config.versionIncrement;
         resolvedMessage = config.mergeMessage;
