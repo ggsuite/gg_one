@@ -122,10 +122,9 @@ class CreateTicket extends DirCommand<void> {
       );
     }
 
-    await _runGitCommand(
+    final hasStash = await _stashChanges(
       directory: directory,
-      args: ['stash'],
-      errorMessage: 'git stash failed',
+      branchName: branchName,
     );
 
     try {
@@ -135,24 +134,64 @@ class CreateTicket extends DirCommand<void> {
         errorMessage: 'git checkout -b $branchName failed',
       );
     } catch (error) {
-      await _runGitCommand(
-        directory: directory,
-        args: ['stash', 'apply'],
-        errorMessage: 'git stash apply failed',
-      );
+      await _popStash(directory: directory, hasStash: hasStash);
       rethrow;
     }
 
-    await _runGitCommand(
-      directory: directory,
-      args: ['stash', 'apply'],
-      errorMessage: 'git stash apply failed',
-    );
+    await _popStash(directory: directory, hasStash: hasStash);
 
     await _writeTicketFile(
       directory: directory,
       branchName: branchName,
       message: message,
+    );
+  }
+
+  /// Stashes local changes and returns true when an entry was created.
+  ///
+  /// `git stash create` writes no entry to the stack. It only tells us whether
+  /// there is anything to stash at all: it returns a commit hash for a dirty
+  /// worktree and nothing for a clean one. Without that probe a clean worktree
+  /// would leave the stack untouched and the reapply below would restore a
+  /// foreign entry into the fresh ticket branch.
+  Future<bool> _stashChanges({
+    required Directory directory,
+    required String branchName,
+  }) async {
+    final probe = await _runGitCommand(
+      directory: directory,
+      args: ['stash', 'create'],
+      errorMessage: 'git stash create failed',
+    );
+
+    if ((probe.stdout as String).trim().isEmpty) {
+      return false;
+    }
+
+    await _runGitCommand(
+      directory: directory,
+      args: ['stash', 'push', '-m', 'gg:$branchName'],
+      errorMessage: 'git stash push failed',
+    );
+
+    return true;
+  }
+
+  /// Restores the entry created by [_stashChanges], if there is one.
+  ///
+  /// Pops instead of applies, so the stack does not grow with every ticket.
+  Future<void> _popStash({
+    required Directory directory,
+    required bool hasStash,
+  }) async {
+    if (!hasStash) {
+      return;
+    }
+
+    await _runGitCommand(
+      directory: directory,
+      args: ['stash', 'pop'],
+      errorMessage: 'git stash pop failed',
     );
   }
 
@@ -176,7 +215,7 @@ class CreateTicket extends DirCommand<void> {
   }
 
   /// Executes a git command and throws when it fails.
-  Future<void> _runGitCommand({
+  Future<ProcessResult> _runGitCommand({
     required Directory directory,
     required List<String> args,
     required String errorMessage,
@@ -190,6 +229,8 @@ class CreateTicket extends DirCommand<void> {
     if (result.exitCode != 0) {
       throw Exception('$errorMessage: ${result.stderr}');
     }
+
+    return result;
   }
 }
 
