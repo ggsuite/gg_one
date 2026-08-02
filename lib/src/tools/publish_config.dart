@@ -53,8 +53,9 @@ class ResolvedPublishValues {
     required this.mergeMessage,
   });
 
-  /// One of `patch`, `minor`, `major`.
-  final String versionIncrement;
+  /// One of `patch`, `minor`, `major` — null in a merge-only run, which
+  /// creates no release and therefore needs no increment.
+  final String? versionIncrement;
 
   /// The merge commit message used for the final merge step.
   final String mergeMessage;
@@ -117,11 +118,16 @@ class PublishConfig {
   /// Resolves the effective publish values for a single-repo run. Throws a
   /// [FormatException] when `version_increment` or `merge_message` is missing
   /// at the top level.
-  ResolvedPublishValues resolveSingle({required String configPath}) {
+  ResolvedPublishValues resolveSingle({
+    required String configPath,
+    bool requireVersionIncrement = true,
+  }) {
     final increment = versionIncrement;
     final message = mergeMessage;
     final missing = <String>[];
-    if (increment == null) missing.add('version_increment');
+    if (increment == null && requireVersionIncrement) {
+      missing.add('version_increment');
+    }
     if (message == null) missing.add('merge_message');
     if (missing.isNotEmpty) {
       throw FormatException(
@@ -130,7 +136,7 @@ class PublishConfig {
       );
     }
     return ResolvedPublishValues(
-      versionIncrement: increment!,
+      versionIncrement: increment,
       mergeMessage: message!,
     );
   }
@@ -141,12 +147,15 @@ class PublishConfig {
   ResolvedPublishValues forRepo({
     required String repoName,
     required String configPath,
+    bool requireVersionIncrement = true,
   }) {
     final override = repos[repoName];
     final increment = override?.versionIncrement ?? versionIncrement;
     final message = override?.mergeMessage ?? mergeMessage;
     final missing = <String>[];
-    if (increment == null) missing.add('version_increment');
+    if (increment == null && requireVersionIncrement) {
+      missing.add('version_increment');
+    }
     if (message == null) missing.add('merge_message');
     if (missing.isNotEmpty) {
       throw FormatException(
@@ -155,7 +164,7 @@ class PublishConfig {
       );
     }
     return ResolvedPublishValues(
-      versionIncrement: increment!,
+      versionIncrement: increment,
       mergeMessage: message!,
     );
   }

@@ -95,6 +95,7 @@ class DoConfigurePublish extends DirCommand<void> {
       deleteFeatureBranch: deleteWasParsed
           ? (argResults?['delete-feature-branch'] as bool?)
           : null,
+      mergeOnly: argResults?['merge-only'] as bool? ?? false,
     );
   }
 
@@ -112,12 +113,16 @@ class DoConfigurePublish extends DirCommand<void> {
   /// `Publish <dirname>`, so it is never empty. The delete-feature-branch
   /// decision is asked HERE — before the publish starts — so no interactive
   /// prompt sits between the irreversible publish steps anymore.
+  ///
+  /// [mergeOnly] configures a `gg do publish --merge-only` run: it releases
+  /// nothing, so no version increment is asked for and none is stored.
   Future<PublishConfig> configure({
     required Directory directory,
     required GgLog ggLog,
     String? versionIncrement,
     String? mergeMessage,
     bool? deleteFeatureBranch,
+    bool mergeOnly = false,
   }) async {
     await check(directory: directory);
 
@@ -142,11 +147,15 @@ class DoConfigurePublish extends DirCommand<void> {
 
     await _ensureIgnored.ensure(directory: directory);
 
-    final increment =
-        versionIncrement ??
-        (await _versionSelector.selectIncrement(
-          currentVersion: await _currentVersion(directory),
-        )).name;
+    // A merge-only run releases nothing: no version bump, no changelog
+    // heading, no tag. Asking for an increment would offer a version that is
+    // never created, so the prompt is skipped and no increment is stored.
+    final increment = mergeOnly
+        ? null
+        : versionIncrement ??
+              (await _versionSelector.selectIncrement(
+                currentVersion: await _currentVersion(directory),
+              )).name;
 
     var message = mergeMessage?.trim() ?? '';
     if (message.isEmpty) {
@@ -271,6 +280,14 @@ class DoConfigurePublish extends DirCommand<void> {
       help:
           'The merge message to write into the configuration. When given, '
           'the interactive merge-message prompt is skipped.',
+    );
+    argParser.addFlag(
+      'merge-only',
+      help:
+          'Configure a »gg do publish --merge-only« run: no version '
+          'increment is asked for, because a merge creates no release.',
+      defaultsTo: false,
+      negatable: false,
     );
     argParser.addFlag(
       'delete-feature-branch',

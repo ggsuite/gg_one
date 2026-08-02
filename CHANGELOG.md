@@ -1,5 +1,17 @@
 # Changelog
 
+## 12.4.0 - 2026-08-02
+
+### Changed
+
+- Throw an error on unknown gg one sub commands, also if option -h is given
+- Throw an error when gg on do publish is called within a ticket repo
+- Use gg_args 2.1.0 which reports unknown sub commands itself
+
+### Removed
+
+- Remove gg do merge, use gg do publish --merge-only which asks for no version increment
+
 ## 12.3.0 - 2026-08-01
 
 ### Changed

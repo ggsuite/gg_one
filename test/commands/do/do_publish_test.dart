@@ -3079,6 +3079,32 @@ void main() {
             .toList();
       }
 
+      test('never asks for a version increment', () async {
+        // A merge-only run creates no release, so the increment prompt of
+        // »do configure-publish« must not appear — neither directly nor
+        // through the config file it writes.
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+
+        await doPublish.exec(
+          directory: d,
+          ggLog: ggLog,
+          askBeforePublishing: false,
+          deleteFeatureBranch: false,
+          mergeOnly: true,
+        );
+
+        verifyNever(
+          () => versionSelector.selectIncrement(
+            currentVersion: any(named: 'currentVersion'),
+          ),
+        );
+
+        expect(
+          await File(join(d.path, 'pubspec.yaml')).readAsString(),
+          contains('version: 1.2.3'),
+        );
+      });
+
       test('merges without producing any release artifact', () async {
         mockPublishIsSuccessful(success: true, askBeforePublishing: false);
 

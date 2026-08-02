@@ -1,6 +1,6 @@
 name: gg_one
 description: A collection of checks and actions like analyzing, linting, testing, code coverage, committing, pushing, publishing.
-version: 12.3.0
+version: 12.4.0
 repository: https://github.com/ggsuite/gg_one.git
 
 environment:
@@ -8,7 +8,7 @@ environment:
 
 dependencies:
   args: ^2.7.0
-  gg_args: ^2.0.5
+  gg_args: ^2.1.0
   gg_console_colors: ^2.1.5
   gg_git: ^3.2.0
   gg_is_flutter: ^1.0.7

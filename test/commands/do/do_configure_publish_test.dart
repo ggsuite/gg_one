@@ -352,6 +352,27 @@ void main() {
       expect(reload().mergeMessage, 'new');
     });
 
+    test('--merge-only asks for no version increment', () async {
+      // A merge creates no release, so no increment is asked for (the empty
+      // increment list would throw if the selector were used) and none is
+      // written into the configuration.
+      final runner = CommandRunner<void>('gg', 'gg')
+        ..addCommand(makeCommand(increments: const []));
+
+      await runner.run([
+        'configure-publish',
+        '-i',
+        d.path,
+        '-m',
+        'Merge message',
+        '--merge-only',
+      ]);
+
+      final reloaded = reload();
+      expect(reloaded.versionIncrement, isNull);
+      expect(reloaded.mergeMessage, 'Merge message');
+    });
+
     test('CLI run resolves the directory and honours -m', () async {
       final runner = CommandRunner<void>('gg', 'gg')
         ..addCommand(makeCommand(increments: [2]));
