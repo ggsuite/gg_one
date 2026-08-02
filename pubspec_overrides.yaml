@@ -5,10 +5,18 @@
 # remove it again.
 dependency_overrides:
   gg_git:
-    path: ../gg_git
+    git:
+      url: git@github.com:ggsuite/gg_git.git
+      ref: "71"
   gg_publish:
-    path: ../gg_publish
+    git:
+      url: git@github.com:ggsuite/gg_publish.git
+      ref: "71"
   gg_version:
-    path: ../gg_version
+    git:
+      url: git@github.com:ggsuite/gg_version.git
+      ref: "71"
   gg_merge:
-    path: ../gg_merge
+    git:
+      url: git@github.com:ggsuite/gg_merge.git
+      ref: "71"
