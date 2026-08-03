@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- refactor(gg_multi): replace do cancel-review with do review --abort
+
 ## 12.5.0 - 2026-08-02
 
 ### Added
