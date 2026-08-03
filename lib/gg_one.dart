@@ -33,7 +33,6 @@ export 'src/commands/did/did_upgrade/dependencies.dart';
 export 'src/commands/do.dart';
 export 'src/commands/do/create.dart';
 export 'src/commands/do/create/create_ticket.dart';
-export 'src/commands/do/do_checkout.dart';
 export 'src/commands/do/do_commit.dart';
 export 'src/commands/do/do_configure_publish.dart';
 export 'src/commands/do/do_publish.dart';

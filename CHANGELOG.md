@@ -19,6 +19,7 @@
 - refactor(gg_one): remove can upgrade from the CLI
 - refactor(gg_one): remove the check command group from the CLI
 - refactor(gg_one): remove do configure-publish from the CLI
+- remove do checkout — gg do import ticket covers reproducing a ticket
 
 ## 12.5.0 - 2026-08-02
 
