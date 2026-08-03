@@ -41,18 +41,23 @@ class DidCommand extends DirCommand<bool> {
         await GgStatusPrinter<bool>(
           message: shortDescription,
           ggLog: ggLog,
+          dark: true,
         ).logTask(
           task: () => get(ggLog: messages.add, directory: directory),
           success: (success) => success,
         );
 
     if (!result) {
+      // Assemble the message without colors and dim it as a whole. Coloring
+      // the parts first and wrapping the result would nest escape codes into
+      // each other.
+      final details = messages.join('\n').trim();
       final printedMessages = <String>[
-        colorizeSuggestion(suggestion),
-        brightBlack(messages.join('\n')),
+        suggestion.replaceAll('»', '').replaceAll('«', ''),
+        if (details.isNotEmpty) details,
       ];
 
-      throw Exception(cError(printedMessages.join('\n')));
+      throw Exception(cDetail(printedMessages.join('\n')));
     }
 
     return result;
@@ -95,41 +100,6 @@ class DidCommand extends DirCommand<bool> {
 
   /// Saves and restores the success state
   final GgState state;
-
-  /// Formats the suggestion string by applying the blue color to the text
-  /// between » and «
-  static String colorizeSuggestion(String suggestion) {
-    const startSymbol = '»';
-    const endSymbol = '«';
-
-    StringBuffer buffer = StringBuffer();
-    int startIndex = 0;
-    int endIndex = 0;
-
-    // Loop through the input string to find and process all occurrences
-    while (true) {
-      startIndex = suggestion.indexOf(startSymbol, endIndex);
-      if (startIndex == -1) break; // No more start symbols found, exit loop
-
-      // Add text up to the startSymbol to the buffer
-      buffer.write(cAction(suggestion.substring(endIndex, startIndex)));
-
-      endIndex = suggestion.indexOf(endSymbol, startIndex);
-      if (endIndex == -1) break; // No matching end symbol found, exit loop
-
-      // Extract the text between the symbols, apply the format function,
-      // and add to the buffer
-      String textToFormat = suggestion.substring(startIndex + 1, endIndex);
-      buffer.write(cCmd(textToFormat));
-
-      endIndex += 1; // Move past the endSymbol for the next iteration
-    }
-
-    // Add any remaining text after the last processed section
-    buffer.write(darkGray(suggestion.substring(endIndex)));
-
-    return buffer.toString();
-  }
 
   // ######################
   // Private
