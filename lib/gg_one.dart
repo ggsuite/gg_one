@@ -38,6 +38,7 @@ export 'src/commands/do/do_configure_publish.dart';
 export 'src/commands/do/do_publish.dart';
 export 'src/commands/do/do_push.dart';
 export 'src/commands/do/do_upgrade.dart';
+export 'src/commands/do/do_upgrade/dependencies.dart';
 // Info
 export 'src/commands/info.dart';
 export 'src/gg.dart';
