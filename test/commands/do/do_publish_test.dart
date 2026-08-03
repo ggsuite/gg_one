@@ -16,6 +16,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -103,7 +104,7 @@ void main() {
         ),
       ).thenAnswer((_) async {
         if (!success) {
-          throw Exception('Publishing failed.');
+          throw Exception(cDetail('Publishing failed.'));
         } else {
           publishedVersionValue = Version.parse('1.2.4');
           ggLog('Publishing was successful.');
