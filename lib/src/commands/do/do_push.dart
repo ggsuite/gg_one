@@ -20,7 +20,7 @@ class DoPush extends DirCommand<void> {
   DoPush({
     required super.ggLog,
     super.name = 'push',
-    super.description = 'Pushes the current state.',
+    super.description = 'Push changes in this repo',
     IsPushed? isPushed,
     CanPush? canPush,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),

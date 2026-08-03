@@ -37,10 +37,7 @@ void main() {
         ggLog: messages.add,
       );
 
-      expect(
-        messages.first,
-        contains('Check if you can commit, push, publish'),
-      );
+      expect(messages.first, contains('Check what you can do in this repo'));
     });
   });
 }

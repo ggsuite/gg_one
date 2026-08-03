@@ -26,16 +26,13 @@ class Can extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Check if you can commit, push, publish, ....';
+  final description = 'Check what you can do in this repo';
 
   // ...........................................................................
   void _initSubCommands(DepsOfCan deps) {
-    addSubcommand(deps.canCheckout);
     addSubcommand(deps.canCommit);
     addSubcommand(deps.canPush);
     addSubcommand(deps.canPublish);
-    addSubcommand(deps.canUpgrade);
-    addSubcommand(deps.canMerge);
   }
 }
 
@@ -45,24 +42,15 @@ class DepsOfCan {
   /// Constructor
   DepsOfCan({
     required this.ggLog,
-    CanCheckout? checkout,
     CanCommit? commit,
     CanPush? push,
     CanPublish? publish,
-    CanUpgrade? upgrade,
-    CanMerge? merge,
-  }) : canCheckout = checkout ?? CanCheckout(ggLog: ggLog),
-       canCommit = commit ?? CanCommit(ggLog: ggLog),
+  }) : canCommit = commit ?? CanCommit(ggLog: ggLog),
        canPush = push ?? CanPush(ggLog: ggLog),
-       canPublish = publish ?? CanPublish(ggLog: ggLog),
-       canUpgrade = upgrade ?? CanUpgrade(ggLog: ggLog),
-       canMerge = merge ?? CanMerge(ggLog: ggLog);
+       canPublish = publish ?? CanPublish(ggLog: ggLog);
 
   /// The log function
   final GgLog ggLog;
-
-  /// The can checkout command
-  final CanCheckout canCheckout;
 
   /// The can commit command
   final CanCommit canCommit;
@@ -72,10 +60,4 @@ class DepsOfCan {
 
   /// The can publish command
   final CanPublish canPublish;
-
-  /// The can upgrade command
-  final CanUpgrade canUpgrade;
-
-  /// The can merge command
-  final CanMerge canMerge;
 }

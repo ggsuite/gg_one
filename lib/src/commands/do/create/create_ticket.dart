@@ -22,7 +22,7 @@ class CreateTicket extends DirCommand<void> {
   CreateTicket({
     required super.ggLog,
     super.name = 'ticket',
-    super.description = 'Creates a ticket branch and reapplies local changes.',
+    super.description = 'Create a ticket branch and reapply local changes',
     CanCheckout? canCheckout,
     IsPushed? isPushed,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),

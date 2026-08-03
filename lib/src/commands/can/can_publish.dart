@@ -15,7 +15,7 @@ class CanPublish extends CommandCluster {
   CanPublish({
     required super.ggLog,
     super.name = 'publish',
-    super.description = 'Are the last changes ready to be published?',
+    super.description = 'Check if this repo can be published',
     super.shortDescription = 'Can publish?',
     super.stateKey = 'canPublish',
     DidCommit? didCommit,

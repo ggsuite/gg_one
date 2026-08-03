@@ -23,7 +23,7 @@ class Create extends Command<void> {
   final name = 'create';
 
   @override
-  final description = 'Create development artifacts like ticket branches.';
+  final description = 'Create development artifacts';
 
   /// Adds all create subcommands.
   void _initSubCommands(DepsOfCreate deps) {

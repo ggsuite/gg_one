@@ -15,7 +15,6 @@ export 'src/commands/can/can_publish.dart';
 export 'src/commands/can/can_push.dart';
 export 'src/commands/can/can_upgrade.dart';
 // Checks
-export 'src/commands/check.dart';
 export 'src/commands/check/analyze.dart';
 export 'src/commands/check/build.dart';
 export 'src/commands/check/format.dart';
@@ -29,17 +28,17 @@ export 'src/commands/did.dart';
 export 'src/commands/did/did_commit.dart';
 export 'src/commands/did/did_push.dart';
 export 'src/commands/did/did_upgrade.dart';
+export 'src/commands/did/did_upgrade/dependencies.dart';
 // Do
 export 'src/commands/do.dart';
 export 'src/commands/do/create.dart';
 export 'src/commands/do/create/create_ticket.dart';
-export 'src/commands/do/do_checkout.dart';
 export 'src/commands/do/do_commit.dart';
 export 'src/commands/do/do_configure_publish.dart';
-export 'src/commands/do/do_maintain.dart';
 export 'src/commands/do/do_publish.dart';
 export 'src/commands/do/do_push.dart';
 export 'src/commands/do/do_upgrade.dart';
+export 'src/commands/do/do_upgrade/dependencies.dart';
 // Info
 export 'src/commands/info.dart';
 export 'src/gg.dart';

@@ -25,7 +25,7 @@ class Info extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Inform about the repo.';
+  final description = 'Show information about this repo';
 
   // ...........................................................................
   void _initSubCommands() {

@@ -33,18 +33,12 @@ void main() {
       )..addCommand(gg);
 
       test('should allow to run the code from command line', () async {
-        final tmp = Directory.systemTemp.createTempSync();
-        File('${tmp.path}/pubspec.yaml').writeAsStringSync('name: foo\n');
-
         await capturePrint(
           ggLog: messages.add,
-          code: () =>
-              runner.run(['gg_one', 'check', 'analyze', '--input', tmp.path]),
+          code: () => runner.run(['gg_one', 'can', 'commit', '--help']),
         );
 
-        await tmp.delete(recursive: true);
-        expect(messages.first, contains('⌛️ Running "dart analyze"'));
-        expect(messages.last, contains('✅ Running "dart analyze"'));
+        expect(messages.join('\n'), contains('gg_one can commit'));
       });
 
       // .......................................................................

@@ -26,7 +26,7 @@ class Do extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Provide actions or commit, push, publish.';
+  final description = 'Act on this repo';
 
   // ...........................................................................
   void _initSubCommands(DepsOfDo deps) {
@@ -34,10 +34,7 @@ class Do extends Command<void> {
     addSubcommand(deps.doCommit);
     addSubcommand(deps.doPush);
     addSubcommand(deps.doPublish);
-    addSubcommand(deps.doConfigurePublish);
     addSubcommand(deps.doUpgrade);
-    addSubcommand(DoMaintain(ggLog: ggLog));
-    addSubcommand(deps.doCheckout);
   }
 }
 
@@ -51,17 +48,12 @@ class DepsOfDo {
     DoCommit? doCommit,
     DoPush? doPush,
     DoPublish? doPublish,
-    DoConfigurePublish? doConfigurePublish,
     DoUpgrade? doUpgrade,
-    DoCheckout? doCheckout,
   }) : create = create ?? Create(ggLog: ggLog),
        doCommit = doCommit ?? DoCommit(ggLog: ggLog),
        doPush = doPush ?? DoPush(ggLog: ggLog),
        doPublish = doPublish ?? DoPublish(ggLog: ggLog),
-       doConfigurePublish =
-           doConfigurePublish ?? DoConfigurePublish(ggLog: ggLog),
-       doUpgrade = doUpgrade ?? DoUpgrade(ggLog: ggLog),
-       doCheckout = doCheckout ?? DoCheckout(ggLog: ggLog);
+       doUpgrade = doUpgrade ?? DoUpgrade(ggLog: ggLog);
 
   /// The log function
   final GgLog ggLog;
@@ -78,12 +70,6 @@ class DepsOfDo {
   /// The do publish command
   final DoPublish doPublish;
 
-  /// The do configure-publish command
-  final DoConfigurePublish doConfigurePublish;
-
   /// The do upgrade command
   final DoUpgrade doUpgrade;
-
-  /// The do checkout command
-  final DoCheckout doCheckout;
 }

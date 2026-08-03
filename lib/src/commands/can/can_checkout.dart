@@ -14,7 +14,7 @@ class CanCheckout extends CommandCluster {
   CanCheckout({
     required super.ggLog,
     super.name = 'checkout',
-    super.description = 'Are the current changes ready for a new checkout?',
+    super.description = 'Check if this repo can be checked out',
     super.shortDescription = 'Can checkout?',
     super.stateKey = 'canCheckout',
     IsMainBranch? isMainBranch,

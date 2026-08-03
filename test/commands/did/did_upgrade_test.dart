@@ -1,109 +1,46 @@
 // @license
-// Copyright (c) 2019 - 2024 Dr. Gabriel Gatzsche. All Rights Reserved.
+// Copyright (c) 2025 Göran Hegenberg. All Rights Reserved.
 //
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
-import 'dart:io';
-
 import 'package:args/command_runner.dart';
+import 'package:gg_capture_print/gg_capture_print.dart';
 import 'package:gg_one/gg_one.dart';
-import 'package:gg_publish/gg_publish.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 void main() {
-  late Directory d;
-  late MockIsUpgraded isUpgraded;
-  late DidUpgrade didUpgrade;
+  final messages = <String>[];
   late CommandRunner<void> runner;
 
-  final messages = <String>[];
-  final ggLog = messages.add;
-
-  // ...........................................................................
-  setUp(() async {
+  setUp(() {
     messages.clear();
-    d = await Directory.systemTemp.createTemp();
-    registerFallbackValue(d);
-    isUpgraded = MockIsUpgraded();
-    didUpgrade = DidUpgrade(ggLog: ggLog, isUpgraded: isUpgraded);
-    runner = CommandRunner<void>('test', 'test')..addCommand(didUpgrade);
+    runner = CommandRunner<void>('test', 'test')
+      ..addCommand(DidUpgrade(ggLog: messages.add));
   });
 
-  tearDown(() async {
-    await d.delete(recursive: true);
-  });
-
-  // ...........................................................................
   group('DidUpgrade', () {
-    group('should check', () {
-      group('if everything is upgraded', () {
-        for (final viaCli in [true, false]) {
-          test('via CLI and programmatically', () async {
-            isUpgraded.mockGet(result: true);
-
-            if (viaCli == false) {
-              await didUpgrade.exec(directory: d, ggLog: ggLog);
-            } else {
-              await runner.run(['upgrade', '-i', d.path]);
-            }
-            expect(messages[0], contains('⌛️ Everything is upgraded'));
-            expect(messages[1], contains('✅ Everything is upgraded'));
-          });
-        }
-      });
+    test('has the name and description of the group', () {
+      final upgrade = DidUpgrade(ggLog: messages.add);
+      expect(upgrade.name, 'upgrade');
+      expect(upgrade.description, 'Check what was already upgraded');
     });
 
-    group('should handle edge cases: ', () {
-      test('instantiate without optional parameters', () {
-        expect(() => DidUpgrade(ggLog: ggLog), returnsNormally);
-      });
+    test('offers the dependencies subcommand', () async {
+      await capturePrint(
+        ggLog: messages.add,
+        code: () async => await runner.run(['upgrade', '--help']),
+      );
+
+      expect(messages.join('\n'), contains('dependencies'));
     });
-  });
 
-  // #########################################################################
-  group('MockDidUpgrade', () {
-    group('mockGet', () {
-      group('should mock get', () {
-        test('with ggLog', () async {
-          final didUpgrade = MockDidUpgrade();
-          didUpgrade.mockGet(
-            result: true,
-            directory: d,
-            ggLog: ggLog,
-            majorVersions: true,
-          );
+    test('takes the subcommands from the injected dependencies', () {
+      final deps = DepsOfDidUpgrade(ggLog: messages.add);
+      final upgrade = DidUpgrade(ggLog: messages.add, deps: deps);
 
-          final result = await didUpgrade.get(
-            directory: d,
-            ggLog: ggLog,
-            majorVersions: true,
-          );
-
-          expect(result, isTrue);
-          expect(messages[0], contains('✅ DidUpgrade'));
-        });
-
-        test('without ggLog', () async {
-          final didUpgrade = MockDidUpgrade();
-          didUpgrade.mockGet(
-            result: true,
-            directory: d,
-            majorVersions: true,
-            ggLog: null, // <-- ggLog is null
-          );
-
-          final result = await didUpgrade.get(
-            directory: d,
-            majorVersions: true,
-            ggLog: (_) {},
-          );
-
-          expect(result, isTrue);
-          expect(messages, isEmpty);
-        });
-      });
+      expect(upgrade.subcommands.keys, contains('dependencies'));
+      expect(deps.dependencies.name, 'dependencies');
     });
   });
 }

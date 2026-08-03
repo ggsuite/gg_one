@@ -8,6 +8,21 @@
 - refactor: rename publish --reconfigure to --restart
 - refactor: shorten all CLI help texts to 60 chars
 - Rework CLI texts
+- refactor(gg_one): move do upgrade to do upgrade dependencies
+- refactor(gg_one): move did upgrade to did upgrade dependencies
+- reword all command descriptions to the same terse imperative gg do and
+gg can already use
+
+### Removed
+
+- refactor(gg_one): remove do maintain command
+- refactor(gg_one): remove can checkout from the CLI
+- refactor(gg_one): remove can merge from the CLI
+- refactor(gg_one): remove can upgrade from the CLI
+- refactor(gg_one): remove the check command group from the CLI
+- refactor(gg_one): remove do configure-publish from the CLI
+- remove do checkout — gg do import ticket covers reproducing a ticket
+- Remove unused CLI commands
 
 ## 12.5.0 - 2026-08-02
 

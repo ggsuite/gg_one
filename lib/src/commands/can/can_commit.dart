@@ -19,7 +19,7 @@ class CanCommit extends CommandCluster {
     required super.ggLog,
     Checks? checks,
     super.name = 'commit',
-    super.description = 'Are the last changes ready for »git commit«?',
+    super.description = 'Check if this repo can be committed',
     super.shortDescription = 'Can commit?',
     super.stateKey = 'canCommit',
   }) : super(commands: _checks(checks, ggLog));

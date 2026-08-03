@@ -56,10 +56,7 @@ void main() {
       test('initialized with default arguments', () {
         final canUpgrade = CanUpgrade(ggLog: ggLog);
         expect(canUpgrade.name, 'upgrade');
-        expect(
-          canUpgrade.description,
-          'Is the package ready to get a dependeny upgrade?',
-        );
+        expect(canUpgrade.description, 'Check if this repo can be upgraded');
       });
     });
   });
