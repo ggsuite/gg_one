@@ -30,7 +30,6 @@ class Can extends Command<void> {
 
   // ...........................................................................
   void _initSubCommands(DepsOfCan deps) {
-    addSubcommand(deps.canCheckout);
     addSubcommand(deps.canCommit);
     addSubcommand(deps.canPush);
     addSubcommand(deps.canPublish);
@@ -45,14 +44,12 @@ class DepsOfCan {
   /// Constructor
   DepsOfCan({
     required this.ggLog,
-    CanCheckout? checkout,
     CanCommit? commit,
     CanPush? push,
     CanPublish? publish,
     CanUpgrade? upgrade,
     CanMerge? merge,
-  }) : canCheckout = checkout ?? CanCheckout(ggLog: ggLog),
-       canCommit = commit ?? CanCommit(ggLog: ggLog),
+  }) : canCommit = commit ?? CanCommit(ggLog: ggLog),
        canPush = push ?? CanPush(ggLog: ggLog),
        canPublish = publish ?? CanPublish(ggLog: ggLog),
        canUpgrade = upgrade ?? CanUpgrade(ggLog: ggLog),
@@ -60,9 +57,6 @@ class DepsOfCan {
 
   /// The log function
   final GgLog ggLog;
-
-  /// The can checkout command
-  final CanCheckout canCheckout;
 
   /// The can commit command
   final CanCommit canCommit;

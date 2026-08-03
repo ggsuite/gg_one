@@ -12,6 +12,7 @@
 ### Removed
 
 - refactor(gg_one): remove do maintain command
+- refactor(gg_one): remove can checkout from the CLI
 
 ## 12.5.0 - 2026-08-02
 
