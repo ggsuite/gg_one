@@ -4,6 +4,7 @@
 
 ### Changed
 
+- dart pub upgrade --major-versions --tighten
 - replace do cancel-review with do review --abort
 - refactor: rename publish --reconfigure to --restart
 - refactor: shorten all CLI help texts to 60 chars
