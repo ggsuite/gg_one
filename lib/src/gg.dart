@@ -16,7 +16,6 @@ class Gg extends Command<dynamic> {
     required this.ggLog,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
   }) {
-    addSubcommand(Check(ggLog: ggLog));
     addSubcommand(Can(ggLog: ggLog));
     addSubcommand(Did(ggLog: ggLog));
     addSubcommand(Do(ggLog: ggLog));

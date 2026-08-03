@@ -15,7 +15,6 @@ export 'src/commands/can/can_publish.dart';
 export 'src/commands/can/can_push.dart';
 export 'src/commands/can/can_upgrade.dart';
 // Checks
-export 'src/commands/check.dart';
 export 'src/commands/check/analyze.dart';
 export 'src/commands/check/build.dart';
 export 'src/commands/check/format.dart';
