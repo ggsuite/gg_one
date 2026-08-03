@@ -55,7 +55,7 @@ String unfinishedPublishMessage({
   required String path,
   required String command,
 }) => [
-  cAction('Unfinished publish in $path'),
+  cError('Unfinished publish in $path'),
   cAction('  Continue:') + cCmd('$command --continue'),
   cAction('  Restart: ') + cCmd('$command --restart'),
 ].join('\n');
@@ -63,10 +63,12 @@ String unfinishedPublishMessage({
 /// The message shown when `--continue` is combined with a flag that would
 /// discard the very progress it resumes.
 final String continueConflictMessage = [
-  '${cCmd("--continue")} cannot be combined with '
-      '${cCmd("--config")} or ${cCmd("--restart.")}',
-  'Resume with ${cCmd("--continue")} alone, ',
-  'or start a fresh run without it.',
+  cError(
+    '"--continue" cannot be combined with ${cCmd("--config")} '
+    'or ${cCmd("--restart.")}',
+  ),
+  cAction('Resume with ${cCmd("--continue")} alone, '),
+  cAction('or start a fresh run without it.'),
 ].join('\n');
 
 /// Returned by [PublishConfig.forRepo] (and used directly in single-repo

@@ -85,7 +85,7 @@ class DartFormatter extends Formatter {
     if (_isGitHub && files.isNotEmpty) {
       statusPrinter.logStatus(GgStatusPrinterStatus.error);
       ggLog(cDetail('The following files were formatted:'));
-      ggLog(files.map((e) => '- ${red(e)}').join('\n'));
+      ggLog(files.map((e) => '- ${cError(e)}').join('\n'));
       throw Exception(cError('dart format failed.'));
     }
 

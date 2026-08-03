@@ -6,10 +6,10 @@
 
 import 'dart:io';
 
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:matcher/expect.dart';
@@ -98,7 +98,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
       await _state.reset(directory: directory);
       throw Exception(
         cError(
-          red(
+          cError(
             'After the update tests are not running anymore. '
             'Please run ${cCmd('»gg can commit«')} and try again.',
           ),

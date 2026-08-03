@@ -81,7 +81,7 @@ class DartAnalyzer extends Analyzer {
       ...ErrorInfoReader().filePathes(result.stdout as String),
     ];
     ggLog('There are analyzer errors:');
-    ggLog(files.map((e) => red('- $e')).join('\n'));
+    ggLog(files.map((e) => cError('- $e')).join('\n'));
 
     throw Exception(
       cError('Analyze failed. Run "${cCmd(command.label)}" to see details.'),

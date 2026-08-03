@@ -7,6 +7,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_publish/gg_publish.dart'
     show ReleaseChannel, VersionIncrement;
@@ -969,6 +970,65 @@ void main() {
           throwsA(isA<ArgumentError>()),
         );
       });
+    });
+
+    group('unfinishedPublishMessage', () {
+      test('names the file and both ways out, one per line', () {
+        expect(
+          rmC(
+            unfinishedPublishMessage(
+              path: '/tmp/x/.gg/gg-publish.json',
+              command: 'gg do publish',
+            ),
+          ),
+          'Unfinished publish in /tmp/x/.gg/gg-publish.json\n'
+          '  Continue:gg do publish --continue\n'
+          '  Restart: gg do publish --restart',
+        );
+      });
+
+      test('carries the command of the caller, e.g. a merge-only run', () {
+        expect(
+          rmC(
+            unfinishedPublishMessage(
+              path: 'p',
+              command: 'gg do publish --merge-only',
+            ),
+          ),
+          'Unfinished publish in p\n'
+          '  Continue:gg do publish --merge-only --continue\n'
+          '  Restart: gg do publish --merge-only --restart',
+        );
+      });
+
+      test('marks the path as an error and the commands as commands', () {
+        final message = unfinishedPublishMessage(
+          path: 'p',
+          command: 'gg do publish',
+        );
+        expect(message, contains(cError('Unfinished publish in p')));
+        expect(message, contains(cCmd('gg do publish --continue')));
+      });
+
+      test('no line of it exceeds the terminal width', () {
+        final lines = rmC(
+          unfinishedPublishMessage(
+            path: '.gg/gg-publish.json',
+            command: 'gg do publish',
+          ),
+        ).split('\n');
+        for (final line in lines) {
+          expect(line.length, lessThanOrEqualTo(72), reason: line);
+        }
+      });
+    });
+
+    test('continueConflictMessage explains the conflict in short lines', () {
+      final lines = rmC(continueConflictMessage).split('\n');
+      expect(lines.first, contains('cannot be combined'));
+      for (final line in lines) {
+        expect(line.length, lessThanOrEqualTo(72), reason: line);
+      }
     });
 
     test('allowedPublishSteps covers exactly the four tracked steps', () {
