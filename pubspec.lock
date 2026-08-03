@@ -260,10 +260,11 @@ packages:
   gg_merge:
     dependency: "direct main"
     description:
-      path: "../gg_merge"
-      relative: true
-    source: path
-    version: "2.0.1"
+      name: gg_merge
+      sha256: e452ffa70f00e319a43a65b83c2e2f715a9e4bc68e5b54ea8d7ccabf90e2ebb0
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.2"
   gg_process:
     dependency: "direct main"
     description:
@@ -283,10 +284,11 @@ packages:
   gg_publish:
     dependency: "direct main"
     description:
-      path: "../gg_publish"
-      relative: true
-    source: path
-    version: "3.9.3"
+      name: gg_publish
+      sha256: "7c99e05a30f6e39aab973e27c60177797278e8fc71a537cc5d5cbc115d93e42b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.9.4"
   gg_status_printer:
     dependency: "direct main"
     description:
