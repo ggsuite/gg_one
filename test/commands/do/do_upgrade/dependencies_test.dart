@@ -7,17 +7,22 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:gg_one/gg_one.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CommandRunner<void> runner;
   late DoUpgradeDependencies doUpgrade;
 
@@ -126,10 +131,10 @@ void main() {
           'check if everything still runs (canCommit) '
           'and finally commit and publish changes', () {
         void check() {
-          expect(messages[0], contains('✅ CanUpgrade'));
+          expect(messages[0], contains('✓ CanUpgrade'));
           expect(messages[1], contains('⌛️ Run »dart pub upgrade«'));
-          expect(messages[2], contains('✅ Run »dart pub upgrade«'));
-          expect(messages[3], contains('✅ CanCommit'));
+          expect(messages[2], contains('✓ Run »dart pub upgrade«'));
+          expect(messages[3], contains('✓ CanCommit'));
         }
 
         test('- programmatically', () async {
@@ -162,7 +167,7 @@ void main() {
             try {
               await testCode;
             } catch (e) {
-              exception = e.toString();
+              exception = rmControls(e.toString());
             }
             expect(exception, contains('CanUpgrade failed'));
           }
@@ -183,7 +188,7 @@ void main() {
           try {
             await doUpgrade.exec(directory: d, ggLog: ggLog);
           } catch (e) {
-            exception = e.toString();
+            exception = rmControls(e.toString());
           }
           expect(
             exception,
@@ -204,7 +209,7 @@ void main() {
           });
 
           void check() {
-            expect(messages.last, yellow('Everything is already up to date.'));
+            expect(messages.last, 'Everything is already up to date.');
           }
 
           test('- programmatically', () async {
@@ -224,8 +229,8 @@ void main() {
           mockDartPubUpgrade(upgradingCausesChange: false);
           await doUpgrade.exec(directory: d, ggLog: ggLog);
           final allMessages = messages.join('\n');
-          expect(allMessages, isNot(contains('✅ DoCommit')));
-          expect(allMessages, isNot(contains('✅ DoPublish')));
+          expect(allMessages, isNot(contains('✓ DoCommit')));
+          expect(allMessages, isNot(contains('✓ DoPublish')));
         });
       });
 
@@ -238,13 +243,12 @@ void main() {
           try {
             await doUpgrade.exec(directory: d, ggLog: ggLog);
           } catch (e) {
-            exception = e.toString();
+            exception = rmControls(e.toString());
           }
 
-          final message = red(
-            'After the update tests are not running anymore. '
-            'Please run ${blue('»gg can commit«')} and try again.',
-          );
+          const message =
+              'After the update tests are not running anymore. '
+              'Please run »gg can commit« and try again.';
 
           expect(exception, contains(message));
         },
@@ -269,7 +273,7 @@ void main() {
 
           expect(
             messages[2],
-            contains('✅ Run »dart pub upgrade --major-versions«'),
+            contains('✓ Run »dart pub upgrade --major-versions«'),
           );
         });
 
@@ -307,7 +311,7 @@ void main() {
             majorVersions: true,
           );
 
-          expect(messages[0], contains('✅ DoUpgradeDependencies'));
+          expect(messages[0], contains('✓ DoUpgradeDependencies'));
         });
 
         test('without ggLog', () async {
@@ -343,7 +347,7 @@ void main() {
 
           await didUpgrade.get(directory: d, ggLog: ggLog, majorVersions: true);
 
-          expect(messages[0], contains('✅ DoUpgradeDependencies'));
+          expect(messages[0], contains('✓ DoUpgradeDependencies'));
         });
 
         test('without ggLog', () async {

@@ -6,11 +6,12 @@
 
 import 'dart:io';
 
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_changelog/gg_changelog.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_publish/gg_publish.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
@@ -19,7 +20,11 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CanPublish canPublish;
 
   // ...........................................................................
@@ -31,32 +36,30 @@ void main() {
 
   // ...........................................................................
   void mockCommands() {
-    when(() => pana.exec(directory: d, ggLog: messages.add)).thenAnswer((
-      _,
-    ) async {
+    when(() => pana.exec(directory: d, ggLog: ggLog)).thenAnswer((_) async {
       messages.add('pana');
     });
-    when(() => npmLoggedIn.exec(directory: d, ggLog: messages.add)).thenAnswer((
+    when(() => npmLoggedIn.exec(directory: d, ggLog: ggLog)).thenAnswer((
       _,
     ) async {
       messages.add('npmLoggedIn');
     });
-    when(() => didCommit.exec(directory: d, ggLog: messages.add)).thenAnswer((
+    when(() => didCommit.exec(directory: d, ggLog: ggLog)).thenAnswer((
       _,
     ) async {
       messages.add('didCommit');
       return true;
     });
-    when(
-      () => isVersionPrepared.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => isVersionPrepared.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('isVersionPrepared');
       return true;
     });
 
-    when(
-      () => hasRightFormat.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => hasRightFormat.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('hasRightFormat');
       return true;
     });
@@ -99,13 +102,12 @@ void main() {
         mockCommands();
         await canPublish.exec(directory: d, ggLog: ggLog);
         var count = 0;
-        expect(messages[count++], yellow('Can publish?'));
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('⌛️ No pubspec_overrides.yaml'));
-        expect(messages[count++], contains('✅ No pubspec_overrides.yaml'));
+        expect(messages[count++], contains('✓ No pubspec_overrides.yaml'));
         expect(messages[count++], contains('⌛️ CHANGELOG.md has right format'));
-        expect(messages[count++], contains('✅ CHANGELOG.md has right format'));
+        expect(messages[count++], contains('✓ CHANGELOG.md has right format'));
         expect(messages[count++], 'didCommit');
         expect(messages[count++], 'pana');
         expect(messages[count++], 'npmLoggedIn');

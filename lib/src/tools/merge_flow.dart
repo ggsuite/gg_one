@@ -168,7 +168,7 @@ class MergeFlow {
     );
 
     ggLog(
-      yellow(
+      cDetail(
         'Committed pending worktree changes before merge '
         '(e.g. formatter output or run state).',
       ),
@@ -279,7 +279,7 @@ class MergeFlow {
 
     if (alreadyMerged) {
       ggLog(
-        yellow(
+        cDetail(
           'All release changes are already on $mainBranchName (the pull '
           'request of an earlier run was merged) — skipping the pull request.',
         ),
@@ -455,15 +455,17 @@ class MergeFlow {
 
     if (realFiles.isNotEmpty) {
       throw Exception(
-        'Local $mainBranchName and origin/$mainBranchName have diverged, '
-        'and the local commits touch ${realFiles.join(', ')}. '
-        'Reconcile $mainBranchName manually (e.g. rebase it onto '
-        'origin/$mainBranchName), then run the command again.',
+        cError(
+          'Local $mainBranchName and origin/$mainBranchName have diverged, '
+          'and the local commits touch ${realFiles.join(', ')}. '
+          'Reconcile $mainBranchName manually (e.g. rebase it onto '
+          'origin/$mainBranchName), then run the command again.',
+        ),
       );
     }
 
     ggLog(
-      yellow(
+      cWarn(
         'Local $mainBranchName diverged from origin/$mainBranchName with '
         'gg bookkeeping only — resetting it to origin/$mainBranchName.',
       ),
@@ -589,7 +591,7 @@ class MergeFlow {
       final stderr = result.stderr.toString().trim();
       final stdout = result.stdout.toString().trim();
       final details = stderr.isNotEmpty ? stderr : stdout;
-      throw Exception('Failed to $actionDescription: $details');
+      throw Exception(cError('Failed to $actionDescription: $details'));
     }
     return result.stdout.toString();
   }

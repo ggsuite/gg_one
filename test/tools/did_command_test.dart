@@ -6,15 +6,22 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/did_command.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/tools/did_command.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:test/test.dart';
 
 void main() {
   late Directory d;
   late DidCommand didCommand;
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
 
   // ...........................................................................
   void initDidCommand() {
@@ -23,7 +30,7 @@ void main() {
       description: 'description',
       shortDescription: 'Did do?',
       suggestion: 'Please run »gg do«.',
-      ggLog: messages.add,
+      ggLog: ggLog,
       stateKey: 'did-do',
     );
   }
@@ -50,33 +57,29 @@ void main() {
           test('when state was set to success before', () async {
             await didCommand.state.writeSuccess(directory: d, key: 'did-do');
 
-            await didCommand.exec(directory: d, ggLog: messages.add);
+            await didCommand.exec(directory: d, ggLog: ggLog);
             expect(messages[0], contains('⌛️ Did do?'));
-            expect(messages[1], contains('✅ Did do?'));
+            expect(messages[1], contains('✓ Did do?'));
           });
         });
       });
 
       group('should throw', () {
-        group('and print ❌', () {
+        group('and print ✗', () {
           test('when state was not set to success before', () async {
             // Getting the state should throw
             late String exceptionMessage;
 
             try {
-              await didCommand.exec(directory: d, ggLog: messages.add);
+              await didCommand.exec(directory: d, ggLog: ggLog);
             } catch (e) {
               exceptionMessage = e.toString();
             }
 
             expect(messages[0], contains('⌛️ Did do?'));
-            expect(messages[1], contains('❌ Did do?'));
-            expect(
-              exceptionMessage,
-              contains(
-                '${darkGray('Please run ')}${blue('gg do')}${darkGray('.')}',
-              ),
-            );
+            expect(messages[1], contains('✗ Did do?'));
+            // The exception carries its colors — strip them to compare.
+            expect(rmControls(exceptionMessage), contains('Please run gg do.'));
           });
         });
       });
@@ -94,10 +97,7 @@ void main() {
               content: 'another content',
             );
 
-            final success = await didCommand.get(
-              directory: d,
-              ggLog: messages.add,
-            );
+            final success = await didCommand.get(directory: d, ggLog: ggLog);
 
             expect(success, isFalse);
           });
@@ -109,10 +109,7 @@ void main() {
             () async {
               await didCommand.state.writeSuccess(directory: d, key: 'did-do');
 
-              final success = await didCommand.get(
-                directory: d,
-                ggLog: messages.add,
-              );
+              final success = await didCommand.get(directory: d, ggLog: ggLog);
 
               expect(success, isTrue);
             },
@@ -124,10 +121,7 @@ void main() {
               // Write success
               await didCommand.state.writeSuccess(directory: d, key: 'did-do');
 
-              final success = await didCommand.get(
-                directory: d,
-                ggLog: messages.add,
-              );
+              final success = await didCommand.get(directory: d, ggLog: ggLog);
 
               expect(success, isTrue);
 
@@ -136,7 +130,7 @@ void main() {
 
               final success2 = await didCommand.get(
                 directory: d,
-                ggLog: messages.add,
+                ggLog: ggLog,
                 ignoreUnstaged: true,
               );
 
@@ -145,7 +139,7 @@ void main() {
 
               final success3 = await didCommand.get(
                 directory: d,
-                ggLog: messages.add,
+                ggLog: ggLog,
                 ignoreUnstaged: false,
               );
 
@@ -161,7 +155,7 @@ void main() {
       test('should set the state to success', () async {
         await didCommand.set(directory: d);
 
-        final success = await didCommand.get(directory: d, ggLog: messages.add);
+        final success = await didCommand.get(directory: d, ggLog: ggLog);
 
         expect(success, isTrue);
       });

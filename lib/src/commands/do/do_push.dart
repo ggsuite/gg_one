@@ -69,7 +69,7 @@ class DoPush extends DirCommand<void> {
       );
 
       if (isDone) {
-        ggLog(yellow('Already checked and pushed.'));
+        ggLog(cDetail('Already checked and pushed.'));
         return;
       }
     }
@@ -90,7 +90,7 @@ class DoPush extends DirCommand<void> {
     if (!isPushedViaGitAfterWritingSuccess) {
       force ??= _forceFromArgs();
       await gitPush(directory: directory, force: force);
-      ggLog(yellow('Checks successful. Pushed successful.'));
+      ggLog(cDetail('Checks successful. Pushed successful.'));
     }
   }
 
@@ -149,7 +149,7 @@ class DoPush extends DirCommand<void> {
     ], workingDirectory: directory.path);
 
     if (result.exitCode != 0) {
-      throw Exception('git push failed: ${result.stderr}');
+      throw Exception(cError('git push failed: ${result.stderr}'));
     }
   }
 
@@ -178,7 +178,10 @@ class DoPush extends DirCommand<void> {
 
     if (result.exitCode != 0) {
       throw Exception(
-        'git push --set-upstream origin $localBranch failed: ${result.stderr}',
+        cError(
+          'git push --set-upstream origin $localBranch failed: '
+          '${result.stderr}',
+        ),
       );
     }
 

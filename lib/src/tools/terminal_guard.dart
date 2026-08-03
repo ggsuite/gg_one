@@ -1,3 +1,4 @@
+import 'package:gg_console_colors/gg_console_colors.dart';
 // @license
 // Copyright (c) 2025 Göran Hegenberg. All Rights Reserved.
 //
@@ -30,8 +31,10 @@ void throwWhenNotATerminal(
 }) {
   if (!hasTerminal()) {
     throw Exception(
-      'Cannot show $what: stdin is not a terminal. '
-      'For headless runs, $alternative.',
+      cError(
+        'Cannot show $what: stdin is not a terminal. '
+        'For headless runs, $alternative.',
+      ),
     );
   }
 }

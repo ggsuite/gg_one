@@ -7,8 +7,10 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_publish/gg_publish.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -19,7 +21,11 @@ void main() {
   late CommandRunner<void> runner;
 
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
 
   // ...........................................................................
   setUp(() async {
@@ -49,7 +55,7 @@ void main() {
               await runner.run(['dependencies', '-i', d.path]);
             }
             expect(messages[0], contains('⌛️ Everything is upgraded'));
-            expect(messages[1], contains('✅ Everything is upgraded'));
+            expect(messages[1], contains('✓ Everything is upgraded'));
           });
         }
       });
@@ -82,7 +88,7 @@ void main() {
           );
 
           expect(result, isTrue);
-          expect(messages[0], contains('✅ DidUpgradeDependencies'));
+          expect(messages[0], contains('✓ DidUpgradeDependencies'));
         });
 
         test('without ggLog', () async {

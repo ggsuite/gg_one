@@ -6,15 +6,22 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/analyzer.dart';
 import 'package:gg_lang/gg_lang.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/tools/analyzer.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late Directory tmpDir;
   late MockGgProcessWrapper processWrapper;
 
@@ -41,7 +48,7 @@ void main() {
       ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
 
       final analyzer = DartAnalyzer(processWrapper: processWrapper);
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -55,7 +62,7 @@ void main() {
       expect(captured[2], tmpDir.path);
 
       expect(messages[0], contains('⌛️ Running "dart analyze"'));
-      expect(messages[1], contains('✅ Running "dart analyze"'));
+      expect(messages[1], contains('✓ Running "dart analyze"'));
     });
 
     test(
@@ -74,17 +81,17 @@ void main() {
 
         final analyzer = DartAnalyzer(processWrapper: processWrapper);
         await expectLater(
-          () => analyzer.run(directory: tmpDir, ggLog: messages.add),
+          () => analyzer.run(directory: tmpDir, ggLog: ggLog),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
-              contains('Run "${blue('dart analyze')}"'),
+              contains('Run "dart analyze"'),
             ),
           ),
         );
 
-        expect(messages, contains(yellow('There are analyzer errors:')));
+        expect(messages, contains('There are analyzer errors:'));
       },
     );
 
@@ -109,7 +116,7 @@ void main() {
         processWrapper: processWrapper,
         packageManager: (_) => TypeScriptPackageManager.pnpm,
       );
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -123,7 +130,7 @@ void main() {
       expect(captured[1], ['exec', 'tsc', '--noEmit']);
       expect(captured[2], tmpDir.path);
       expect(messages[0], contains('⌛️ Running "tsc --noEmit"'));
-      expect(messages[1], contains('✅ Running "tsc --noEmit"'));
+      expect(messages[1], contains('✓ Running "tsc --noEmit"'));
     });
 
     test('runs the package.json "lint" script when one is defined', () async {
@@ -143,7 +150,7 @@ void main() {
         processWrapper: processWrapper,
         packageManager: (_) => TypeScriptPackageManager.pnpm,
       );
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -157,7 +164,7 @@ void main() {
       expect(captured[1], ['run', 'lint']);
       expect(captured[2], tmpDir.path);
       expect(messages[0], contains('⌛️ Running "pnpm run lint"'));
-      expect(messages[1], contains('✅ Running "pnpm run lint"'));
+      expect(messages[1], contains('✓ Running "pnpm run lint"'));
     });
 
     test('throws and echoes tool output on failure', () async {
@@ -178,10 +185,10 @@ void main() {
       );
 
       await expectLater(
-        () => analyzer.run(directory: tmpDir, ggLog: messages.add),
+        () => analyzer.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmControls(e.toString()),
             'message',
             contains('TypeScript analysis failed'),
           ),
@@ -202,7 +209,7 @@ void main() {
       ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
 
       final analyzer = TypeScriptAnalyzer(processWrapper: processWrapper);
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(

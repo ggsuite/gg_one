@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:gg_one/src/tools/add_typescript_version_tag.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
@@ -221,12 +222,12 @@ void main() {
             throwsA(
               isA<Exception>()
                   .having(
-                    (e) => e.toString(),
+                    (e) => rmControls(e.toString()),
                     'message',
                     contains('Could not add tag 0.1.3'),
                   )
                   .having(
-                    (e) => e.toString(),
+                    (e) => rmControls(e.toString()),
                     'message',
                     contains('tag already exists'),
                   ),

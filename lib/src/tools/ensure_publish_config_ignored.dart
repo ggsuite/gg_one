@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:mocktail/mocktail.dart';
@@ -89,7 +90,9 @@ class EnsurePublishConfigIgnored {
       ...paths,
     ], workingDirectory: directory.path);
     if (add.exitCode != 0) {
-      throw Exception('git add ${paths.join(' ')} failed: ${add.stderr}');
+      throw Exception(
+        cError('git add ${paths.join(' ')} failed: ${add.stderr}'),
+      );
     }
 
     final result = await _processWrapper.run('git', [
@@ -101,7 +104,9 @@ class EnsurePublishConfigIgnored {
     ], workingDirectory: directory.path);
     if (result.exitCode != 0) {
       throw Exception(
-        'Committing the .gitignore entry for $entry failed: ${result.stderr}',
+        cError(
+          'Committing the .gitignore entry for $entry failed: ${result.stderr}',
+        ),
       );
     }
   }

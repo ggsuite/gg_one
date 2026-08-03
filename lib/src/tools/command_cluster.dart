@@ -6,10 +6,9 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/gg_state.dart';
 import 'package:gg_args/gg_args.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/tools/gg_state.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
 
 /// A cluster of commands that is run in sequence
@@ -56,8 +55,6 @@ class CommandCluster extends DirCommand<void> {
     bool? force,
     bool? saveState,
   }) async {
-    ggLog(yellow(shortDescription));
-
     // If we have no commands, let's do nothing.
     if (commands.isEmpty) {
       return;
@@ -137,9 +134,10 @@ class CommandCluster extends DirCommand<void> {
   // ...........................................................................
   void _printAlreadyDoneSuccess(GgLog ggLog) {
     GgStatusPrinter<void>(
-      message: 'Everything is fine.',
+      message: shortDescription,
       ggLog: ggLog,
       useCarriageReturn: false,
+      dark: true,
     ).logStatus(GgStatusPrinterStatus.success);
   }
 }

@@ -6,10 +6,11 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/commands/did/did_push.dart';
-import 'package:gg_one/src/tools/did_command.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/commands/did/did_push.dart';
+import 'package:gg_one/src/tools/did_command.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -40,11 +41,15 @@ void main() {
         try {
           await didPush.exec(directory: d, ggLog: ggLog);
         } catch (e) {
-          exception = e.toString();
+          exception = rmControls(e.toString());
         }
         expect(
           exception,
-          contains(DidCommand.colorizeSuggestion('Please run »gg do push«.')),
+          contains(
+            rmControls(
+              DidCommand.colorizeSuggestion('Please run »gg do push«.'),
+            ),
+          ),
         );
 
         // It should not throw anymore but return false,

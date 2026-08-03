@@ -7,18 +7,26 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CommandRunner<void> runner;
   late Directory tmpDir;
 
   setUp(() {
     messages.clear();
     runner = CommandRunner<void>('test', 'test');
-    runner.addCommand(CheckPackageJsonScripts(ggLog: messages.add));
+    runner.addCommand(CheckPackageJsonScripts(ggLog: ggLog));
     tmpDir = Directory.systemTemp.createTempSync();
   });
 
@@ -69,7 +77,7 @@ void main() {
           'prepublish runs build', () async {
         writeTsProject(validScripts);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('for a bridge whose build does not run test (exempt)', () async {
@@ -81,7 +89,7 @@ void main() {
         writeTsProject(scripts);
         File('${tmpDir.path}/pubspec.yaml').writeAsStringSync('name: b\n');
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('when not build but prebuild runs test', () async {
@@ -92,7 +100,7 @@ void main() {
           ..['prebuild'] = 'npm run test';
         writeTsProject(scripts);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('when the publish-lifecycle script is prepublishOnly '
@@ -102,7 +110,7 @@ void main() {
           ..['prepublishOnly'] = 'npm run build';
         writeTsProject(scripts);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('for a private package without a prepublish script', () async {
@@ -112,7 +120,7 @@ void main() {
           ..remove('prepublish');
         writeTsProject(scripts, private: true);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
     });
 
@@ -124,7 +132,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               allOf(contains('missing required scripts'), contains('build')),
             ),
@@ -140,7 +148,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               allOf(contains('publish-lifecycle'), contains('prepublishOnly')),
             ),
@@ -156,7 +164,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               allOf(contains('"build" script'), contains('test')),
             ),
@@ -173,7 +181,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               allOf(contains('"build" script'), contains('prebuild')),
             ),
@@ -192,7 +200,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               allOf(contains('"build" script'), contains('test')),
             ),
@@ -208,7 +216,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               allOf(contains('prepublish'), contains('build')),
             ),

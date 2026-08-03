@@ -8,14 +8,22 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:gg_capture_print/gg_capture_print.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_is_github/gg_is_github.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CommandRunner<void> runner;
   late Directory tmpDir;
 
@@ -28,7 +36,7 @@ void main() {
     testIsGitHub = false;
     messages.clear();
     runner = CommandRunner<void>('test', 'test');
-    runner.addCommand(Format(ggLog: messages.add));
+    runner.addCommand(Format(ggLog: ggLog));
     tmpDir = Directory.systemTemp.createTempSync();
     // A valid pubspec.yaml makes `detectProjectType` return ProjectType.dart.
     File('${tmpDir.path}/pubspec.yaml').writeAsStringSync('name: foo\n');
@@ -56,7 +64,7 @@ void main() {
       group('should print a usage description', () {
         test('when called with args=[--help]', () async {
           await capturePrint(
-            ggLog: messages.add,
+            ggLog: ggLog,
             code: () => runner.run(['format', '--help']),
           );
           expect(messages.last, contains('Runs the project formatter.'));
@@ -91,7 +99,7 @@ void main() {
 
           final localRunner = CommandRunner<void>('test', 'test');
           localRunner.addCommand(
-            Format(ggLog: messages.add, typeScriptFormatter: mockFormatter),
+            Format(ggLog: ggLog, typeScriptFormatter: mockFormatter),
           );
 
           try {
@@ -99,7 +107,7 @@ void main() {
               () => localRunner.run(['format', '--input', tsDir.path]),
               throwsA(
                 isA<Exception>().having(
-                  (e) => e.toString(),
+                  (e) => rmControls(e.toString()),
                   'message',
                   contains('ts boom'),
                 ),
@@ -121,14 +129,14 @@ void main() {
 
           final localRunner = CommandRunner<void>('test', 'test');
           localRunner.addCommand(
-            Format(ggLog: messages.add, dartFormatter: mockFormatter),
+            Format(ggLog: ggLog, dartFormatter: mockFormatter),
           );
 
           await expectLater(
             () => localRunner.run(['format', '--input', tmpDir.path]),
             throwsA(
               isA<Exception>().having(
-                (e) => e.toString(),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('boom'),
               ),
@@ -163,7 +171,7 @@ void main() {
             () => runner.run(['format', '--input', tmpDir.path]),
             throwsA(
               isA<Exception>().having(
-                (e) => e.toString(),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('Exception: dart format failed.'),
               ),
@@ -171,7 +179,7 @@ void main() {
           );
 
           expect(messages[0], contains('⌛️ Running "dart format"'));
-          expect(messages[1], contains('❌ Running "dart format"'));
+          expect(messages[1], contains('✗ Running "dart format"'));
         });
 
         test('succeeds locally and rewrites files in place', () async {
@@ -181,13 +189,13 @@ void main() {
           await runner.run(['format', '--input', tmpDir.path]);
 
           expect(messages[0], contains('⌛️ Running "dart format"'));
-          expect(messages[1], contains('✅ Running "dart format"'));
+          expect(messages[1], contains('✓ Running "dart format"'));
         });
 
         test('succeeds when there is nothing to format', () async {
           await runner.run(['format', '--input', tmpDir.path]);
           expect(messages[0], contains('⌛️ Running "dart format"'));
-          expect(messages[1], contains('✅ Running "dart format"'));
+          expect(messages[1], contains('✓ Running "dart format"'));
         });
       });
 
@@ -207,7 +215,7 @@ void main() {
 
           final localRunner = CommandRunner<void>('test', 'test');
           localRunner.addCommand(
-            Format(ggLog: messages.add, dartFormatter: mockFormatter),
+            Format(ggLog: ggLog, dartFormatter: mockFormatter),
           );
 
           try {
@@ -242,7 +250,7 @@ void main() {
           final localRunner = CommandRunner<void>('test', 'test');
           localRunner.addCommand(
             Format(
-              ggLog: messages.add,
+              ggLog: ggLog,
               dartFormatter: dartFormatter,
               typeScriptFormatter: tsFormatter,
             ),

@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_log/gg_log.dart';
@@ -108,10 +109,12 @@ class CheckPackageJsonScripts extends DirCommand<void> {
         .toList();
     if (missing.isNotEmpty) {
       throw Exception(
-        'package.json is missing required scripts: '
-        '${missing.join(', ')}. A TypeScript project must declare: '
-        '${requiredNpmScripts.join(', ')} and one of '
-        '${prepublishScriptNames.join(' / ')}.',
+        cError(
+          'package.json is missing required scripts: '
+          '${missing.join(', ')}. A TypeScript project must declare: '
+          '${requiredNpmScripts.join(', ')} and one of '
+          '${prepublishScriptNames.join(' / ')}.',
+        ),
       );
     }
 
@@ -125,8 +128,10 @@ class CheckPackageJsonScripts extends DirCommand<void> {
         !_referencesScript(buildScript, buildMustRunScript) &&
         !_referencesScript(preBuildScript, buildMustRunScript)) {
       throw Exception(
-        'The "build" script must run $buildMustRunScript, directly or via '
-        '"$buildPreScript" (its command is "$buildScript").',
+        cError(
+          'The "build" script must run $buildMustRunScript, directly or via '
+          '"$buildPreScript" (its command is "$buildScript").',
+        ),
       );
     }
 
@@ -143,9 +148,11 @@ class CheckPackageJsonScripts extends DirCommand<void> {
     );
     if (prepublishName.isEmpty) {
       throw Exception(
-        'package.json is missing a publish-lifecycle script. A TypeScript '
-        'project must declare one of: ${prepublishScriptNames.join(' / ')} '
-        '(it must run $prepublishMustRunScript), or set "private": true.',
+        cError(
+          'package.json is missing a publish-lifecycle script. A TypeScript '
+          'project must declare one of: ${prepublishScriptNames.join(' / ')} '
+          '(it must run $prepublishMustRunScript), or set "private": true.',
+        ),
       );
     }
 
@@ -153,8 +160,10 @@ class CheckPackageJsonScripts extends DirCommand<void> {
     final prepublish = scripts[prepublishName]!;
     if (!_referencesScript(prepublish, prepublishMustRunScript)) {
       throw Exception(
-        'The "$prepublishName" script must run $prepublishMustRunScript '
-        '(its command is "$prepublish").',
+        cError(
+          'The "$prepublishName" script must run $prepublishMustRunScript '
+          '(its command is "$prepublish").',
+        ),
       );
     }
   }

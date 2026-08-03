@@ -6,16 +6,16 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/commands/can/can_commit.dart';
-import 'package:gg_one/src/tools/gg_state.dart';
-import 'package:gg_one/src/tools/master_folder_guard.dart';
-import 'package:gg_one/src/tools/repository_url.dart';
-import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_changelog/gg_changelog.dart' as cl;
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/commands/can/can_commit.dart';
+import 'package:gg_one/src/tools/gg_state.dart';
+import 'package:gg_one/src/tools/master_folder_guard.dart';
+import 'package:gg_one/src/tools/repository_url.dart';
 import 'package:gg_process/gg_process.dart';
 
 cl.LogType _stringToLogType(String e) {
@@ -126,7 +126,7 @@ class DoCommit extends DirCommand<void> {
       );
 
       if (isDone) {
-        ggLog(yellow('Already checked and committed.'));
+        ggLog(cDetail('✓ Committed'));
         return;
       }
     }
@@ -177,9 +177,6 @@ class DoCommit extends DirCommand<void> {
         message: message,
         logType: logType,
       );
-      ggLog(yellow('Checks successful. Commit successful.'));
-    } else {
-      ggLog(yellow('Checks successful. Nothing to commit.'));
     }
 
     // Save the state
@@ -261,11 +258,13 @@ class DoCommit extends DirCommand<void> {
     final where = branch.isEmpty ? 'a detached HEAD' : 'branch »$branch«';
 
     throw Exception(
-      '${red('Cannot commit on $where.\n')}'
-      '${blue('Switch to a feature branch, e.g. '
-      '${yellow('gg do checkout <ticket>')}')}\n'
-      '${blue('Or commit anyway using ')}'
-      '${blue('gg do commit --force')}',
+      cError(
+        'Cannot commit on $where.\n'
+        'Switch to a feature branch, e.g. '
+        '${cCmd('gg do checkout <ticket>')}'
+        '\nOr commit anyway using '
+        '${cCmd('gg do commit --force')}',
+      ),
     );
   }
 
@@ -277,7 +276,7 @@ class DoCommit extends DirCommand<void> {
     ], workingDirectory: directory.path);
 
     if (result.exitCode != 0) {
-      throw Exception('git add failed: ${result.stderr}');
+      throw Exception(cError('git add failed: ${result.stderr}'));
     }
   }
 
@@ -295,15 +294,15 @@ class DoCommit extends DirCommand<void> {
     ], workingDirectory: directory.path);
 
     if (result.exitCode != 0) {
-      throw Exception('git commit failed: ${result.stderr}');
+      throw Exception(cError('git commit failed: ${result.stderr}'));
     }
   }
 
   // ...........................................................................
   /// The help text printed when message is missing.
   String get helpOnMissingMessage {
-    final part0 = red('Run again with message.\n');
-    final part1 = blue('gg do commit ${yellow('-m<your message>')}');
+    final part0 = cAction('Run again with message.\n');
+    final part1 = cCmd('gg do commit ${green('-m<your message>')}');
     return '$part0$part1';
   }
 
@@ -320,7 +319,7 @@ class DoCommit extends DirCommand<void> {
   String _getMessageFromArgs() {
     final String message = (argResults?['message'] ?? '') as String;
     if (message.isEmpty) {
-      throw Exception(helpOnMissingMessage);
+      throw Exception(cError(helpOnMissingMessage));
     }
 
     return message;

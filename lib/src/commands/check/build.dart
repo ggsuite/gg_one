@@ -6,8 +6,9 @@
 
 import 'dart:io';
 
-import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_args/gg_args.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
@@ -66,6 +67,7 @@ class Build extends DirCommand<void> {
     final statusPrinter = GgStatusPrinter<void>(
       message: 'Running "$label"',
       ggLog: ggLog,
+      dark: true,
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -89,7 +91,9 @@ class Build extends DirCommand<void> {
       final stderr = result.stderr.toString();
       if (stdout.isNotEmpty) ggLog(stdout.trimRight());
       if (stderr.isNotEmpty) ggLog(stderr.trimRight());
-      throw Exception('"$label" failed with exit code ${result.exitCode}.');
+      throw Exception(
+        cError('"$label" failed with exit code ${result.exitCode}.'),
+      );
     }
   }
 }

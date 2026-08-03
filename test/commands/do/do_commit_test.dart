@@ -5,14 +5,16 @@
 // found in the LICENSE file in the root of this package.
 
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
-import 'package:gg_one/src/commands/can/can_commit.dart';
-import 'package:gg_one/src/commands/do/do_commit.dart';
 import 'package:gg_changelog/gg_changelog.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/commands/can/can_commit.dart';
+import 'package:gg_one/src/commands/do/do_commit.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
@@ -58,7 +60,11 @@ void main() {
   late Directory d;
   late DoCommit doCommit;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations assert the text, not the
+  // escape codes. One closure instance — mocktail matches ggLog by
+  // identity.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CommandRunner<void> runner;
 
   late CanCommit canCommit;
@@ -123,7 +129,7 @@ void main() {
   group('DoCommit', () {
     group('exec(directory, ggLog, message)', () {
       group('should succeed', () {
-        group('and log »Already checked and committed.«', () {
+        group('and log »✓ Committed«', () {
           test('when the command is executed the second time', () async {
             // Execute command the first time
             await doCommit.exec(
@@ -141,11 +147,11 @@ void main() {
               logType: LogType.added,
             );
 
-            expect(messages.last, yellow('Already checked and committed.'));
+            expect(messages.last, '✓ Committed');
           });
         });
 
-        group('and log »Checks successful. Nothing to commit.«', () {
+        group('and stay silent', () {
           test('when the command is executed the first time '
               'but nothing needs to be committed.', () async {
             // Execute command the first time
@@ -156,14 +162,11 @@ void main() {
               logType: LogType.added,
             );
 
-            expect(
-              messages.last,
-              yellow('Checks successful. Nothing to commit.'),
-            );
+            expect(messages, isEmpty);
           });
         });
 
-        group('and commit and log »Checks successful. Commit successful.«', () {
+        group('and commit silently', () {
           test('when the command is executed the first time '
               'and uncommitted changes were committed.', () async {
             // Add uncommitted file
@@ -177,10 +180,7 @@ void main() {
               logType: LogType.added,
             );
 
-            expect(
-              messages.last,
-              yellow('Checks successful. Commit successful.'),
-            );
+            expect(messages, isEmpty);
           });
         });
 
@@ -350,10 +350,7 @@ void main() {
               '-m',
               'My commit',
             ]);
-            expect(
-              messages.last,
-              yellow('Checks successful. Commit successful.'),
-            );
+            expect(messages, isEmpty);
           });
         });
         test('and have 100% code coverage', () {
@@ -378,9 +375,12 @@ void main() {
                 logType: null,
               );
             } catch (e) {
-              exception = e.toString();
+              exception = rmControls(e.toString());
             }
-            expect(exception, contains(doCommit.helpOnMissingMessage));
+            expect(
+              exception,
+              contains(rmControls(doCommit.helpOnMissingMessage)),
+            );
 
             // Commit everything.
             // Run the command again without message and log type.
@@ -394,10 +394,7 @@ void main() {
               logType: null,
             );
 
-            expect(
-              messages.last,
-              yellow('Checks successful. Nothing to commit.'),
-            );
+            expect(messages, isEmpty);
           });
         });
       });
@@ -438,7 +435,7 @@ void main() {
               logType: LogType.added,
             );
           } catch (e) {
-            exception = e.toString();
+            exception = rmControls(e.toString());
           }
 
           expect(exception, 'Exception: git add failed: Some error');
@@ -487,7 +484,7 @@ void main() {
               logType: LogType.added,
             );
           } catch (e) {
-            exception = e.toString();
+            exception = rmControls(e.toString());
           }
 
           expect(exception, 'Exception: git commit failed: Some error');
@@ -510,10 +507,13 @@ void main() {
               logType: LogType.added,
             );
           } catch (e) {
-            exception = e.toString();
+            exception = rmControls(e.toString());
           }
 
-          expect(exception, 'Exception: ${doCommit.helpOnMissingMessage}');
+          expect(
+            exception,
+            'Exception: ${rmControls(doCommit.helpOnMissingMessage)}',
+          );
         });
 
         test('when pubspec.yaml does not contain a repo URL', () async {
@@ -534,7 +534,7 @@ void main() {
               logType: LogType.fixed,
             );
           } catch (e) {
-            exception = e.toString();
+            exception = rmControls(e.toString());
           }
 
           expect(
@@ -558,7 +558,7 @@ void main() {
                 force: force,
               );
             } catch (e) {
-              exception = e.toString();
+              exception = rmControls(e.toString());
             }
 
             // Nothing was committed
@@ -642,13 +642,13 @@ void main() {
               logType: LogType.fixed,
             );
           } catch (e) {
-            exception = e.toString();
+            exception = rmControls(e.toString());
           }
 
-          expect(exception, contains(yellow('gg do commit')));
-          expect(exception, contains(green('».master«')));
-          expect(exception, contains(blue('gg do checkout <ticket>')));
-          expect(exception, contains(blue('gg do commit --force')));
+          expect(exception, contains('gg do commit'));
+          expect(exception, contains('».master«'));
+          expect(exception, contains('gg do checkout <ticket>'));
+          expect(exception, contains('gg do commit --force'));
 
           // Nothing was committed
           expect(await isCommitted(repo), isFalse);
@@ -664,10 +664,7 @@ void main() {
           );
 
           expect(await isCommitted(repo), isTrue);
-          expect(
-            messages.last,
-            yellow('Checks successful. Commit successful.'),
-          );
+          expect(messages, isEmpty);
         });
       });
 
@@ -755,7 +752,7 @@ void main() {
       // CHANGELOG.md should not have been touched
       expect(await changelogFile.readAsString(), changeLogBefore);
 
-      expect(messages.last, yellow('Checks successful. Commit successful.'));
+      expect(messages, isEmpty);
     });
   });
 
@@ -783,7 +780,7 @@ void main() {
       // CHANGELOG.md should not have been touched
       expect(await changelogFile.readAsString(), changeLogBefore);
 
-      expect(messages.last, yellow('Checks successful. Commit successful.'));
+      expect(messages, isEmpty);
     });
   });
 
@@ -810,7 +807,7 @@ void main() {
         ),
       );
 
-      expect(messages.last, yellow('Checks successful. Commit successful.'));
+      expect(messages, isEmpty);
 
       // Second call should reuse state
       await doCommit.exec(
@@ -820,7 +817,7 @@ void main() {
         logType: LogType.added,
         force: true,
       );
-      expect(messages.last, yellow('Already checked and committed.'));
+      expect(messages.last, '✓ Committed');
     });
 
     test('should bypass checks and commit via CLI', () async {
@@ -845,7 +842,7 @@ void main() {
         ),
       );
 
-      expect(messages.last, yellow('Checks successful. Commit successful.'));
+      expect(messages, isEmpty);
     });
 
     test('should bypass checks and set state when nothing to commit', () async {
@@ -867,7 +864,7 @@ void main() {
         ),
       );
 
-      expect(messages.last, yellow('Checks successful. Nothing to commit.'));
+      expect(messages, isEmpty);
 
       // Run again to ensure state is used
       await doCommit.exec(
@@ -877,7 +874,7 @@ void main() {
         logType: null,
         force: true,
       );
-      expect(messages.last, yellow('Already checked and committed.'));
+      expect(messages.last, '✓ Committed');
     });
   });
 }

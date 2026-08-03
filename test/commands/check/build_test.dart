@@ -7,13 +7,21 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late GgProcessWrapper processWrapper;
   late Build build;
   late CommandRunner<void> runner;
@@ -48,7 +56,7 @@ void main() {
   setUp(() {
     messages.clear();
     processWrapper = MockGgProcessWrapper();
-    build = Build(ggLog: messages.add, processWrapper: processWrapper);
+    build = Build(ggLog: ggLog, processWrapper: processWrapper);
     runner = CommandRunner<void>('test', 'test')..addCommand(build);
     d = Directory.systemTemp.createTempSync('gg_build_test');
   });
@@ -92,7 +100,7 @@ void main() {
       writeBridge();
       mockRun(ProcessResult(0, 0, '', ''));
       await run();
-      expect(messages.any((m) => m.contains('✅')), isTrue);
+      expect(messages.any((m) => m.contains('✓')), isTrue);
 
       final captured = verify(
         () => processWrapper.run(
@@ -131,7 +139,7 @@ void main() {
         run(),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmControls(e.toString()),
             'message',
             allOf(contains('npm run build'), contains('exit code 1')),
           ),

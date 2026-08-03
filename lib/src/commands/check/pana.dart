@@ -65,6 +65,7 @@ class Pana extends DirCommand<void> {
         GgStatusPrinter<void>(
           ggLog: ggLog,
           message: 'Skipping pana ($target target)',
+          dark: true,
         ).logStatus(GgStatusPrinterStatus.success);
         return;
       }
@@ -91,7 +92,7 @@ class Pana extends DirCommand<void> {
 
     if (code != 0) {
       throw Exception(
-        'Pana failed. Run "${blue('pana')}" again to see details.',
+        cError('Pana failed. Run "${cCmd('pana')}" again to see details.'),
       );
     }
   }
@@ -138,7 +139,7 @@ class Pana extends DirCommand<void> {
         final title = parts.first;
         final details = parts.skip(1);
 
-        final titleRed = red(title);
+        final titleRed = cError(title);
         final detailsGray = details.map((e) => brightBlack(e)).join('\n');
         problems.add('\n$titleRed$detailsGray');
       }
@@ -214,7 +215,9 @@ class Pana extends DirCommand<void> {
     final result = await processWrapper.run('dart', ['pub', 'global', 'list']);
 
     if (result.exitCode != 0) {
-      throw Exception('Failed to check if pana is installed: ${result.stderr}');
+      throw Exception(
+        cError('Failed to check if pana is installed: ${result.stderr}'),
+      );
     }
 
     return result.stdout.toString().contains(RegExp(r'[\n^\s]+pana\s+'));
@@ -235,7 +238,7 @@ class Pana extends DirCommand<void> {
 
     if (result.exitCode != 0) {
       ggLog(result.stderr.toString());
-      throw Exception('Failed to install pana: ${result.stderr}');
+      throw Exception(cError('Failed to install pana: ${result.stderr}'));
     }
   }
 

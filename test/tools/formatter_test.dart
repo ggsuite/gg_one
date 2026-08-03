@@ -6,14 +6,22 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/formatter.dart';
 import 'package:gg_lang/gg_lang.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/tools/formatter.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late Directory tmpDir;
   late MockGgProcessWrapper processWrapper;
 
@@ -42,7 +50,7 @@ void main() {
         processWrapper: processWrapper,
         isGitHub: () => false,
       );
-      await formatter.run(directory: tmpDir, ggLog: messages.add);
+      await formatter.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -61,7 +69,7 @@ void main() {
       ]);
       expect(captured[2], tmpDir.path);
       expect(messages[0], contains('⌛️ Running "dart format"'));
-      expect(messages[1], contains('✅ Running "dart format"'));
+      expect(messages[1], contains('✓ Running "dart format"'));
     });
 
     test('succeeds locally when files were rewritten', () async {
@@ -81,8 +89,8 @@ void main() {
         isGitHub: () => false,
       );
 
-      await formatter.run(directory: tmpDir, ggLog: messages.add);
-      expect(messages[1], contains('✅'));
+      await formatter.run(directory: tmpDir, ggLog: ggLog);
+      expect(messages[1], contains('✓'));
     });
 
     test('throws on GitHub when files were rewritten', () async {
@@ -103,10 +111,10 @@ void main() {
       );
 
       await expectLater(
-        () => formatter.run(directory: tmpDir, ggLog: messages.add),
+        () => formatter.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmControls(e.toString()),
             'message',
             contains('dart format failed.'),
           ),
@@ -130,10 +138,10 @@ void main() {
       );
 
       await expectLater(
-        () => formatter.run(directory: tmpDir, ggLog: messages.add),
+        () => formatter.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmControls(e.toString()),
             'message',
             contains('dart format failed.'),
           ),
@@ -158,7 +166,7 @@ void main() {
         isGitHub: () => false,
         packageManager: (_) => TypeScriptPackageManager.pnpm,
       );
-      await formatter.run(directory: tmpDir, ggLog: messages.add);
+      await formatter.run(directory: tmpDir, ggLog: ggLog);
 
       // No tool is invoked — gg never calls eslint (or anything) directly.
       verifyNever(
@@ -186,7 +194,7 @@ void main() {
         isGitHub: () => true,
         packageManager: (_) => TypeScriptPackageManager.npm,
       );
-      await formatter.run(directory: tmpDir, ggLog: messages.add);
+      await formatter.run(directory: tmpDir, ggLog: ggLog);
 
       verifyNever(
         () => processWrapper.run(
@@ -225,10 +233,10 @@ void main() {
       );
 
       await expectLater(
-        () => formatter.run(directory: tmpDir, ggLog: messages.add),
+        () => formatter.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmControls(e.toString()),
             'message',
             contains('Format check failed'),
           ),
@@ -256,7 +264,7 @@ void main() {
         isGitHub: () => false,
         packageManager: (_) => TypeScriptPackageManager.pnpm,
       );
-      await formatter.run(directory: tmpDir, ggLog: messages.add);
+      await formatter.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -269,7 +277,7 @@ void main() {
       expect(captured[0], 'pnpm');
       expect(captured[1], ['run', 'format']);
       expect(messages[0], contains('⌛️ Running "pnpm run format"'));
-      expect(messages[1], contains('✅ Running "pnpm run format"'));
+      expect(messages[1], contains('✓ Running "pnpm run format"'));
     });
 
     test('runs the package.json "format:check" script on GitHub', () async {
@@ -290,7 +298,7 @@ void main() {
         isGitHub: () => true,
         packageManager: (_) => TypeScriptPackageManager.npm,
       );
-      await formatter.run(directory: tmpDir, ggLog: messages.add);
+      await formatter.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -322,7 +330,7 @@ void main() {
         processWrapper: processWrapper,
         isGitHub: () => false,
       );
-      await formatter.run(directory: tmpDir, ggLog: messages.add);
+      await formatter.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(

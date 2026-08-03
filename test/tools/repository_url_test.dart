@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:gg_one/src/tools/repository_url.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -44,7 +45,7 @@ void main() {
           readRepositoryUrl(tmp),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               contains('No »repository:« found in pubspec.yaml'),
             ),
@@ -89,7 +90,7 @@ void main() {
           readRepositoryUrl(tmp),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               contains('No »repository« URL found in package.json'),
             ),
@@ -103,7 +104,7 @@ void main() {
           readRepositoryUrl(tmp),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               contains('not a JSON object'),
             ),
@@ -123,7 +124,7 @@ void main() {
           readRepositoryUrl(tmp),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmControls(e.toString()),
               'message',
               contains('no manifest'),
             ),

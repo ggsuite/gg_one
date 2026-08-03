@@ -6,9 +6,9 @@
 
 import 'dart:io';
 
-import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_is_github/gg_is_github.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
@@ -61,6 +61,7 @@ class DartFormatter extends Formatter {
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
       message: 'Running "${command.label}"',
+      dark: true,
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -83,15 +84,15 @@ class DartFormatter extends Formatter {
     // the files in-place, so the run is considered successful.
     if (_isGitHub && files.isNotEmpty) {
       statusPrinter.logStatus(GgStatusPrinterStatus.error);
-      ggLog(yellow('The following files were formatted:'));
-      ggLog(files.map((e) => '- ${red(e)}').join('\n'));
-      throw Exception('dart format failed.');
+      ggLog(cDetail('The following files were formatted:'));
+      ggLog(files.map((e) => '- ${cError(e)}').join('\n'));
+      throw Exception(cError('dart format failed.'));
     }
 
     if (files.isEmpty) {
       statusPrinter.logStatus(GgStatusPrinterStatus.error);
       ggLog(brightBlack('std'));
-      throw Exception('dart format failed.');
+      throw Exception(cError('dart format failed.'));
     }
 
     statusPrinter.logStatus(GgStatusPrinterStatus.success);
@@ -142,6 +143,7 @@ class TypeScriptFormatter extends Formatter {
       GgStatusPrinter<void>(
         ggLog: ggLog,
         message: 'No "$scriptName" script — skipping TypeScript formatting',
+        dark: true,
       ).logStatus(GgStatusPrinterStatus.success);
       return;
     }
@@ -182,7 +184,7 @@ class TypeScriptFormatter extends Formatter {
     if (stdout.isNotEmpty) ggLog(stdout.trimRight());
     if (stderr.isNotEmpty) ggLog(stderr.trimRight());
 
-    throw Exception('Format check failed ("$label").');
+    throw Exception(cError('Format check failed ("$label").'));
   }
 }
 

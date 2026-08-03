@@ -1,9 +1,18 @@
 # Changelog
 
-## Unreleased
+## 12.5.1 - 2026-08-03
 
 ### Changed
 
+- dart pub upgrade --major-versions --tighten
+- shorten the long CLI messages and share the duplicated ones: one
+unfinishedPublishMessage, one continueConflictMessage, one editMessage
+- use the semantic colors of gg_console_colors: cAction for instructions,
+cWarn for warnings, cDetail for progress, cCmd/cPath inside a message
+- wrap every exception text in cError
+- assert the plain text in the tests, not the escape codes (rmC)
+- replace the ✓/✗ emoji by the plain marks ✓/✗ — gg_status_printer 1.2.0
+colors them via cSuccess/cError
 - replace do cancel-review with do review --abort
 - refactor: rename publish --reconfigure to --restart
 - refactor: shorten all CLI help texts to 60 chars
@@ -12,6 +21,8 @@
 - refactor(gg_one): move did upgrade to did upgrade dependencies
 - reword all command descriptions to the same terse imperative gg do and
 gg can already use
+- Rework console colors
+- Improve cli log and colors
 
 ### Removed
 
@@ -795,7 +806,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 ### Added
 
-- missing ✅ for message Tag 1.2.3 added
+- missing ✓ for message Tag 1.2.3 added
 
 ## 3.0.2 - 2024-04-13
 

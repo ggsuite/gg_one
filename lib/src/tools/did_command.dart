@@ -6,10 +6,10 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/gg_state.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/tools/gg_state.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:meta/meta.dart';
 
@@ -52,7 +52,7 @@ class DidCommand extends DirCommand<bool> {
         brightBlack(messages.join('\n')),
       ];
 
-      throw Exception(printedMessages.join('\n'));
+      throw Exception(cError(printedMessages.join('\n')));
     }
 
     return result;
@@ -112,7 +112,7 @@ class DidCommand extends DirCommand<bool> {
       if (startIndex == -1) break; // No more start symbols found, exit loop
 
       // Add text up to the startSymbol to the buffer
-      buffer.write(darkGray(suggestion.substring(endIndex, startIndex)));
+      buffer.write(cAction(suggestion.substring(endIndex, startIndex)));
 
       endIndex = suggestion.indexOf(endSymbol, startIndex);
       if (endIndex == -1) break; // No matching end symbol found, exit loop
@@ -120,7 +120,7 @@ class DidCommand extends DirCommand<bool> {
       // Extract the text between the symbols, apply the format function,
       // and add to the buffer
       String textToFormat = suggestion.substring(startIndex + 1, endIndex);
-      buffer.write(blue(textToFormat));
+      buffer.write(cCmd(textToFormat));
 
       endIndex += 1; // Move past the endSymbol for the next iteration
     }

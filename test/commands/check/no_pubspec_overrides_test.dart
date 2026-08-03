@@ -7,12 +7,20 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late NoPubspecOverrides noPubspecOverrides;
   late CommandRunner<void> runner;
   late Directory d;
@@ -31,7 +39,7 @@ void main() {
 
   setUp(() {
     messages.clear();
-    noPubspecOverrides = NoPubspecOverrides(ggLog: messages.add);
+    noPubspecOverrides = NoPubspecOverrides(ggLog: ggLog);
     runner = CommandRunner<void>('test', 'test')
       ..addCommand(noPubspecOverrides);
     d = Directory.systemTemp.createTempSync('no_pubspec_overrides_test');
@@ -49,7 +57,7 @@ void main() {
     test('succeeds when no pubspec_overrides.yaml exists', () async {
       writePubspec();
       await run();
-      expect(messages.last, contains('✅ No pubspec_overrides.yaml'));
+      expect(messages.last, contains('✓ No pubspec_overrides.yaml'));
     });
 
     test('succeeds when the overrides only pin git refs', () async {
@@ -62,7 +70,7 @@ void main() {
         '      ref: feature123\n',
       );
       await run();
-      expect(messages.last, contains('✅ No pubspec_overrides.yaml'));
+      expect(messages.last, contains('✓ No pubspec_overrides.yaml'));
     });
 
     test('throws when a pubspec_overrides.yaml redirects to a path', () async {
@@ -72,7 +80,7 @@ void main() {
         run(),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmControls(e.toString()),
             'message',
             allOf(
               contains('pubspec_overrides.yaml exists'),
@@ -81,7 +89,7 @@ void main() {
           ),
         ),
       );
-      expect(messages.last, contains('❌ No pubspec_overrides.yaml'));
+      expect(messages.last, contains('✗ No pubspec_overrides.yaml'));
     });
 
     test('skips for non Dart projects', () async {

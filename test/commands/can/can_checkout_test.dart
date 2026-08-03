@@ -6,17 +6,22 @@
 
 import 'dart:io';
 
-import 'package:gg_one/gg_one.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_publish/gg_publish.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CanCheckout canCheckout;
   late MockIsMainBranch isMainBranch;
 
@@ -53,7 +58,6 @@ void main() {
     test('should run IsMainBranch', () async {
       await canCheckout.exec(directory: d, ggLog: ggLog);
 
-      expect(messages.first, yellow('Can checkout?'));
       verify(() => isMainBranch.exec(directory: d, ggLog: ggLog)).called(1);
     });
   });

@@ -6,8 +6,8 @@
 
 import 'dart:io';
 
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
@@ -83,13 +83,13 @@ void main() {
       try {
         throwWhenInWorkspaceFolder(d);
       } catch (e) {
-        message = e.toString();
+        message = rmControls(e.toString());
       }
 
       expect(message, contains('Cannot run '));
       expect(message, contains('gg do publish'));
       expect(message, contains(path.basename(d.path)));
-      expect(message, contains(blue('gg multi do publish')));
+      expect(message, contains('gg multi do publish'));
     });
   });
 }

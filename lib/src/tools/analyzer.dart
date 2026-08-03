@@ -6,8 +6,8 @@
 
 import 'dart:io';
 
-import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
@@ -56,6 +56,7 @@ class DartAnalyzer extends Analyzer {
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
       message: 'Running "${command.label}"',
+      dark: true,
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -79,11 +80,11 @@ class DartAnalyzer extends Analyzer {
       ...ErrorInfoReader().filePathes(result.stderr as String),
       ...ErrorInfoReader().filePathes(result.stdout as String),
     ];
-    ggLog(yellow('There are analyzer errors:'));
-    ggLog(files.map((e) => red('- $e')).join('\n'));
+    ggLog('There are analyzer errors:');
+    ggLog(files.map((e) => cError('- $e')).join('\n'));
 
     throw Exception(
-      'Analyze failed. Run "${blue(command.label)}" to see details.',
+      cError('Analyze failed. Run "${cCmd(command.label)}" to see details.'),
     );
   }
 }
@@ -141,6 +142,7 @@ class TypeScriptAnalyzer extends Analyzer {
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
       message: 'Running "$label"',
+      dark: true,
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -169,9 +171,11 @@ class TypeScriptAnalyzer extends Analyzer {
     if (stderr.isNotEmpty) ggLog(stderr.trimRight());
 
     throw Exception(
-      'TypeScript analysis failed. '
-      'Run "${blue('${cmd.executable} ${cmd.args.join(' ')}')}" '
-      'to see details.',
+      cError(
+        'TypeScript analysis failed. '
+        'Run "${cCmd('${cmd.executable} ${cmd.args.join(' ')}')}" '
+        'to see details.',
+      ),
     );
   }
 }

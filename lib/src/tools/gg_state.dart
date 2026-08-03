@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
@@ -365,7 +366,9 @@ class GgState {
       ggLog: ggLog,
     );
     if (commitCount == 0) {
-      throw Exception('There must be at least one commit in the repository.');
+      throw Exception(
+        cError('There must be at least one commit in the repository.'),
+      );
     }
   }
 }

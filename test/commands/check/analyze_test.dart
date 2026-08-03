@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:gg_capture_print/gg_capture_print.dart';
 import 'package:gg_one/gg_one.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -81,7 +82,7 @@ void main() {
             () => localRunner.run(['analyze', '--input', tmpDir.path]),
             throwsA(
               isA<Exception>().having(
-                (e) => e.toString(),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('boom'),
               ),
@@ -111,7 +112,7 @@ void main() {
               () => localRunner.run(['analyze', '--input', tsDir.path]),
               throwsA(
                 isA<Exception>().having(
-                  (e) => e.toString(),
+                  (e) => rmControls(e.toString()),
                   'message',
                   contains('ts boom'),
                 ),
