@@ -88,7 +88,7 @@ void main() {
           );
 
           expect(result, isTrue);
-          expect(messages[0], contains('✅ DidUpgradeDependencies'));
+          expect(messages[0], contains('✓ DidUpgradeDependencies'));
         });
 
         test('without ggLog', () async {

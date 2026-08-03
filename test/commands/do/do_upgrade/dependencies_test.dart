@@ -131,10 +131,10 @@ void main() {
           'check if everything still runs (canCommit) '
           'and finally commit and publish changes', () {
         void check() {
-          expect(messages[0], contains('✅ CanUpgrade'));
+          expect(messages[0], contains('✓ CanUpgrade'));
           expect(messages[1], contains('⌛️ Run »dart pub upgrade«'));
           expect(messages[2], contains('✓ Run »dart pub upgrade«'));
-          expect(messages[3], contains('✅ CanCommit'));
+          expect(messages[3], contains('✓ CanCommit'));
         }
 
         test('- programmatically', () async {
@@ -229,8 +229,8 @@ void main() {
           mockDartPubUpgrade(upgradingCausesChange: false);
           await doUpgrade.exec(directory: d, ggLog: ggLog);
           final allMessages = messages.join('\n');
-          expect(allMessages, isNot(contains('✅ DoCommit')));
-          expect(allMessages, isNot(contains('✅ DoPublish')));
+          expect(allMessages, isNot(contains('✓ DoCommit')));
+          expect(allMessages, isNot(contains('✓ DoPublish')));
         });
       });
 
@@ -311,7 +311,7 @@ void main() {
             majorVersions: true,
           );
 
-          expect(messages[0], contains('✅ DoUpgradeDependencies'));
+          expect(messages[0], contains('✓ DoUpgradeDependencies'));
         });
 
         test('without ggLog', () async {
@@ -347,7 +347,7 @@ void main() {
 
           await didUpgrade.get(directory: d, ggLog: ggLog, majorVersions: true);
 
-          expect(messages[0], contains('✅ DoUpgradeDependencies'));
+          expect(messages[0], contains('✓ DoUpgradeDependencies'));
         });
 
         test('without ggLog', () async {

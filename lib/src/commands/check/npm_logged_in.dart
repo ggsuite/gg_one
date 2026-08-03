@@ -76,6 +76,7 @@ class NpmLoggedIn extends DirCommand<void> {
       GgStatusPrinter<void>(
         ggLog: ggLog,
         message: 'Skipping npm auth check ($target target)',
+        dark: true,
       ).logStatus(GgStatusPrinterStatus.success);
       return;
     }

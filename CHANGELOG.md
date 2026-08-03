@@ -20,6 +20,7 @@ colors them via cSuccess/cError
 - reword all command descriptions to the same terse imperative gg do and
 gg can already use
 - Rework console colors
+- Improve cli log and colors
 
 ### Removed
 

@@ -129,7 +129,7 @@ void main() {
             force: true,
             saveState: false,
           );
-          expect(messages[0], contains('✅ CanCommit'));
+          expect(messages[0], contains('✓ CanCommit'));
         }
 
         test('with ggLog', () async {
@@ -160,7 +160,7 @@ void main() {
             force: true,
             saveState: false,
           );
-          expect(messages[0], contains('✅ CanCommit'));
+          expect(messages[0], contains('✓ CanCommit'));
         }
 
         test('with ggLog', () async {

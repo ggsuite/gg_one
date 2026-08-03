@@ -45,6 +45,7 @@ class PubGetOffline extends DirCommand<void> {
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
       message: 'Running "$executable ${args.join(' ')}"',
+      dark: true,
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 

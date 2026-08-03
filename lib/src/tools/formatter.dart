@@ -6,9 +6,9 @@
 
 import 'dart:io';
 
-import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_is_github/gg_is_github.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
@@ -61,6 +61,7 @@ class DartFormatter extends Formatter {
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
       message: 'Running "${command.label}"',
+      dark: true,
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 
@@ -142,6 +143,7 @@ class TypeScriptFormatter extends Formatter {
       GgStatusPrinter<void>(
         ggLog: ggLog,
         message: 'No "$scriptName" script — skipping TypeScript formatting',
+        dark: true,
       ).logStatus(GgStatusPrinterStatus.success);
       return;
     }

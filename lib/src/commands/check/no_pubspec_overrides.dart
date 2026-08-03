@@ -111,6 +111,7 @@ class NoPubspecOverrides extends DirCommand<void> {
     final statusPrinter = GgStatusPrinter<void>(
       ggLog: ggLog,
       message: 'No $fileName',
+      dark: true,
     );
     statusPrinter.logStatus(GgStatusPrinterStatus.running);
 

@@ -65,6 +65,7 @@ class Pana extends DirCommand<void> {
         GgStatusPrinter<void>(
           ggLog: ggLog,
           message: 'Skipping pana ($target target)',
+          dark: true,
         ).logStatus(GgStatusPrinterStatus.success);
         return;
       }

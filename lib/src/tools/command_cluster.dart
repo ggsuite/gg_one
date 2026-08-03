@@ -137,6 +137,7 @@ class CommandCluster extends DirCommand<void> {
       message: shortDescription,
       ggLog: ggLog,
       useCarriageReturn: false,
+      dark: true,
     ).logStatus(GgStatusPrinterStatus.success);
   }
 }
