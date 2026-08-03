@@ -33,9 +33,15 @@ void main() {
   late DidCommit didCommit;
   late IsVersionPrepared isVersionPrepared;
   late HasRightFormat hasRightFormat;
+  late PubGetOffline pubGetOffline;
 
   // ...........................................................................
   void mockCommands() {
+    when(() => pubGetOffline.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
+      messages.add('pubGetOffline');
+    });
     when(() => pana.exec(directory: d, ggLog: ggLog)).thenAnswer((_) async {
       messages.add('pana');
     });
@@ -72,6 +78,7 @@ void main() {
     didCommit = MockDidCommit();
     isVersionPrepared = MockIsVersionPrepared();
     hasRightFormat = MockHasRightFormat();
+    pubGetOffline = MockPubGetOffline();
 
     canPublish = CanPublish(
       ggLog: ggLog,
@@ -79,6 +86,7 @@ void main() {
       npmLoggedIn: npmLoggedIn,
       didCommit: didCommit,
       isVersionPrepared: isVersionPrepared,
+      pubGetOffline: pubGetOffline,
     );
     d = Directory.systemTemp.createTempSync();
     await initGit(d);
@@ -102,6 +110,9 @@ void main() {
         mockCommands();
         await canPublish.exec(directory: d, ggLog: ggLog);
         var count = 0;
+        // Runs first so the tracked lock file matches the manifest before
+        // didCommit looks at the working tree.
+        expect(messages[count++], 'pubGetOffline');
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('⌛️ No pubspec_overrides.yaml'));
