@@ -183,13 +183,13 @@ class DoPublish extends DirCommand<void> {
     _throwIfPublishTargetIsSuppressed(directory);
 
     final cliContinue = argResults?['continue'] as bool? ?? false;
-    final reconfigure = argResults?['reconfigure'] as bool? ?? false;
+    final restart = argResults?['restart'] as bool? ?? false;
     final configArg = argResults?['config'] as String?;
     message ??= _messageFromArgs;
 
-    if (cliContinue && (configArg != null || reconfigure)) {
+    if (cliContinue && (configArg != null || restart)) {
       throw Exception(
-        '--continue cannot be combined with --config or --reconfigure. '
+        '--continue cannot be combined with --config or --restart. '
         'Resume with "--continue" alone, or start a fresh run without it.',
       );
     }
@@ -217,7 +217,7 @@ class DoPublish extends DirCommand<void> {
         'normal "gg do publish" first.',
       );
     }
-    if (reconfigure && runtimeFile.existsSync()) {
+    if (restart && runtimeFile.existsSync()) {
       // Explicit user choice: discard the previous config and progress.
       runtimeFile.deleteSync();
     }
@@ -275,7 +275,7 @@ class DoPublish extends DirCommand<void> {
       throw Exception(
         'An unfinished publish left progress in ${runtimeFile.path}. '
         'Resume it with "gg do publish --continue", or discard it with '
-        '"gg do publish --reconfigure".',
+        '"gg do publish --restart".',
       );
     }
 
@@ -1313,7 +1313,7 @@ class DoPublish extends DirCommand<void> {
     );
 
     argParser.addFlag(
-      'reconfigure',
+      'restart',
       help:
           'Discard an existing .gg/gg-publish.json (config and progress) '
           'and configure the publish again.',

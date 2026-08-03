@@ -2284,7 +2284,7 @@ void main() {
         );
       });
 
-      test('--continue rejects --config and --reconfigure', () async {
+      test('--continue rejects --config and --restart', () async {
         Matcher throwsCombineError() => throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -2305,16 +2305,8 @@ void main() {
         );
         await expectLater(
           () =>
-              (CommandRunner<void>(
-                'gg',
-                'gg',
-              )..addCommand(makeResumePublish())).run([
-                'publish',
-                '-i',
-                d.path,
-                '--continue',
-                '--reconfigure',
-              ]),
+              (CommandRunner<void>('gg', 'gg')..addCommand(makeResumePublish()))
+                  .run(['publish', '-i', d.path, '--continue', '--restart']),
           throwsCombineError(),
         );
       });
@@ -2944,11 +2936,9 @@ void main() {
         });
       });
 
-      test(
-        '--reconfigure discards config and progress and reconfigures',
-        () async {
-          mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-          runtimeFile.writeAsStringSync('''
+      test('--restart discards config and progress and reconfigures', () async {
+        mockPublishIsSuccessful(success: true, askBeforePublishing: false);
+        runtimeFile.writeAsStringSync('''
 {
   "version_increment": "patch",
   "merge_message": "stale",
@@ -2956,28 +2946,27 @@ void main() {
 }
 ''');
 
-          final reconfigurePublish = makeResumePublish(
-            addVersionTag: AddVersionTag(ggLog: ggLog),
-            editMessage: (_) async => 'Reconfigured',
-          );
-          final runner = CommandRunner<void>('gg', 'gg')
-            ..addCommand(reconfigurePublish);
-          await runner.run([
-            'publish',
-            '-i',
-            d.path,
-            '--reconfigure',
-            '--no-ask-before-publishing',
-            '--no-delete-feature-branch',
-          ]);
+        final restartPublish = makeResumePublish(
+          addVersionTag: AddVersionTag(ggLog: ggLog),
+          editMessage: (_) async => 'Reconfigured',
+        );
+        final runner = CommandRunner<void>('gg', 'gg')
+          ..addCommand(restartPublish);
+        await runner.run([
+          'publish',
+          '-i',
+          d.path,
+          '--restart',
+          '--no-ask-before-publishing',
+          '--no-delete-feature-branch',
+        ]);
 
-          final headMessage = await HeadMessage(
-            ggLog: ggLog,
-          ).get(directory: d, ggLog: ggLog);
-          expect(headMessage, 'Reconfigured');
-          expect(runtimeFile.existsSync(), isFalse);
-        },
-      );
+        final headMessage = await HeadMessage(
+          ggLog: ggLog,
+        ).get(directory: d, ggLog: ggLog);
+        expect(headMessage, 'Reconfigured');
+        expect(runtimeFile.existsSync(), isFalse);
+      });
     });
 
     group('when a previous publish left the version tag behind', () {

@@ -103,7 +103,7 @@ gg one do publish --continue
 
 Already-completed steps are skipped; the idempotent pushes always
 re-run. A leftover progress file makes a plain re-run refuse until you
-choose `--continue` (resume) or `--reconfigure` (discard the config and
+choose `--continue` (resume) or `--restart` (discard the config and
 progress and be asked again).
 
 For scripted releases and CI you can predeclare increment + message via

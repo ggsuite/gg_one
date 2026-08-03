@@ -5,6 +5,7 @@
 ### Changed
 
 - refactor(gg_multi): replace do cancel-review with do review --abort
+- refactor: rename publish --reconfigure to --restart
 
 ## 12.5.0 - 2026-08-02
 
