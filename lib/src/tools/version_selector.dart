@@ -73,7 +73,7 @@ class VersionSelector {
     ];
 
     final index = await _adapter.choose(
-      message: cDetail('Select version increment:'),
+      message: cAction('Select version increment:'),
       options: options,
     );
 
