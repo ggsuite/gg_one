@@ -129,7 +129,7 @@ void main() {
   group('DoCommit', () {
     group('exec(directory, ggLog, message)', () {
       group('should succeed', () {
-        group('and log »Already checked and committed.«', () {
+        group('and log »✓ Committed«', () {
           test('when the command is executed the second time', () async {
             // Execute command the first time
             await doCommit.exec(
@@ -147,7 +147,7 @@ void main() {
               logType: LogType.added,
             );
 
-            expect(messages.last, 'Already checked and committed.');
+            expect(messages.last, '✓ Committed');
           });
         });
 
@@ -817,7 +817,7 @@ void main() {
         logType: LogType.added,
         force: true,
       );
-      expect(messages.last, 'Already checked and committed.');
+      expect(messages.last, '✓ Committed');
     });
 
     test('should bypass checks and commit via CLI', () async {
@@ -874,7 +874,7 @@ void main() {
         logType: null,
         force: true,
       );
-      expect(messages.last, 'Already checked and committed.');
+      expect(messages.last, '✓ Committed');
     });
   });
 }
