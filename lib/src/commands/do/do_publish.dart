@@ -41,6 +41,16 @@ import 'package:pub_semver/pub_semver.dart';
 /// against a registry, it is refused while
 /// [NoPubspecOverrides.hasLocalizedRefs] reports localized references —
 /// `--force` overrides that.
+/// Flags, in more detail than their one-line help texts carry:
+/// - `--no-pr` performs a local merge instead of merging through an
+///   auto-merge pull request and waiting for the provider.
+/// - `--message` skips the interactive merge-message prompt.
+/// - `--config` is resolved as given (relative to the CWD), then below the
+///   repository.
+/// - `--channel rc` publishes the next `X.Y.Z-rc.N` prerelease of the target
+///   version instead of the stable release.
+/// - `--continue` reuses `.gg/gg-publish.json` and skips the steps that are
+///   already done; `--restart` discards config *and* progress.
 class DoPublish extends DirCommand<void> {
   /// Constructor
   DoPublish({
@@ -1264,17 +1274,14 @@ class DoPublish extends DirCommand<void> {
 
     argParser.addFlag(
       'delete-feature-branch',
-      help: 'Delete the current feature branch on origin after publishing.',
+      help: 'Delete the feature branch on origin',
       defaultsTo: true,
       negatable: true,
     );
 
     argParser.addFlag(
       'pr',
-      help:
-          'Merge through an auto-merge pull request and wait until the '
-          'provider merged it (default). --no-pr performs a local merge '
-          'followed by a direct push to main instead.',
+      help: 'Merge via auto-merge pull request (default)',
       defaultsTo: true,
       negatable: true,
     );
@@ -1282,41 +1289,30 @@ class DoPublish extends DirCommand<void> {
     argParser.addOption(
       'message',
       abbr: 'm',
-      help:
-          'The merge commit message used for the final merge step. When '
-          'given, the interactive merge-message prompt is skipped.',
+      help: 'The message of the final merge commit',
     );
 
     argParser.addOption(
       'config',
-      help:
-          'Path to a .gg-publish.json file with merge_message and '
-          'version_increment. Resolved as-given (CWD), then under '
-          '"<repo>/.gg/".',
+      help: 'Path to a .gg-publish.json to publish with',
     );
 
     argParser.addOption(
       'channel',
-      help:
-          'The release channel. "rc" publishes the next X.Y.Z-rc.N '
-          'prerelease of the target version instead of the stable release.',
+      help: 'The release channel: stable or rc',
       allowed: allowedReleaseChannels,
     );
 
     argParser.addFlag(
       'continue',
-      help:
-          'Resume a previously failed publish from where it stopped, '
-          'reusing .gg/gg-publish.json and skipping the steps already done.',
+      help: 'Resume a failed publish where it stopped',
       defaultsTo: false,
       negatable: false,
     );
 
     argParser.addFlag(
       'restart',
-      help:
-          'Discard an existing .gg/gg-publish.json (config and progress) '
-          'and configure the publish again.',
+      help: 'Discard the saved config and configure again',
       defaultsTo: false,
       negatable: true,
     );

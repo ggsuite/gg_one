@@ -79,9 +79,7 @@ class DoMaintain extends DirCommand<void> {
     argParser.addFlag(
       'major-versions',
       abbr: 'm',
-      help:
-          'Upgrades packages to their latest resolvable versions, '
-          'and updates pubspec.yaml.',
+      help: 'Upgrade packages to their latest versions',
       defaultsTo: false,
       negatable: false,
     );

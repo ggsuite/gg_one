@@ -36,9 +36,7 @@ class Build extends DirCommand<void> {
   }) : _processWrapper = processWrapper,
        super(
          name: 'build',
-         description:
-             'Builds a cross-language bridge repo by running its package.json '
-             '"build" script via the detected package manager.',
+         description: 'Build a bridge repo via its package.json script',
        );
 
   /// Example instance for tests — logs to `print`.
