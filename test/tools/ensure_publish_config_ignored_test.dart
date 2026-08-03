@@ -6,10 +6,10 @@
 
 import 'dart:io';
 
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
@@ -166,7 +166,7 @@ void main() {
           () => ensure.ensure(directory: d),
           throwsA(
             isA<Exception>().having(
-              (e) => rmC(e.toString()),
+              (e) => rmControls(e.toString()),
               'message',
               contains('git add'),
             ),
@@ -199,7 +199,7 @@ void main() {
           () => ensure.ensure(directory: d),
           throwsA(
             isA<Exception>().having(
-              (e) => rmC(e.toString()),
+              (e) => rmControls(e.toString()),
               'message',
               contains('Committing the .gitignore entry'),
             ),

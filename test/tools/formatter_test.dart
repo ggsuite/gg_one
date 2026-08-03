@@ -6,11 +6,11 @@
 
 import 'dart:io';
 
-import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/src/tools/formatter.dart';
-import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -21,7 +21,7 @@ void main() {
   // instance, not a function declaration: mocktail matches the ggLog
   // argument by identity, and a tear-off is not stable.
   // ignore: prefer_function_declarations_over_variables
-  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late Directory tmpDir;
   late MockGgProcessWrapper processWrapper;
 
@@ -114,7 +114,7 @@ void main() {
         () => formatter.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => rmC(e.toString()),
+            (e) => rmControls(e.toString()),
             'message',
             contains('dart format failed.'),
           ),
@@ -141,7 +141,7 @@ void main() {
         () => formatter.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => rmC(e.toString()),
+            (e) => rmControls(e.toString()),
             'message',
             contains('dart format failed.'),
           ),
@@ -236,7 +236,7 @@ void main() {
         () => formatter.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => rmC(e.toString()),
+            (e) => rmControls(e.toString()),
             'message',
             contains('Format check failed'),
           ),

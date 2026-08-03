@@ -5,15 +5,16 @@
 // found in the LICENSE file in the root of this package.
 
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
+import 'package:gg_changelog/gg_changelog.dart';
+import 'package:gg_git/gg_git.dart';
+import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/src/commands/can/can_commit.dart';
 import 'package:gg_one/src/commands/do/do_commit.dart';
-import 'package:gg_changelog/gg_changelog.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
-import 'package:gg_git/gg_git.dart';
-import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
@@ -63,7 +64,7 @@ void main() {
   // escape codes. One closure instance — mocktail matches ggLog by
   // identity.
   // ignore: prefer_function_declarations_over_variables
-  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CommandRunner<void> runner;
 
   late CanCommit canCommit;
@@ -374,9 +375,12 @@ void main() {
                 logType: null,
               );
             } catch (e) {
-              exception = rmC(e.toString());
+              exception = rmControls(e.toString());
             }
-            expect(exception, contains(rmC(doCommit.helpOnMissingMessage)));
+            expect(
+              exception,
+              contains(rmControls(doCommit.helpOnMissingMessage)),
+            );
 
             // Commit everything.
             // Run the command again without message and log type.
@@ -431,7 +435,7 @@ void main() {
               logType: LogType.added,
             );
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(exception, 'Exception: git add failed: Some error');
@@ -480,7 +484,7 @@ void main() {
               logType: LogType.added,
             );
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(exception, 'Exception: git commit failed: Some error');
@@ -503,10 +507,13 @@ void main() {
               logType: LogType.added,
             );
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
-          expect(exception, 'Exception: ${rmC(doCommit.helpOnMissingMessage)}');
+          expect(
+            exception,
+            'Exception: ${rmControls(doCommit.helpOnMissingMessage)}',
+          );
         });
 
         test('when pubspec.yaml does not contain a repo URL', () async {
@@ -527,7 +534,7 @@ void main() {
               logType: LogType.fixed,
             );
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(
@@ -551,7 +558,7 @@ void main() {
                 force: force,
               );
             } catch (e) {
-              exception = rmC(e.toString());
+              exception = rmControls(e.toString());
             }
 
             // Nothing was committed
@@ -635,7 +642,7 @@ void main() {
               logType: LogType.fixed,
             );
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(exception, contains('gg do commit'));

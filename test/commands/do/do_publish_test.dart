@@ -16,7 +16,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -25,6 +24,7 @@ import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:gg_version/gg_version.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
@@ -39,7 +39,7 @@ void main() {
   // instance, not a function declaration: mocktail matches the ggLog
   // argument by identity, and a tear-off is not stable.
   // ignore: prefer_function_declarations_over_variables
-  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late Directory d;
   late Directory dRemote;
   late Directory Function() dMock;
@@ -695,7 +695,7 @@ void main() {
                 ),
                 throwsA(
                   isA<Exception>().having(
-                    (e) => rmC(e.toString()),
+                    (e) => rmControls(e.toString()),
                     'message',
                     allOf(
                       contains('ticket workspace'),
@@ -724,7 +724,7 @@ void main() {
                   ),
                   throwsA(
                     isA<Exception>().having(
-                      (e) => rmC(e.toString()),
+                      (e) => rmControls(e.toString()),
                       'message',
                       contains('gg multi do publish'),
                     ),
@@ -1535,7 +1535,7 @@ void main() {
                   deleteFeatureBranch: false,
                 );
               } catch (e) {
-                exception = rmC(e.toString());
+                exception = rmControls(e.toString());
               }
 
               // Should throw
@@ -1573,7 +1573,7 @@ void main() {
               deleteFeatureBranch: true,
             );
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(
@@ -1859,7 +1859,7 @@ void main() {
             deleteFeatureBranch: false,
           );
         } catch (e) {
-          exception = rmC(e.toString());
+          exception = rmControls(e.toString());
         }
 
         expect(exception, contains('disk full'));
@@ -1971,7 +1971,7 @@ void main() {
           ),
           throwsA(
             isA<Exception>().having(
-              (e) => rmC(e.toString()),
+              (e) => rmControls(e.toString()),
               'message',
               contains('disk full'),
             ),
@@ -2281,7 +2281,7 @@ void main() {
           () => runner.run(['publish', '-i', d.path, '--continue']),
           throwsA(
             isA<Exception>().having(
-              (e) => rmC(e.toString()),
+              (e) => rmControls(e.toString()),
               'message',
               contains('Nothing to continue'),
             ),
@@ -2292,7 +2292,7 @@ void main() {
       test('--continue rejects --config and --restart', () async {
         Matcher throwsCombineError() => throwsA(
           isA<Exception>().having(
-            (e) => rmC(e.toString()),
+            (e) => rmControls(e.toString()),
             'message',
             contains('cannot be combined'),
           ),
@@ -2330,7 +2330,7 @@ void main() {
             () => doPublish.exec(directory: d, ggLog: ggLog),
             throwsA(
               isA<Exception>().having(
-                (e) => rmC(e.toString()),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('unfinished publish left progress'),
               ),
@@ -2393,7 +2393,7 @@ void main() {
             () => runner.run(['publish', '-i', d.path, '--continue']),
             throwsA(
               isA<Exception>().having(
-                (e) => rmC(e.toString()),
+                (e) => rmControls(e.toString()),
                 'message',
                 allOf(
                   contains('stale leftover of another publish'),
@@ -2821,7 +2821,7 @@ void main() {
             ),
             throwsA(
               isA<Exception>().having(
-                (e) => rmC(e.toString()),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('The repository changed since the failed publish'),
               ),
@@ -2932,7 +2932,7 @@ void main() {
             ),
             throwsA(
               isA<Exception>().having(
-                (e) => rmC(e.toString()),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('git checkout main failed'),
               ),
@@ -3192,7 +3192,7 @@ void main() {
             mergeOnly: true,
           );
         } catch (e) {
-          message = rmC(e.toString());
+          message = rmControls(e.toString());
         }
 
         expect(message, contains('Project depends on other local projects'));

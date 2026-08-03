@@ -7,11 +7,11 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
-import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
@@ -23,7 +23,7 @@ void main() {
   // instance, not a function declaration: mocktail matches the ggLog
   // argument by identity, and a tear-off is not stable.
   // ignore: prefer_function_declarations_over_variables
-  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   final panaCmd = Platform.isWindows ? 'pana.bat' : 'pana';
 
   late GgProcessWrapper processWrapper;
@@ -111,7 +111,7 @@ void main() {
           runner.run(['pana', '--input', d.path]),
           throwsA(
             isA<Exception>().having(
-              (e) => rmC(e.toString()),
+              (e) => rmControls(e.toString()),
               'toString()',
               'Exception: Pana failed. '
                   'Run "pana" again to see details.',
@@ -213,7 +213,7 @@ void main() {
           runner.run(['pana', '--input', d.path]),
           throwsA(
             isA<Exception>().having(
-              (e) => rmC(e.toString()),
+              (e) => rmControls(e.toString()),
               'toString()',
               'Exception: Pana failed. '
                   'Run "pana" again to see details.',
@@ -266,7 +266,7 @@ void main() {
           try {
             await runner.run(['pana', '--input', d.path]);
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
           expect(
             exception,
@@ -289,7 +289,7 @@ void main() {
         try {
           await runner.run(['pana', '--input', d.path]);
         } catch (e) {
-          exception = rmC(e.toString());
+          exception = rmControls(e.toString());
         }
         expect(
           exception,

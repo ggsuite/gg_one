@@ -7,13 +7,13 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_changelog/gg_changelog.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
@@ -23,7 +23,7 @@ void main() async {
   late Directory dRemote;
   final messages = <String>[];
   // ignore: prefer_function_declarations_over_variables
-  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
 
   late File ggJson;
   late DoPush doPush;
@@ -258,7 +258,7 @@ void main() async {
           try {
             await doPush.exec(directory: dLocal, ggLog: ggLog);
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(exception, 'Exception: Cannot push.');
@@ -292,7 +292,7 @@ void main() async {
           try {
             await doPush.exec(directory: dLocal, ggLog: ggLog);
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(exception, 'Exception: git push failed: Some error');
@@ -327,7 +327,7 @@ void main() async {
           try {
             await doPush.exec(directory: dLocal, ggLog: ggLog);
           } catch (e) {
-            exception = rmC(e.toString());
+            exception = rmControls(e.toString());
           }
 
           expect(

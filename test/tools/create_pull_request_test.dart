@@ -6,10 +6,10 @@
 
 import 'dart:io';
 
-import 'package:gg_console_colors/gg_console_colors.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -240,7 +240,7 @@ void main() {
             createPullRequest.get(directory: d, ggLog: ggLog),
             throwsA(
               isA<Exception>().having(
-                (e) => rmC(e.toString()),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('was created, but its url could not be read'),
               ),
@@ -308,7 +308,7 @@ void main() {
             createPullRequest.get(directory: d, ggLog: ggLog),
             throwsA(
               isA<Exception>().having(
-                (e) => rmC(e.toString()),
+                (e) => rmControls(e.toString()),
                 'message',
                 contains('Failed to determine the pull request source branch'),
               ),

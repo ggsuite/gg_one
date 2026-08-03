@@ -6,10 +6,10 @@
 
 import 'dart:io';
 
+import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/src/tools/did_command.dart';
-import 'package:gg_console_colors/gg_console_colors.dart';
-import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -21,7 +21,7 @@ void main() {
   // instance, not a function declaration: mocktail matches the ggLog
   // argument by identity, and a tear-off is not stable.
   // ignore: prefer_function_declarations_over_variables
-  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
+  final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
 
   // ...........................................................................
   void initDidCommand() {
@@ -79,7 +79,7 @@ void main() {
             expect(messages[0], contains('⌛️ Did do?'));
             expect(messages[1], contains('✗ Did do?'));
             // The exception carries its colors — strip them to compare.
-            expect(rmC(exceptionMessage), contains('Please run gg do.'));
+            expect(rmControls(exceptionMessage), contains('Please run gg do.'));
           });
         });
       });

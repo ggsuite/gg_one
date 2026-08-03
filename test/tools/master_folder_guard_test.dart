@@ -6,8 +6,8 @@
 
 import 'dart:io';
 
-import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
+import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
@@ -46,7 +46,7 @@ void main() {
         () => throwWhenInMasterFolder(dir(['.master', 'ggsuite', 'gg_one'])),
         throwsA(
           isA<Exception>().having(
-            (e) => rmC(e.toString()),
+            (e) => rmControls(e.toString()),
             'message',
             allOf(
               // The command in yellow, file names in green, the CLI commands
