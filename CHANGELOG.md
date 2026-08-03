@@ -5,6 +5,11 @@
 ### Changed
 
 - Prevent pubspec.lock interrupting publishing
+
+### Fixed
+
+- Fix issues with pubspec.lock
+
 ## 12.5.3 - 2026-08-03
 
 ### Fixed
