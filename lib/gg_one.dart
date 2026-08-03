@@ -53,6 +53,7 @@ export 'src/tools/command_cluster.dart';
 export 'src/tools/create_pull_request.dart';
 export 'src/tools/ensure_publish_config_ignored.dart';
 export 'src/tools/gg_state.dart';
+export 'src/tools/lock_files.dart';
 export 'src/tools/master_folder_guard.dart';
 export 'src/tools/merge_flow.dart';
 export 'src/tools/publish_config.dart';

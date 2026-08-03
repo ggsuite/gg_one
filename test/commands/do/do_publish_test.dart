@@ -233,9 +233,13 @@ void main() {
     // Clear messages
     messages.clear();
 
-    // Setup a pubspec.yaml and a CHANGELOG.md with right versions
+    // Setup a pubspec.yaml and a CHANGELOG.md with right versions.
+    // The SDK constraint is not decoration: `can push` runs `pub get
+    // --offline` before `isCommitted`, and pub refuses a manifest without a
+    // lower bound.
     await File(join(d.path, 'pubspec.yaml')).writeAsString(
       'name: gg\n\nversion: 1.2.3\n'
+      'environment:\n  sdk: ^3.8.0\n'
       'repository: https://github.com/inlavigo/gg.git',
     );
 
@@ -2074,6 +2078,29 @@ void main() {
         // registry upload happens BEFORE the merge, so waiting for the
         // merge-time removal would ship the marker to pub.dev/npm inside the
         // published package.
+
+        // This is the one test that runs the real »do push«, so it is the one
+        // that reaches »can push« → »pub get --offline«. That generates
+        // .dart_tool/ and pubspec.lock, so give the repo the two things a
+        // real one has: .dart_tool/ ignored and the lock file committed.
+        // Without them »isCommitted« trips over files pub just wrote.
+        await File(join(d.path, '.gitignore')).writeAsString('.dart_tool/\n');
+        await Process.run('dart', [
+          'pub',
+          'get',
+          '--offline',
+        ], workingDirectory: d.path);
+        await Process.run('git', [
+          'add',
+          '.gitignore',
+          'pubspec.lock',
+        ], workingDirectory: d.path);
+        await Process.run('git', [
+          'commit',
+          '-m',
+          'Add lock file',
+        ], workingDirectory: d.path);
+
         final ggDir = Directory(join(d.path, '.gg'));
         if (!ggDir.existsSync()) {
           ggDir.createSync();

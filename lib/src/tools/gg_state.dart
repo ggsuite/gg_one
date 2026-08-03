@@ -11,6 +11,7 @@ import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
+import 'package:gg_lang/gg_lang.dart' as gg_lang;
 import 'package:gg_log/gg_log.dart';
 import 'package:path/path.dart';
 
@@ -54,7 +55,14 @@ class GgState {
   /// names of the days before the files inside `.gg` were unhidden are listed
   /// as well: a repository being migrated carries both for one commit and
   /// must not look changed because of it.
-  static const ignoreFiles = [
+  ///
+  /// The lock files (`gg_lang.allLockFileNames`) are in here because they are
+  /// tracked but *derived*: `pub get` rewrites them whenever a manifest is
+  /// touched — including the run the Dart VS Code extension fires on its own.
+  /// Without them every such rewrite would discard all recorded check results,
+  /// and `_commitOrAmmendStateChanges` would stop amending, because then not
+  /// only `.gg/gg.json` has changed.
+  static final List<String> ignoreFiles = <String>[
     '.gg/',
     '.gg.json',
     '.gg/gg.json',
@@ -63,6 +71,7 @@ class GgState {
     '.gg/.gg-publish.json',
     'CHANGELOG.md',
     '.kidney_status',
+    ...gg_lang.allLockFileNames,
   ];
 
   // ...........................................................................
