@@ -8,7 +8,6 @@ import 'dart:io';
 
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
-import 'package:gg_lang/gg_lang.dart' as gg_lang;
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
 import 'package:mocktail/mocktail.dart' as mocktail;
@@ -450,7 +449,7 @@ class MergeFlow {
         .map((line) => line.trim())
         .where((file) => file.isNotEmpty)
         .where((file) => !file.startsWith('.gg/'))
-        .where((file) => !gg_lang.allLockFileNames.contains(file))
+        .where((file) => !isLockFile(file))
         .toSet();
 
     if (realFiles.isNotEmpty) {
@@ -501,13 +500,13 @@ class MergeFlow {
     );
 
     // Lock files rewritten by pre-push hooks and resumed runs are drift, not
-    // release content; the canonical set of lock file names lives in gg_lang.
+    // release content; `isLockFile` owns the canonical set of names.
     return changedFiles
         .split('\n')
         .map((line) => line.trim())
         .where((file) => file.isNotEmpty)
         .where((file) => !file.startsWith('.gg/'))
-        .where((file) => !gg_lang.allLockFileNames.contains(file))
+        .where((file) => !isLockFile(file))
         .isEmpty;
   }
 

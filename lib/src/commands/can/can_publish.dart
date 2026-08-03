@@ -25,8 +25,15 @@ class CanPublish extends CommandCluster {
     IsFeatureBranch? isFeatureBranch,
     NpmLoggedIn? npmLoggedIn,
     NoPubspecOverrides? noPubspecOverrides,
+    PubGetOffline? pubGetOffline,
   }) : super(
          commands: [
+           // Runs first, exactly as in CanCommit: the lock file is tracked, so
+           // a background `pub get` — the Dart VS Code extension fires one
+           // whenever a manifest is written — leaves it modified and the
+           // `didCommit` below would refuse to publish over a file nobody
+           // edited. Syncing it with the manifest first removes that noise.
+           pubGetOffline ?? PubGetOffline(ggLog: ggLog),
            isFeatureBranch ?? IsFeatureBranch(ggLog: ggLog),
            noPubspecOverrides ?? NoPubspecOverrides(ggLog: ggLog),
            changeLogHasRightFormat ?? HasRightFormat(ggLog: ggLog),
