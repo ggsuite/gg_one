@@ -4,9 +4,10 @@
 
 ### Changed
 
-- refactor(gg_multi): replace do cancel-review with do review --abort
+- replace do cancel-review with do review --abort
 - refactor: rename publish --reconfigure to --restart
 - refactor: shorten all CLI help texts to 60 chars
+- Rework CLI texts
 
 ## 12.5.0 - 2026-08-02
 
