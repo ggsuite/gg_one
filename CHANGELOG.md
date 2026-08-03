@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 12.5.3 - 2026-08-03
 
 ### Fixed
 
 - Fix test error paths
+
 ## 12.5.2 - 2026-08-03
 
 ### Changed
