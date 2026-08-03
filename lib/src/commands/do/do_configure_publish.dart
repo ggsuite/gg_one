@@ -141,9 +141,7 @@ class DoConfigurePublish extends DirCommand<void> {
       if (existing.hasStepProgress) {
         throw Exception(
           cError(
-            'An unfinished publish left progress in ${file.path}. '
-            'Resume it with "gg do publish --continue", or discard it with '
-            '"gg do publish --restart".',
+            unfinishedPublishMessage(path: file.path, command: 'gg do publish'),
           ),
         );
       }
@@ -253,7 +251,7 @@ class DoConfigurePublish extends DirCommand<void> {
       'pass -m <message> or provide a .gg/gg-publish.json (--config)',
     );
     return Input(
-      prompt: 'Edit merge message',
+      prompt: 'Edit merge message:',
       defaultValue: initialMessage,
       initialText: initialMessage,
     ).interact();

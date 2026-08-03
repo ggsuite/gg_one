@@ -7,6 +7,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_publish/gg_publish.dart'
     show ReleaseChannel, VersionIncrement;
 import 'package:path/path.dart' as p;
@@ -42,6 +43,31 @@ const Set<String> allowedPublishSteps = {
   'merge',
   'tag',
 };
+
+/// The message shown when a leftover `.gg-publish.json` still carries the
+/// progress of an unfinished run.
+///
+/// [command] is the command the caller offers — `gg do publish` for a single
+/// repo, `gg do publish --merge-only` for a merge-only ticket run. Written as
+/// three short lines: what is in the way, and the two ways out. Four callers
+/// used to carry their own 130-character copy of this.
+String unfinishedPublishMessage({
+  required String path,
+  required String command,
+}) => [
+  cAction('Unfinished publish in $path'),
+  cAction('  Continue:') + cCmd('$command --continue'),
+  cAction('  Restart: ') + cCmd('$command --restart'),
+].join('\n');
+
+/// The message shown when `--continue` is combined with a flag that would
+/// discard the very progress it resumes.
+final String continueConflictMessage = [
+  '${cCmd("--continue")} cannot be combined with '
+      '${cCmd("--config")} or ${cCmd("--restart.")}',
+  'Resume with ${cCmd("--continue")} alone, ',
+  'or start a fresh run without it.',
+].join('\n');
 
 /// Returned by [PublishConfig.forRepo] (and used directly in single-repo
 /// scenarios). Both fields are present and validated when this is constructed

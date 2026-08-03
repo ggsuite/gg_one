@@ -198,12 +198,7 @@ class DoPublish extends DirCommand<void> {
     message ??= _messageFromArgs;
 
     if (cliContinue && (configArg != null || restart)) {
-      throw Exception(
-        cError(
-          '--continue cannot be combined with --config or --restart. '
-          'Resume with "--continue" alone, or start a fresh run without it.',
-        ),
-      );
+      throw Exception(cError(continueConflictMessage));
     }
 
     // Step 0b: A pubspec_overrides.yaml redirects dependencies to local
@@ -290,9 +285,10 @@ class DoPublish extends DirCommand<void> {
     if (!resuming && (runtimeConfig?.hasStepProgress ?? false)) {
       throw Exception(
         cError(
-          'An unfinished publish left progress in ${runtimeFile.path}. '
-          'Resume it with "gg do publish --continue", or discard it with '
-          '"gg do publish --restart".',
+          unfinishedPublishMessage(
+            path: runtimeFile.path,
+            command: 'gg do publish',
+          ),
         ),
       );
     }
