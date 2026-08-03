@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_test/gg_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -19,10 +20,11 @@ void main() {
   late Checks commands;
   final messages = <String>[];
 
-  // Strip the colors so the expectations stay readable. A function
-  // declaration, not a closure variable: mocktail matches the ggLog
-  // argument by identity, and every tear-off of it must be the same.
-  void ggLog(String msg) => messages.add(rmC(msg));
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   late CanCommit commit;
 
   // ...........................................................................
@@ -94,16 +96,15 @@ void main() {
 
     group('Commit', () {
       group('run(directory)', () {
-        test('should print "Can commit?" first, then pub get, analyze, format, '
-            'build and coverage in that order', () async {
+        test('should run pub get, analyze, format, build and coverage '
+            'in that order', () async {
           await addAndCommitSampleFile(d);
           await commit.exec(directory: d, ggLog: ggLog);
-          expect(messages[0], 'Can commit?');
-          expect(messages[1], 'did pub get');
-          expect(messages[2], 'did analyze');
-          expect(messages[3], 'did format');
-          expect(messages[4], 'did build');
-          expect(messages[5], 'did cover');
+          expect(messages[0], 'did pub get');
+          expect(messages[1], 'did analyze');
+          expect(messages[2], 'did format');
+          expect(messages[3], 'did build');
+          expect(messages[4], 'did cover');
         });
       });
     });
@@ -117,7 +118,7 @@ void main() {
           canCommit.mockExec(
             result: null,
             directory: d, // <-- ggLog
-            ggLog: useGgLog ? messages.add : null,
+            ggLog: useGgLog ? ggLog : null,
             force: true,
             saveState: false,
           );
@@ -148,7 +149,7 @@ void main() {
           canCommit.mockGet(
             result: null,
             directory: d,
-            ggLog: useGgLog ? messages.add : null, // <-- ggLog
+            ggLog: useGgLog ? ggLog : null, // <-- ggLog
             force: true,
             saveState: false,
           );

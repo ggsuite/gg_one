@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -18,10 +19,11 @@ import 'package:test/test.dart';
 void main() {
   final messages = <String>[];
 
-  // Strip the colors so the expectations stay readable. A function
-  // declaration, not a closure variable: mocktail matches the ggLog
-  // argument by identity, and every tear-off of it must be the same.
-  void ggLog(String msg) => messages.add(rmC(msg));
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   final panaCmd = Platform.isWindows ? 'pana.bat' : 'pana';
 
   late GgProcessWrapper processWrapper;
@@ -109,10 +111,10 @@ void main() {
           runner.run(['pana', '--input', d.path]),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'toString()',
               'Exception: Pana failed. '
-                  'Run "${blue('pana')}" again to see details.',
+                  'Run "pana" again to see details.',
             ),
           ),
         );
@@ -211,10 +213,10 @@ void main() {
           runner.run(['pana', '--input', d.path]),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'toString()',
               'Exception: Pana failed. '
-                  'Run "${blue('pana')}" again to see details.',
+                  'Run "pana" again to see details.',
             ),
           ),
         );
@@ -224,13 +226,11 @@ void main() {
         expect(messages[1], contains('✗ Running pana'));
         expect(
           messages[2],
-          contains(red('[x] 0/10 points: Provide a valid `pubspec.yaml`')),
+          contains('[x] 0/10 points: Provide a valid `pubspec.yaml`'),
         );
         expect(
           messages[2],
-          contains(
-            brightBlack('* `pubspec.yaml` doesn\'t have a `repository` entry.'),
-          ),
+          contains('* `pubspec.yaml` doesn\'t have a `repository` entry.'),
         );
       });
     });
@@ -266,7 +266,7 @@ void main() {
           try {
             await runner.run(['pana', '--input', d.path]);
           } catch (e) {
-            exception = e.toString();
+            exception = rmC(e.toString());
           }
           expect(
             exception,
@@ -289,7 +289,7 @@ void main() {
         try {
           await runner.run(['pana', '--input', d.path]);
         } catch (e) {
-          exception = e.toString();
+          exception = rmC(e.toString());
         }
         expect(
           exception,

@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_is_flutter/gg_is_flutter.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
@@ -61,7 +62,7 @@ class PubGetOffline extends DirCommand<void> {
 
     if (result.exitCode != 0) {
       throw Exception(
-        '"$executable ${args.join(' ')}" failed: ${result.stderr}',
+        cError('"$executable ${args.join(' ')}" failed: ${result.stderr}'),
       );
     }
   }

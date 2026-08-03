@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/src/commands/did/did_push.dart';
 import 'package:gg_one/src/tools/did_command.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -40,7 +41,7 @@ void main() {
         try {
           await didPush.exec(directory: d, ggLog: ggLog);
         } catch (e) {
-          exception = e.toString();
+          exception = rmC(e.toString());
         }
         expect(
           exception,

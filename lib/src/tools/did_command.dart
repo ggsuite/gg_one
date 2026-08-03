@@ -52,7 +52,7 @@ class DidCommand extends DirCommand<bool> {
         brightBlack(messages.join('\n')),
       ];
 
-      throw Exception(printedMessages.join('\n'));
+      throw Exception(cError(printedMessages.join('\n')));
     }
 
     return result;
@@ -120,7 +120,7 @@ class DidCommand extends DirCommand<bool> {
       // Extract the text between the symbols, apply the format function,
       // and add to the buffer
       String textToFormat = suggestion.substring(startIndex + 1, endIndex);
-      buffer.write(blue(textToFormat));
+      buffer.write(cCmd(textToFormat));
 
       endIndex += 1; // Move past the endSymbol for the next iteration
     }

@@ -46,15 +46,15 @@ void main() {
         () => throwWhenInMasterFolder(dir(['.master', 'ggsuite', 'gg_one'])),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'message',
             allOf(
               // The command in yellow, file names in green, the CLI commands
               // to run next in blue.
-              contains(yellow('gg do commit')),
-              contains(green('».master«')),
-              contains(blue('gg do checkout <ticket>')),
-              contains(blue('gg do commit --force')),
+              contains('gg do commit'),
+              contains('».master«'),
+              contains('gg do checkout <ticket>'),
+              contains('gg do commit --force'),
             ),
           ),
         ),

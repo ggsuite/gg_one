@@ -8,16 +8,18 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
 
-  // Strip the colors so the expectations stay readable. A function
-  // declaration, not a closure variable: mocktail matches the ggLog
-  // argument by identity, and every tear-off of it must be the same.
-  void ggLog(String msg) => messages.add(rmC(msg));
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   late CommandRunner<void> runner;
   late Directory tmpDir;
 
@@ -130,7 +132,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'message',
               allOf(contains('missing required scripts'), contains('build')),
             ),
@@ -146,7 +148,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'message',
               allOf(contains('publish-lifecycle'), contains('prepublishOnly')),
             ),
@@ -162,7 +164,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'message',
               allOf(contains('"build" script'), contains('test')),
             ),
@@ -179,7 +181,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'message',
               allOf(contains('"build" script'), contains('prebuild')),
             ),
@@ -198,7 +200,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'message',
               allOf(contains('"build" script'), contains('test')),
             ),
@@ -214,7 +216,7 @@ void main() {
           run(),
           throwsA(
             isA<Exception>().having(
-              (e) => e.toString(),
+              (e) => rmC(e.toString()),
               'message',
               allOf(contains('prepublish'), contains('build')),
             ),

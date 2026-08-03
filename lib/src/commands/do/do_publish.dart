@@ -199,8 +199,10 @@ class DoPublish extends DirCommand<void> {
 
     if (cliContinue && (configArg != null || restart)) {
       throw Exception(
-        '--continue cannot be combined with --config or --restart. '
-        'Resume with "--continue" alone, or start a fresh run without it.',
+        cError(
+          '--continue cannot be combined with --config or --restart. '
+          'Resume with "--continue" alone, or start a fresh run without it.',
+        ),
       );
     }
 
@@ -223,8 +225,10 @@ class DoPublish extends DirCommand<void> {
     final runtimeFile = DoConfigurePublish.configFileFor(directory);
     if (cliContinue && !runtimeFile.existsSync()) {
       throw Exception(
-        'Nothing to continue: ${runtimeFile.path} does not exist. Start a '
-        'normal "gg do publish" first.',
+        cError(
+          'Nothing to continue: ${runtimeFile.path} does not exist. Start a '
+          'normal "gg do publish" first.',
+        ),
       );
     }
     if (restart && runtimeFile.existsSync()) {
@@ -267,11 +271,13 @@ class DoPublish extends DirCommand<void> {
             'discarded.';
         if (cliContinue) {
           throw Exception(
-            '$notice There is nothing to continue — start a fresh '
-            '"gg do publish".',
+            cError(
+              '$notice There is nothing to continue — start a fresh '
+              '"gg do publish".',
+            ),
           );
         }
-        ggLog(yellow(notice));
+        ggLog(cDetail(notice));
       }
     }
 
@@ -283,9 +289,11 @@ class DoPublish extends DirCommand<void> {
 
     if (!resuming && (runtimeConfig?.hasStepProgress ?? false)) {
       throw Exception(
-        'An unfinished publish left progress in ${runtimeFile.path}. '
-        'Resume it with "gg do publish --continue", or discard it with '
-        '"gg do publish --restart".',
+        cError(
+          'An unfinished publish left progress in ${runtimeFile.path}. '
+          'Resume it with "gg do publish --continue", or discard it with '
+          '"gg do publish --restart".',
+        ),
       );
     }
 
@@ -408,7 +416,7 @@ class DoPublish extends DirCommand<void> {
     // so it fails exactly when raw new commits sneaked in.
     if (resuming) {
       ggLog(
-        yellow('Resuming the unfinished publish — "can publish" is skipped.'),
+        cDetail('Resuming the unfinished publish — "can publish" is skipped.'),
       );
       final didCommit = await _didCommit.get(
         directory: directory,
@@ -416,9 +424,11 @@ class DoPublish extends DirCommand<void> {
       );
       if (!didCommit) {
         throw Exception(
-          'The repository changed since the failed publish. Run '
-          '"gg do commit" first, then resume with '
-          '"gg do publish --continue".',
+          cError(
+            'The repository changed since the failed publish. Run '
+            '"gg do commit" first, then resume with '
+            '"gg do publish --continue".',
+          ),
         );
       }
     } else {
@@ -521,7 +531,7 @@ class DoPublish extends DirCommand<void> {
         // without an upload looks successful otherwise.
         final target = await _publishTo.fromDirectory(directory);
         ggLog(
-          yellow(
+          cDetail(
             'Not publishing to a registry: the manifest says '
             '"$target". Only the version bump, merge and tag run.',
           ),
@@ -679,11 +689,13 @@ class DoPublish extends DirCommand<void> {
     }
 
     throw Exception(
-      'This repository is part of a ticket workspace: its publish target is '
-      'temporarily set to "none" (${backup.path}). Publishing it directly '
-      'would skip the registry upload and merge "publish_to: none" into the '
-      'main branch. Publish the ticket with "gg multi do publish" instead, '
-      'which restores the publish target first.',
+      cError(
+        'This repository is part of a ticket workspace: its publish target is '
+        'temporarily set to "none" (${backup.path}). Publishing it directly '
+        'would skip the registry upload and merge "publish_to: none" into the '
+        'main branch. Publish the ticket with "gg multi do publish" instead, '
+        'which restores the publish target first.',
+      ),
     );
   }
 
@@ -716,8 +728,8 @@ class DoPublish extends DirCommand<void> {
       return currentVersion == publishedVersion;
       // coverage:ignore-start
     } catch (e) {
-      ggLog(yellow('$e'));
-      ggLog(yellow('Assuming that the package is not published on pub.dev'));
+      ggLog(cError('$e'));
+      ggLog(cDetail('Package probably not published on pub.dev'));
 
       return false;
     }
@@ -810,7 +822,7 @@ class DoPublish extends DirCommand<void> {
     );
     if (url == null) {
       ggLog(
-        yellow(
+        cWarn(
           'No remote "origin" found — falling back to a local merge '
           'instead of a pull request.',
         ),
@@ -819,7 +831,7 @@ class DoPublish extends DirCommand<void> {
     }
     if (gg_merge.providerFromRemoteUrl(url) == null) {
       ggLog(
-        yellow(
+        cWarn(
           'The git provider of "$url" does not support the pull-request '
           'flow — falling back to a local merge.',
         ),
@@ -853,9 +865,11 @@ class DoPublish extends DirCommand<void> {
           candidate,
         ], workingDirectory: directory.path);
         if (checkout.exitCode != 0) {
-          throw Exception('git checkout $candidate failed: ${checkout.stderr}');
+          throw Exception(
+            cError('git checkout $candidate failed: ${checkout.stderr}'),
+          );
         }
-        ggLog(yellow('Checked out $candidate to finish the resumed publish.'));
+        ggLog(cDetail('Checked out $candidate to finish the resumed publish.'));
       }
       return;
     }
@@ -1061,9 +1075,11 @@ class DoPublish extends DirCommand<void> {
     }
 
     throw Exception(
-      'The package was never published to pub.dev before. '
-      'Please call »gg do push« with »--ask-before-publishing« '
-      'when publishing the first time.',
+      cError(
+        'The package was never published to pub.dev before. '
+        'Please call »gg do push« with »--ask-before-publishing« '
+        'when publishing the first time.',
+      ),
     );
   }
 
@@ -1143,10 +1159,14 @@ class DoPublish extends DirCommand<void> {
     if (result.exitCode != 0) {
       final stderr = result.stderr.toString();
       if (stderr.contains('remote ref does not exist')) {
-        ggLog(yellow('Remote feature branch $branchName was already deleted.'));
+        ggLog(
+          cDetail('Remote feature branch $branchName was already deleted.'),
+        );
         return;
       }
-      throw Exception('git push origin --delete $branchName failed: $stderr');
+      throw Exception(
+        cError('git push origin --delete $branchName failed: $stderr'),
+      );
     }
 
     ggLog(green('Deleted remote feature branch $branchName.'));
@@ -1162,12 +1182,14 @@ class DoPublish extends DirCommand<void> {
     }
 
     throw Exception(
-      [
-        'Project depends on other local projects. ',
-        'Just merging is not possible.',
-        '  - Either run ${blue('gg do publish')} ',
-        '  - Or publish anyway adding ${blue('--force')} option.',
-      ].join(('\n')),
+      cError(
+        [
+          'Project depends on other local projects. ',
+          'Just merging is not possible.',
+          '  - Either run ${cCmd('gg do publish')} ',
+          '  - Or publish anyway adding ${cCmd('--force')} option.',
+        ].join(('\n')),
+      ),
     );
   }
 
@@ -1184,7 +1206,7 @@ class DoPublish extends DirCommand<void> {
     }
 
     file.deleteSync();
-    ggLog(yellow('Deleted ${NoPubspecOverrides.fileName}.'));
+    ggLog(cDetail('Deleted ${NoPubspecOverrides.fileName}.'));
   }
 
   /// Returns whether [branchName] still exists on the remote. A failing

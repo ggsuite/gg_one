@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_changelog/gg_changelog.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
@@ -21,7 +22,8 @@ void main() async {
   late Directory dLocal;
   late Directory dRemote;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
 
   late File ggJson;
   late DoPush doPush;
@@ -115,10 +117,7 @@ void main() async {
 
               // Push the change the first time
               await doPush.exec(directory: dLocal, ggLog: ggLog);
-              expect(
-                messages.last,
-                yellow('Checks successful. Pushed successful.'),
-              );
+              expect(messages.last, 'Checks successful. Pushed successful.');
               expect(
                 await isPushed.get(directory: dLocal, ggLog: ggLog),
                 isTrue,
@@ -126,7 +125,7 @@ void main() async {
 
               // Execute the same push a second time
               await doPush.exec(directory: dLocal, ggLog: ggLog);
-              expect(messages.last, yellow('Already checked and pushed.'));
+              expect(messages.last, 'Already checked and pushed.');
             });
           });
         });
@@ -259,7 +258,7 @@ void main() async {
           try {
             await doPush.exec(directory: dLocal, ggLog: ggLog);
           } catch (e) {
-            exception = e.toString();
+            exception = rmC(e.toString());
           }
 
           expect(exception, 'Exception: Cannot push.');
@@ -293,7 +292,7 @@ void main() async {
           try {
             await doPush.exec(directory: dLocal, ggLog: ggLog);
           } catch (e) {
-            exception = e.toString();
+            exception = rmC(e.toString());
           }
 
           expect(exception, 'Exception: git push failed: Some error');
@@ -328,7 +327,7 @@ void main() async {
           try {
             await doPush.exec(directory: dLocal, ggLog: ggLog);
           } catch (e) {
-            exception = e.toString();
+            exception = rmC(e.toString());
           }
 
           expect(

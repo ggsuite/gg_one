@@ -83,13 +83,13 @@ void main() {
       try {
         throwWhenInWorkspaceFolder(d);
       } catch (e) {
-        message = e.toString();
+        message = rmC(e.toString());
       }
 
       expect(message, contains('Cannot run '));
       expect(message, contains('gg do publish'));
       expect(message, contains(path.basename(d.path)));
-      expect(message, contains(blue('gg multi do publish')));
+      expect(message, contains('gg multi do publish'));
     });
   });
 }

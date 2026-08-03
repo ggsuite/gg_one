@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_process/gg_process.dart';
@@ -253,7 +254,7 @@ void main() {
         ),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'toString()',
             'Exception: git checkout -b feat_test failed: Checkout error',
           ),
@@ -301,7 +302,7 @@ void main() {
         ),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'toString()',
             contains('Cannot checkout.'),
           ),
@@ -341,7 +342,7 @@ void main() {
         ),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'toString()',
             'Exception: git stash push failed: Some error',
           ),
@@ -368,7 +369,7 @@ void main() {
         ),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'toString()',
             'Exception: git stash create failed: Some error',
           ),
@@ -443,7 +444,7 @@ void main() {
         ),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'toString()',
             'Exception: git checkout -b feat_test failed: Checkout error',
           ),

@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -24,7 +25,8 @@ void main() {
 
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   late MergeFlow mergeFlow;
   late MockGgMergeDoMerge mockGgMergeDoMerge;
   late MockGgMergeWaitForMerge mockWaitForMerge;
@@ -306,7 +308,7 @@ void main() {
         mergeFlow.get(directory: d, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'message',
             allOf(contains('have diverged'), contains('lib/src/foo.dart')),
           ),
@@ -407,10 +409,8 @@ void main() {
       expect(
         messages,
         contains(
-          yellow(
-            'Committed pending worktree changes before merge '
-            '(e.g. formatter output or run state).',
-          ),
+          'Committed pending worktree changes before merge '
+          '(e.g. formatter output or run state).',
         ),
       );
     });
@@ -472,7 +472,7 @@ void main() {
         mergeFlow.get(directory: d, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'message',
             contains('Failed to fetch on main: fetch failed'),
           ),
@@ -578,7 +578,7 @@ void main() {
           workingDirectory: d.path,
         ),
       ).called(1);
-      expect(messages, contains(darkGray('Removed .gg/ticket.json.')));
+      expect(messages, contains('Removed .gg/ticket.json.'));
     });
 
     test('removes the hidden ticket marker of an older branch too', () async {

@@ -33,17 +33,19 @@ void throwWhenInMasterFolder(Directory directory) {
     return;
   }
 
-  // Colors follow gg's scheme: the command in yellow, file names in green,
-  // and the CLI commands to run next in blue.
+  // The whole line is an error; only the folder and the commands to run
+  // next carry their own semantic color.
   throw Exception(
-    '${red('Cannot run ')}'
-    '${yellow('gg do commit')}'
-    '${red(' inside the ')}'
-    '${green('»$masterFolderName«')}'
-    '${red(' folder.\n')}'
-    '${red('Switch to a ticket workspace, e.g. ')}'
-    '${blue('gg do checkout <ticket>')}'
-    '${red('\nOr commit anyway using ')}'
-    '${blue('gg do commit --force')}',
+    cError(
+      'Cannot run '
+      '${cCmd('gg do commit')}'
+      ' inside the '
+      '${cPath('»$masterFolderName«')}'
+      ' folder.\n'
+      'Switch to a ticket workspace, e.g. '
+      '${cCmd('gg do checkout <ticket>')}'
+      '\nOr commit anyway using '
+      '${cCmd('gg do commit --force')}',
+    ),
   );
 }

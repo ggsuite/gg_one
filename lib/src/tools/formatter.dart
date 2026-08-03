@@ -83,15 +83,15 @@ class DartFormatter extends Formatter {
     // the files in-place, so the run is considered successful.
     if (_isGitHub && files.isNotEmpty) {
       statusPrinter.logStatus(GgStatusPrinterStatus.error);
-      ggLog(yellow('The following files were formatted:'));
+      ggLog(cDetail('The following files were formatted:'));
       ggLog(files.map((e) => '- ${red(e)}').join('\n'));
-      throw Exception('dart format failed.');
+      throw Exception(cError('dart format failed.'));
     }
 
     if (files.isEmpty) {
       statusPrinter.logStatus(GgStatusPrinterStatus.error);
       ggLog(brightBlack('std'));
-      throw Exception('dart format failed.');
+      throw Exception(cError('dart format failed.'));
     }
 
     statusPrinter.logStatus(GgStatusPrinterStatus.success);
@@ -182,7 +182,7 @@ class TypeScriptFormatter extends Formatter {
     if (stdout.isNotEmpty) ggLog(stdout.trimRight());
     if (stderr.isNotEmpty) ggLog(stderr.trimRight());
 
-    throw Exception('Format check failed ("$label").');
+    throw Exception(cError('Format check failed ("$label").'));
   }
 }
 

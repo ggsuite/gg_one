@@ -63,7 +63,7 @@ class CreatePullRequest {
 
     if (provider == null) {
       ggLog(
-        yellow(
+        cWarn(
           'No pull request: »origin« is neither a GitHub nor an Azure DevOps '
           'repository${remoteUrl == null ? '' : ' ($remoteUrl)'}.',
         ),
@@ -100,8 +100,10 @@ class CreatePullRequest {
     );
     if (url == null) {
       throw Exception(
-        'The pull request for »$branch« was created, but its url could not '
-        'be read.',
+        cError(
+          'The pull request for »$branch« was created, but its url could not '
+          'be read.',
+        ),
       );
     }
     return url;
@@ -117,8 +119,10 @@ class CreatePullRequest {
     );
     if (result.exitCode != 0) {
       throw Exception(
-        'Failed to determine the pull request source branch: '
-        '${result.stderr}',
+        cError(
+          'Failed to determine the pull request source branch: '
+          '${result.stderr}',
+        ),
       );
     }
     return result.stdout.toString().trim();

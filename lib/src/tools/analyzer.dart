@@ -83,7 +83,7 @@ class DartAnalyzer extends Analyzer {
     ggLog(files.map((e) => red('- $e')).join('\n'));
 
     throw Exception(
-      'Analyze failed. Run "${blue(command.label)}" to see details.',
+      cError('Analyze failed. Run "${cCmd(command.label)}" to see details.'),
     );
   }
 }
@@ -169,9 +169,11 @@ class TypeScriptAnalyzer extends Analyzer {
     if (stderr.isNotEmpty) ggLog(stderr.trimRight());
 
     throw Exception(
-      'TypeScript analysis failed. '
-      'Run "${blue('${cmd.executable} ${cmd.args.join(' ')}')}" '
-      'to see details.',
+      cError(
+        'TypeScript analysis failed. '
+        'Run "${cCmd('${cmd.executable} ${cmd.args.join(' ')}')}" '
+        'to see details.',
+      ),
     );
   }
 }

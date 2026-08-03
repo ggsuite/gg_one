@@ -51,16 +51,18 @@ void throwWhenInWorkspaceFolder(Directory directory) {
     return;
   }
 
-  // Colors follow gg's scheme: the command in yellow, file names in green,
-  // and the CLI commands to run next in blue.
+  // The whole line is an error; only the folder and the commands to run
+  // next carry their own semantic color.
   throw Exception(
-    '${red('Cannot run ')}'
-    '${yellow('gg do publish')}'
-    '${red(' inside the ticket workspace folder ')}'
-    '${green('»${path.basename(directory.absolute.path)}«')}'
-    '${red('.\n')}'
-    '${red('Publish a single repository from within its own folder.\n')}'
-    '${red('Or publish the whole ticket using ')}'
-    '${blue('gg multi do publish')}',
+    cError(
+      'Cannot run '
+      '${cCmd('gg do publish')}'
+      ' inside the ticket workspace folder '
+      '${cPath('»${path.basename(directory.absolute.path)}«')}'
+      '.\n'
+      'Publish a single repository from within its own folder.\n'
+      'Or publish the whole ticket using '
+      '${cCmd('gg multi do publish')}',
+    ),
   );
 }

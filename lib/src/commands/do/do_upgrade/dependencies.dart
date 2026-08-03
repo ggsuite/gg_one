@@ -66,7 +66,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
     );
 
     if (isDone) {
-      ggLog(yellow('Everything is already up to date.'));
+      ggLog(cDetail('Everything is already up to date.'));
       return;
     }
 
@@ -97,9 +97,11 @@ class DoUpgradeDependencies extends DirCommand<void> {
     catch (e) {
       await _state.reset(directory: directory);
       throw Exception(
-        red(
-          'After the update tests are not running anymore. '
-          'Please run ${blue('»gg can commit«')} and try again.',
+        cError(
+          red(
+            'After the update tests are not running anymore. '
+            'Please run ${cCmd('»gg can commit«')} and try again.',
+          ),
         ),
       );
     }
@@ -111,7 +113,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
     );
 
     if (hashBefore == hashAfter) {
-      ggLog(yellow('No changes after the upgrade.'));
+      ggLog(cDetail('No changes after the upgrade.'));
       return;
     }
   }
@@ -161,7 +163,9 @@ class DoUpgradeDependencies extends DirCommand<void> {
         );
 
         if (result.exitCode != 0) {
-          throw Exception('»dart pub upgrade« failed: ${result.stderr}');
+          throw Exception(
+            cError('»dart pub upgrade« failed: ${result.stderr}'),
+          );
         }
 
         return true;

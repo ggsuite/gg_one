@@ -7,6 +7,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_lang/gg_lang.dart';
 
 // #############################################################################
@@ -27,7 +28,7 @@ Future<String> readRepositoryUrl(Directory directory) async {
     ProjectType.dart || ProjectType.flutter => _readFromPubspec(directory),
     ProjectType.typescript => _readFromPackageJson(directory),
     ProjectType.none => throw Exception(
-      'No repository URL: the project has no manifest.',
+      cError('No repository URL: the project has no manifest.'),
     ),
   };
 }
@@ -41,7 +42,7 @@ Future<String> _readFromPubspec(Directory directory) async {
   ).firstMatch(pubspec);
   final url = match?.group(1);
   if (url == null) {
-    throw Exception('No »repository:« found in pubspec.yaml');
+    throw Exception(cError('No »repository:« found in pubspec.yaml'));
   }
   return _normalize(url);
 }
@@ -51,7 +52,7 @@ Future<String> _readFromPackageJson(Directory directory) async {
   final raw = await File('${directory.path}/package.json').readAsString();
   final decoded = jsonDecode(raw);
   if (decoded is! Map<String, dynamic>) {
-    throw Exception('package.json is not a JSON object.');
+    throw Exception(cError('package.json is not a JSON object.'));
   }
 
   final repository = decoded['repository'];
@@ -62,7 +63,7 @@ Future<String> _readFromPackageJson(Directory directory) async {
   };
 
   if (url == null || url.isEmpty) {
-    throw Exception('No »repository« URL found in package.json');
+    throw Exception(cError('No »repository« URL found in package.json'));
   }
   return _normalize(url);
 }

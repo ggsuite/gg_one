@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -17,10 +18,11 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  // Strip the colors so the expectations stay readable. A function
-  // declaration, not a closure variable: mocktail matches the ggLog
-  // argument by identity, and every tear-off of it must be the same.
-  void ggLog(String msg) => messages.add(rmC(msg));
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   late CommandRunner<void> runner;
   late DoUpgradeDependencies doUpgrade;
 
@@ -165,7 +167,7 @@ void main() {
             try {
               await testCode;
             } catch (e) {
-              exception = e.toString();
+              exception = rmC(e.toString());
             }
             expect(exception, contains('CanUpgrade failed'));
           }
@@ -186,7 +188,7 @@ void main() {
           try {
             await doUpgrade.exec(directory: d, ggLog: ggLog);
           } catch (e) {
-            exception = e.toString();
+            exception = rmC(e.toString());
           }
           expect(
             exception,
@@ -207,7 +209,7 @@ void main() {
           });
 
           void check() {
-            expect(messages.last, yellow('Everything is already up to date.'));
+            expect(messages.last, 'Everything is already up to date.');
           }
 
           test('- programmatically', () async {
@@ -241,12 +243,12 @@ void main() {
           try {
             await doUpgrade.exec(directory: d, ggLog: ggLog);
           } catch (e) {
-            exception = e.toString();
+            exception = rmC(e.toString());
           }
 
           final message = red(
             'After the update tests are not running anymore. '
-            'Please run ${blue('»gg can commit«')} and try again.',
+            'Please run »gg can commit« and try again.',
           );
 
           expect(exception, contains(message));

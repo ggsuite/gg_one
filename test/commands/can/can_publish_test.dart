@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_changelog/gg_changelog.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
@@ -19,10 +20,11 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  // Strip the colors so the expectations stay readable. A function
-  // declaration, not a closure variable: mocktail matches the ggLog
-  // argument by identity, and every tear-off of it must be the same.
-  void ggLog(String msg) => messages.add(rmC(msg));
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   late CanPublish canPublish;
 
   // ...........................................................................
@@ -100,7 +102,6 @@ void main() {
         mockCommands();
         await canPublish.exec(directory: d, ggLog: ggLog);
         var count = 0;
-        expect(messages[count++], yellow('Can publish?'));
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('⌛️ No pubspec_overrides.yaml'));

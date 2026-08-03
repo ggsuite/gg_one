@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_git/gg_git.dart';
@@ -19,10 +20,11 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  // Strip the colors so the expectations stay readable. A function
-  // declaration, not a closure variable: mocktail matches the ggLog
-  // argument by identity, and every tear-off of it must be the same.
-  void ggLog(String msg) => messages.add(rmC(msg));
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   late IsCommitted isCommitted;
   late IsPushed isPushed;
   late IsUpgraded isUpgraded;
@@ -85,28 +87,26 @@ void main() {
             // Should complain about missing commits
             await commandCluster.exec(directory: d, ggLog: ggLog);
 
-            expect(messages[0], contains('Do all check commands work?'));
-            expect(messages[1], 'isCommitted');
-            expect(messages[2], 'isPushed');
-            expect(messages[3], 'isUpgraded');
+            expect(messages[0], 'isCommitted');
+            expect(messages[1], 'isPushed');
+            expect(messages[2], 'isUpgraded');
 
             // Make an initial commit
             await addAndCommitSampleFile(d, fileName: 'file1.txt');
 
             // Run command again
             await commandCluster.exec(directory: d, ggLog: ggLog);
-            expect(messages[4], contains('Do all check commands work?'));
-            expect(messages[5], 'isCommitted');
-            expect(messages[6], 'isPushed');
-            expect(messages[7], 'isUpgraded');
+            expect(messages[3], 'isCommitted');
+            expect(messages[4], 'isPushed');
+            expect(messages[5], 'isUpgraded');
 
             // Run the command a second time.
             // Should not run the commands again,
             // because force is false
             // and the commands were successful before.
+            // The already-done line names the cluster.
             await commandCluster.exec(directory: d, ggLog: ggLog);
-            expect(messages[8], contains('Do all check commands work?'));
-            expect(messages[9], '✓ Everything is fine.');
+            expect(messages[6], '✓ Do all check commands work?');
           },
         );
       });
@@ -118,17 +118,15 @@ void main() {
 
           // Run the command a first time
           await commandCluster.exec(directory: d, ggLog: ggLog);
-          expect(messages[0], contains('Do all check commands work?'));
-          expect(messages[1], 'isCommitted');
-          expect(messages[2], 'isPushed');
-          expect(messages[3], 'isUpgraded');
+          expect(messages[0], 'isCommitted');
+          expect(messages[1], 'isPushed');
+          expect(messages[2], 'isUpgraded');
 
           // Run the command a second first time
           await commandCluster.exec(directory: d, ggLog: ggLog, force: true);
-          expect(messages[4], contains('Do all check commands work?'));
-          expect(messages[5], 'isCommitted');
-          expect(messages[6], 'isPushed');
-          expect(messages[7], 'isUpgraded');
+          expect(messages[3], 'isCommitted');
+          expect(messages[4], 'isPushed');
+          expect(messages[5], 'isUpgraded');
         });
       });
 

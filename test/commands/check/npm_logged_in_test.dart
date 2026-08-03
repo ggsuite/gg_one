@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
@@ -20,10 +21,11 @@ class _FakeDirectory extends Fake implements Directory {}
 void main() {
   final messages = <String>[];
 
-  // Strip the colors so the expectations stay readable. A function
-  // declaration, not a closure variable: mocktail matches the ggLog
-  // argument by identity, and every tear-off of it must be the same.
-  void ggLog(String msg) => messages.add(rmC(msg));
+  // Strip the colors so the expectations stay readable. One closure
+  // instance, not a function declaration: mocktail matches the ggLog
+  // argument by identity, and a tear-off is not stable.
+  // ignore: prefer_function_declarations_over_variables
+  final GgLog ggLog = (String msg) => messages.add(rmC(msg));
   late GgProcessWrapper processWrapper;
   late PublishTo publishTo;
   late NpmLoggedIn npmLoggedIn;
@@ -303,7 +305,7 @@ void main() {
             run(),
             throwsA(
               isA<Exception>().having(
-                (e) => e.toString(),
+                (e) => rmC(e.toString()),
                 'message',
                 allOf(
                   contains('Not logged in to https://registry.npmjs.org/'),
@@ -330,10 +332,6 @@ void main() {
           );
           await run();
           expect(messages.any((m) => m.contains('✓ Logged in')), isTrue);
-          expect(
-            messages.any((m) => m.contains('Could not verify auth')),
-            isTrue,
-          );
         },
       );
     });

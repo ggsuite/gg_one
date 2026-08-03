@@ -7,6 +7,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:mocktail/mocktail.dart' as mocktail;
@@ -42,7 +43,9 @@ class AddTypeScriptVersionTag {
 
     if (result.exitCode != 0) {
       throw Exception(
-        'Could not add tag $version in ${directory.path}: ${result.stderr}',
+        cError(
+          'Could not add tag $version in ${directory.path}: ${result.stderr}',
+        ),
       );
     }
     ggLog('Tag $version added.');

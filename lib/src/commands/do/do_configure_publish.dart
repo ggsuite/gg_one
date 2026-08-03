@@ -140,9 +140,11 @@ class DoConfigurePublish extends DirCommand<void> {
       );
       if (existing.hasStepProgress) {
         throw Exception(
-          'An unfinished publish left progress in ${file.path}. '
-          'Resume it with "gg do publish --continue", or discard it with '
-          '"gg do publish --restart".',
+          cError(
+            'An unfinished publish left progress in ${file.path}. '
+            'Resume it with "gg do publish --continue", or discard it with '
+            '"gg do publish --restart".',
+          ),
         );
       }
     }

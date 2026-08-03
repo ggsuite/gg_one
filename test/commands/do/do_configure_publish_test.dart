@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:path/path.dart';
@@ -323,7 +324,7 @@ void main() {
         () => makeCommand().configure(directory: d, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
-            (e) => e.toString(),
+            (e) => rmC(e.toString()),
             'message',
             contains('unfinished publish left progress'),
           ),

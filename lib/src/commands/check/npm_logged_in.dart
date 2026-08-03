@@ -118,22 +118,25 @@ class NpmLoggedIn extends DirCommand<void> {
       statusPrinter.logStatus(GgStatusPrinterStatus.error);
       final loginRegistry = registry == null ? '' : ' --registry=$registry';
       throw Exception(
-        'Not logged in to $registryLabel '
-        '(${pm.executable} whoami failed: $detail). '
-        'Run "${pm.executable} login$loginRegistry" or set a valid token in '
-        '~/.npmrc before publishing.',
+        cError(
+          'Not logged in to $registryLabel '
+          '(${pm.executable} whoami failed: $detail). '
+          'Run "${pm.executable} login$loginRegistry" or set a valid token in '
+          '~/.npmrc before publishing.',
+        ),
       );
     }
 
     // Registry does not support `whoami` (or another non-auth error) — do not
     // block; the auth is verified at publish time.
     statusPrinter.logStatus(GgStatusPrinterStatus.success);
-    ggLog(
-      yellow(
-        'Could not verify auth for $registryLabel '
-        '(${pm.executable} whoami: $detail); it is verified at publish time.',
-      ),
-    );
+    // ggLog(
+    //   yellow(
+    //     'Could not verify auth for $registryLabel '
+    //     '(${pm.executable} whoami: $detail); '
+    //     'it is verified at publish time.',
+    //   ),
+    // );
   }
 
   // ######################
