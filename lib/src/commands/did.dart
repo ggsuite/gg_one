@@ -5,8 +5,8 @@
 // found in the LICENSE file in the root of this package.
 
 import 'package:args/command_runner.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 
 // .............................................................................
 /// Various checks for the source code
@@ -26,7 +26,7 @@ class Did extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Checks if you did commit, push, upgrade, ....';
+  final description = 'Check if you did commit, push, upgrade, ....';
 
   // ...........................................................................
   void _initSubCommands(DepsOfDid deps) {

@@ -9,7 +9,7 @@ import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
 
 // .............................................................................
-/// Commands to inform about the source code
+/// Inform about the repo
 class Info extends Command<void> {
   /// Constructor
   Info({required this.ggLog}) {
@@ -25,7 +25,7 @@ class Info extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Commands to inform about the source code.';
+  final description = 'Inform about the repo.';
 
   // ...........................................................................
   void _initSubCommands() {

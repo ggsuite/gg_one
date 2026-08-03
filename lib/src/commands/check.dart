@@ -5,8 +5,8 @@
 // found in the LICENSE file in the root of this package.
 
 import 'package:args/command_runner.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 
 // .............................................................................
 /// Various checks for the source code
@@ -25,7 +25,7 @@ class Check extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Various commands for checking the source code.';
+  final description = 'Check the repo';
 
   // ...........................................................................
   void _initSubCommands(Checks? checks) {

@@ -7,8 +7,8 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:gg_one/src/commands/did.dart';
 import 'package:gg_capture_print/gg_capture_print.dart';
+import 'package:gg_one/src/commands/did.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -39,7 +39,7 @@ void main() {
 
       expect(
         messages.first,
-        contains('Checks if you did commit, push, upgrade'),
+        contains('Check if you did commit, push, upgrade, ....'),
       );
     });
   });

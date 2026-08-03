@@ -26,9 +26,7 @@ class PubGetOffline extends DirCommand<void> {
   }) : _processWrapper = processWrapper,
        super(
          name: 'pub-get-offline',
-         description:
-             'Runs "dart pub get --offline" (or the Flutter equivalent) '
-             'to sync pubspec.lock with pubspec.yaml.',
+         description: 'Sync the lock file with the manifest, offline',
        );
 
   final GgProcessWrapper _processWrapper;

@@ -33,14 +33,16 @@ typedef ConfirmDeleteFeatureBranch = bool Function(String branchName);
 /// without a configuration, so every interactive decision is made up front —
 /// the same file then collects the per-step publish progress and is removed
 /// after a fully successful publish.
+/// Given on the command line, `--message` and `--delete-remote-branch` skip
+/// the corresponding interactive prompt. `--merge-only` configures a
+/// `gg do publish --merge-only` run: no version increment is asked for,
+/// because a merge releases nothing.
 class DoConfigurePublish extends DirCommand<void> {
   /// Constructor
   DoConfigurePublish({
     required super.ggLog,
     super.name = 'configure-publish',
-    super.description =
-        'Interactively create the .gg/gg-publish.json publish '
-        'configuration for the current repository.',
+    super.description = 'Create the publish configuration of the repo',
     VersionSelector? versionSelector,
     FromPubspec? fromPubspec,
     EditMessage? editMessage,
@@ -140,7 +142,7 @@ class DoConfigurePublish extends DirCommand<void> {
         throw Exception(
           'An unfinished publish left progress in ${file.path}. '
           'Resume it with "gg do publish --continue", or discard it with '
-          '"gg do publish --reconfigure".',
+          '"gg do publish --restart".',
         );
       }
     }
@@ -277,23 +279,17 @@ class DoConfigurePublish extends DirCommand<void> {
     argParser.addOption(
       'message',
       abbr: 'm',
-      help:
-          'The merge message to write into the configuration. When given, '
-          'the interactive merge-message prompt is skipped.',
+      help: 'The merge message to write into the config',
     );
     argParser.addFlag(
       'merge-only',
-      help:
-          'Configure a »gg do publish --merge-only« run: no version '
-          'increment is asked for, because a merge creates no release.',
+      help: 'Configure a merge-only run, without increments',
       defaultsTo: false,
       negatable: false,
     );
     argParser.addFlag(
       'delete-feature-branch',
-      help:
-          'Whether the feature branch is deleted on origin after '
-          'publishing. When given, the interactive prompt is skipped.',
+      help: 'Delete the feature branch on origin afterwards',
       defaultsTo: true,
       negatable: true,
     );
