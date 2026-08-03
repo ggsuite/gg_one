@@ -36,7 +36,6 @@ export 'src/commands/do/create/create_ticket.dart';
 export 'src/commands/do/do_checkout.dart';
 export 'src/commands/do/do_commit.dart';
 export 'src/commands/do/do_configure_publish.dart';
-export 'src/commands/do/do_maintain.dart';
 export 'src/commands/do/do_publish.dart';
 export 'src/commands/do/do_push.dart';
 export 'src/commands/do/do_upgrade.dart';
