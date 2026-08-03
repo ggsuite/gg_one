@@ -23,13 +23,13 @@ class DoUpgradeDependencies extends DirCommand<void> {
     super.name = 'dependencies',
     super.description = 'Upgrade all dependencies of the package',
     GgState? state,
-    DidUpgrade? didUpgrade,
+    DidUpgradeDependencies? didUpgrade,
     CanUpgrade? canUpgrade,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
     CanCommit? canCommit,
   }) : _state = state ?? GgState(ggLog: ggLog),
        _processWrapper = processWrapper,
-       _didUpgrade = didUpgrade ?? DidUpgrade(ggLog: ggLog),
+       _didUpgrade = didUpgrade ?? DidUpgradeDependencies(ggLog: ggLog),
        _canUpgrade = canUpgrade ?? CanUpgrade(ggLog: ggLog),
        _canCommit = canCommit ?? CanCommit(ggLog: ggLog) {
     _addParam();
@@ -126,7 +126,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
   // ...........................................................................
   final GgState _state;
   final GgProcessWrapper _processWrapper;
-  final DidUpgrade _didUpgrade;
+  final DidUpgradeDependencies _didUpgrade;
   final CanUpgrade _canUpgrade;
   final CanCommit _canCommit;
 

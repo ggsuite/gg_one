@@ -23,7 +23,7 @@ void main() {
 
   // ...........................................................................
   late GgState? state;
-  late MockDidUpgrade didUpgrade;
+  late MockDidUpgradeDependencies didUpgrade;
   late MockCanUpgrade canUpgrade;
   late MockGgProcessWrapper processWrapper;
   late MockCanCommit canCommit;
@@ -32,7 +32,7 @@ void main() {
   void initMocks() {
     registerFallbackValue(d);
     state = GgState(ggLog: ggLog);
-    didUpgrade = MockDidUpgrade();
+    didUpgrade = MockDidUpgradeDependencies();
     canUpgrade = MockCanUpgrade();
     processWrapper = MockGgProcessWrapper();
     canCommit = MockCanCommit();

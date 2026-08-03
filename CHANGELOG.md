@@ -9,6 +9,7 @@
 - refactor: shorten all CLI help texts to 60 chars
 - Rework CLI texts
 - refactor(gg_one): move do upgrade to do upgrade dependencies
+- refactor(gg_one): move did upgrade to did upgrade dependencies
 
 ### Removed
 

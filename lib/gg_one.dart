@@ -28,6 +28,7 @@ export 'src/commands/did.dart';
 export 'src/commands/did/did_commit.dart';
 export 'src/commands/did/did_push.dart';
 export 'src/commands/did/did_upgrade.dart';
+export 'src/commands/did/did_upgrade/dependencies.dart';
 // Do
 export 'src/commands/do.dart';
 export 'src/commands/do/create.dart';
