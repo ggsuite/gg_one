@@ -5,6 +5,8 @@
 ### Changed
 
 - dart pub upgrade --major-versions --tighten
+- replace the ✅/❌ emoji by the plain marks ✓/✗ — gg_status_printer 1.2.0
+  colors them via cSuccess/cError
 - replace do cancel-review with do review --abort
 - refactor: rename publish --reconfigure to --restart
 - refactor: shorten all CLI help texts to 60 chars

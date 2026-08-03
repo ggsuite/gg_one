@@ -15,6 +15,11 @@ import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late Directory tmpDir;
   late MockGgProcessWrapper processWrapper;
 
@@ -41,7 +46,7 @@ void main() {
       ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
 
       final analyzer = DartAnalyzer(processWrapper: processWrapper);
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -55,7 +60,7 @@ void main() {
       expect(captured[2], tmpDir.path);
 
       expect(messages[0], contains('⌛️ Running "dart analyze"'));
-      expect(messages[1], contains('✅ Running "dart analyze"'));
+      expect(messages[1], contains('✓ Running "dart analyze"'));
     });
 
     test(
@@ -74,7 +79,7 @@ void main() {
 
         final analyzer = DartAnalyzer(processWrapper: processWrapper);
         await expectLater(
-          () => analyzer.run(directory: tmpDir, ggLog: messages.add),
+          () => analyzer.run(directory: tmpDir, ggLog: ggLog),
           throwsA(
             isA<Exception>().having(
               (e) => e.toString(),
@@ -109,7 +114,7 @@ void main() {
         processWrapper: processWrapper,
         packageManager: (_) => TypeScriptPackageManager.pnpm,
       );
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -123,7 +128,7 @@ void main() {
       expect(captured[1], ['exec', 'tsc', '--noEmit']);
       expect(captured[2], tmpDir.path);
       expect(messages[0], contains('⌛️ Running "tsc --noEmit"'));
-      expect(messages[1], contains('✅ Running "tsc --noEmit"'));
+      expect(messages[1], contains('✓ Running "tsc --noEmit"'));
     });
 
     test('runs the package.json "lint" script when one is defined', () async {
@@ -143,7 +148,7 @@ void main() {
         processWrapper: processWrapper,
         packageManager: (_) => TypeScriptPackageManager.pnpm,
       );
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(
@@ -157,7 +162,7 @@ void main() {
       expect(captured[1], ['run', 'lint']);
       expect(captured[2], tmpDir.path);
       expect(messages[0], contains('⌛️ Running "pnpm run lint"'));
-      expect(messages[1], contains('✅ Running "pnpm run lint"'));
+      expect(messages[1], contains('✓ Running "pnpm run lint"'));
     });
 
     test('throws and echoes tool output on failure', () async {
@@ -178,7 +183,7 @@ void main() {
       );
 
       await expectLater(
-        () => analyzer.run(directory: tmpDir, ggLog: messages.add),
+        () => analyzer.run(directory: tmpDir, ggLog: ggLog),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -202,7 +207,7 @@ void main() {
       ).thenAnswer((_) async => ProcessResult(1, 0, '', ''));
 
       final analyzer = TypeScriptAnalyzer(processWrapper: processWrapper);
-      await analyzer.run(directory: tmpDir, ggLog: messages.add);
+      await analyzer.run(directory: tmpDir, ggLog: ggLog);
 
       final captured = verify(
         () => processWrapper.run(

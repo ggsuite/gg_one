@@ -7,12 +7,18 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:path/path.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late NoPubspecOverrides noPubspecOverrides;
   late CommandRunner<void> runner;
   late Directory d;
@@ -31,7 +37,7 @@ void main() {
 
   setUp(() {
     messages.clear();
-    noPubspecOverrides = NoPubspecOverrides(ggLog: messages.add);
+    noPubspecOverrides = NoPubspecOverrides(ggLog: ggLog);
     runner = CommandRunner<void>('test', 'test')
       ..addCommand(noPubspecOverrides);
     d = Directory.systemTemp.createTempSync('no_pubspec_overrides_test');
@@ -49,7 +55,7 @@ void main() {
     test('succeeds when no pubspec_overrides.yaml exists', () async {
       writePubspec();
       await run();
-      expect(messages.last, contains('✅ No pubspec_overrides.yaml'));
+      expect(messages.last, contains('✓ No pubspec_overrides.yaml'));
     });
 
     test('succeeds when the overrides only pin git refs', () async {
@@ -62,7 +68,7 @@ void main() {
         '      ref: feature123\n',
       );
       await run();
-      expect(messages.last, contains('✅ No pubspec_overrides.yaml'));
+      expect(messages.last, contains('✓ No pubspec_overrides.yaml'));
     });
 
     test('throws when a pubspec_overrides.yaml redirects to a path', () async {
@@ -81,7 +87,7 @@ void main() {
           ),
         ),
       );
-      expect(messages.last, contains('❌ No pubspec_overrides.yaml'));
+      expect(messages.last, contains('✗ No pubspec_overrides.yaml'));
     });
 
     test('skips for non Dart projects', () async {

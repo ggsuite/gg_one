@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_git/gg_git.dart';
@@ -18,7 +19,10 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late IsCommitted isCommitted;
   late IsPushed isPushed;
   late IsUpgraded isUpgraded;
@@ -102,7 +106,7 @@ void main() {
             // and the commands were successful before.
             await commandCluster.exec(directory: d, ggLog: ggLog);
             expect(messages[8], contains('Do all check commands work?'));
-            expect(messages[9], '✅ Everything is fine.');
+            expect(messages[9], '✓ Everything is fine.');
           },
         );
       });

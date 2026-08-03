@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:mocktail/mocktail.dart';
@@ -14,6 +15,11 @@ import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late GgProcessWrapper processWrapper;
   late Build build;
   late CommandRunner<void> runner;
@@ -48,7 +54,7 @@ void main() {
   setUp(() {
     messages.clear();
     processWrapper = MockGgProcessWrapper();
-    build = Build(ggLog: messages.add, processWrapper: processWrapper);
+    build = Build(ggLog: ggLog, processWrapper: processWrapper);
     runner = CommandRunner<void>('test', 'test')..addCommand(build);
     d = Directory.systemTemp.createTempSync('gg_build_test');
   });
@@ -92,7 +98,7 @@ void main() {
       writeBridge();
       mockRun(ProcessResult(0, 0, '', ''));
       await run();
-      expect(messages.any((m) => m.contains('✅')), isTrue);
+      expect(messages.any((m) => m.contains('✓')), isTrue);
 
       final captured = verify(
         () => processWrapper.run(

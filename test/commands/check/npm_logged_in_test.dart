@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
@@ -18,6 +19,11 @@ class _FakeDirectory extends Fake implements Directory {}
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late GgProcessWrapper processWrapper;
   late PublishTo publishTo;
   late NpmLoggedIn npmLoggedIn;
@@ -75,7 +81,7 @@ void main() {
     processWrapper = MockGgProcessWrapper();
     publishTo = MockPublishTo();
     npmLoggedIn = NpmLoggedIn(
-      ggLog: messages.add,
+      ggLog: ggLog,
       processWrapper: processWrapper,
       publishTo: publishTo,
     );
@@ -92,14 +98,14 @@ void main() {
       test('for a pub.dev target', () async {
         stubTarget('pub.dev');
         await run();
-        expect(messages.single, contains('✅ Skipping npm auth check'));
+        expect(messages.single, contains('✓ Skipping npm auth check'));
         expect(messages.single, contains('pub.dev'));
       });
 
       test('for a none (private) target', () async {
         stubTarget('none');
         await run();
-        expect(messages.single, contains('✅ Skipping npm auth check'));
+        expect(messages.single, contains('✓ Skipping npm auth check'));
         expect(messages.single, contains('none'));
       });
     });
@@ -120,7 +126,7 @@ void main() {
         expect(
           messages.any(
             (m) =>
-                m.contains('✅ Logged in to https://pkgs.dev.azure.com/feed/'),
+                m.contains('✓ Logged in to https://pkgs.dev.azure.com/feed/'),
           ),
           isTrue,
         );
@@ -146,7 +152,7 @@ void main() {
         await run();
         expect(
           messages.any(
-            (m) => m.contains('✅ Logged in to https://scoped.example/'),
+            (m) => m.contains('✓ Logged in to https://scoped.example/'),
           ),
           isTrue,
         );
@@ -167,7 +173,7 @@ void main() {
           await run();
           expect(
             messages.any(
-              (m) => m.contains('✅ Logged in to https://registry.npmjs.org/'),
+              (m) => m.contains('✓ Logged in to https://registry.npmjs.org/'),
             ),
             isTrue,
           );
@@ -186,7 +192,7 @@ void main() {
         await run();
         expect(
           messages.any(
-            (m) => m.contains('✅ Logged in to https://registry.npmjs.org/'),
+            (m) => m.contains('✓ Logged in to https://registry.npmjs.org/'),
           ),
           isTrue,
         );
@@ -199,7 +205,7 @@ void main() {
         stubWhoami(registry: null, exitCode: 0, stdout: 'u');
         await run();
         expect(
-          messages.any((m) => m.contains('✅ Logged in to the npm registry')),
+          messages.any((m) => m.contains('✓ Logged in to the npm registry')),
           isTrue,
         );
         verify(
@@ -219,7 +225,7 @@ void main() {
         stubWhoami(registry: null, exitCode: 0, stdout: 'u');
         await run();
         expect(
-          messages.any((m) => m.contains('✅ Logged in to the npm registry')),
+          messages.any((m) => m.contains('✓ Logged in to the npm registry')),
           isTrue,
         );
       });
@@ -238,7 +244,7 @@ void main() {
           stdout: 'u',
         );
         await run();
-        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+        expect(messages.any((m) => m.contains('✓ Logged in')), isTrue);
       });
 
       test('when package.json is malformed', () async {
@@ -251,7 +257,7 @@ void main() {
           stdout: 'u',
         );
         await run();
-        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+        expect(messages.any((m) => m.contains('✓ Logged in')), isTrue);
       });
 
       test('when package.json is not a JSON object', () async {
@@ -264,7 +270,7 @@ void main() {
           stdout: 'u',
         );
         await run();
-        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+        expect(messages.any((m) => m.contains('✓ Logged in')), isTrue);
       });
 
       test('when publishConfig has no registry field', () async {
@@ -277,7 +283,7 @@ void main() {
           stdout: 'u',
         );
         await run();
-        expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+        expect(messages.any((m) => m.contains('✓ Logged in')), isTrue);
       });
     });
 
@@ -307,7 +313,7 @@ void main() {
               ),
             ),
           );
-          expect(messages.any((m) => m.contains('❌ Logged in')), isTrue);
+          expect(messages.any((m) => m.contains('✗ Logged in')), isTrue);
         },
       );
 
@@ -323,7 +329,7 @@ void main() {
             stdout: 'Unknown command: whoami',
           );
           await run();
-          expect(messages.any((m) => m.contains('✅ Logged in')), isTrue);
+          expect(messages.any((m) => m.contains('✓ Logged in')), isTrue);
           expect(
             messages.any((m) => m.contains('Could not verify auth')),
             isTrue,

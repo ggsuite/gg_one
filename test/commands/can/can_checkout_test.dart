@@ -16,7 +16,10 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late CanCheckout canCheckout;
   late MockIsMainBranch isMainBranch;
 

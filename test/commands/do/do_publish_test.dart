@@ -16,6 +16,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_direct_json/gg_direct_json.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
@@ -34,7 +35,10 @@ import '../../test_helpers/test_helpers.dart';
 
 void main() {
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late Directory d;
   late Directory dRemote;
   late Directory Function() dMock;
@@ -415,14 +419,14 @@ void main() {
 
                         final allMessages = messages.join('\n');
                         expect(allMessages, contains('Can publish?'));
-                        expect(allMessages, contains('✅ Everything is fine.'));
+                        expect(allMessages, contains('✓ Everything is fine.'));
                         expect(allMessages, contains('⌛️ Increase version'));
-                        expect(allMessages, contains('✅ Increase version'));
+                        expect(allMessages, contains('✓ Increase version'));
                         expect(
                           allMessages,
                           contains('Publishing was successful.'),
                         );
-                        expect(allMessages, contains('✅ Tag 1.2.4 added.'));
+                        expect(allMessages, contains('✓ Tag 1.2.4 added.'));
 
                         // Was a new version created?
                         final pubspec = await File(
@@ -624,9 +628,9 @@ void main() {
 
               final allMessages = messages.join('\n');
               expect(allMessages, contains('Can publish?'));
-              expect(allMessages, contains('✅ Everything is fine.'));
+              expect(allMessages, contains('✓ Everything is fine.'));
               expect(allMessages, contains('⌛️ Increase version'));
-              expect(allMessages, contains('✅ Increase version'));
+              expect(allMessages, contains('✓ Increase version'));
               expect(allMessages, contains('Tag 1.0.2 added.'));
 
               // Skipping the registry is announced, never silent.
@@ -1999,7 +2003,7 @@ void main() {
           deleteFeatureBranch: false,
         );
 
-        expect(messages.join('\n'), contains('✅ Tag 1.2.4 added.'));
+        expect(messages.join('\n'), contains('✓ Tag 1.2.4 added.'));
       });
 
       test('warns and merges locally on an unsupported provider', () async {
@@ -2018,7 +2022,7 @@ void main() {
 
         final allMessages = messages.join('\n');
         expect(allMessages, contains('does not support the pull-request flow'));
-        expect(allMessages, contains('✅ Tag 1.2.4 added.'));
+        expect(allMessages, contains('✓ Tag 1.2.4 added.'));
       });
 
       test(
@@ -2058,7 +2062,7 @@ void main() {
 
           // A pull-request flow would fail in this sandbox (no az/gh remote);
           // the successful tag proves the local merge ran.
-          expect(messages.join('\n'), contains('✅ Tag 1.2.4 added.'));
+          expect(messages.join('\n'), contains('✓ Tag 1.2.4 added.'));
         },
       );
 
@@ -2996,9 +3000,9 @@ void main() {
         );
 
         final allMessages = messages.join('\n');
-        expect(allMessages, contains('✅ Removed the local tag 1.2.4.'));
-        expect(allMessages, contains('✅ Removed the remote tag 1.2.4.'));
-        expect(allMessages, contains('✅ Tag 1.2.4 added.'));
+        expect(allMessages, contains('✓ Removed the local tag 1.2.4.'));
+        expect(allMessages, contains('✓ Removed the remote tag 1.2.4.'));
+        expect(allMessages, contains('✓ Tag 1.2.4 added.'));
 
         // The tag was recreated on the release commit, not on the
         // abandoned one - locally as well as on the remote.
@@ -3050,7 +3054,7 @@ void main() {
 
         final allMessages = messages.join('\n');
         expect(allMessages, isNot(contains('to be removed')));
-        expect(allMessages, contains('✅ Tag 1.2.4 added.'));
+        expect(allMessages, contains('✓ Tag 1.2.4 added.'));
       });
     });
 

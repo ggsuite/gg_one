@@ -88,13 +88,13 @@ class DoPublish extends DirCommand<void> {
        _addTypeScriptVersionTag =
            addTypeScriptVersionTag ??
            AddTypeScriptVersionTag(
-             ggLog: (msg) => ggLog('✅ $msg'),
+             ggLog: (msg) => ggLog('✓ $msg'),
              processWrapper: processWrapper,
            ),
        _addGitOnlyVersionTag =
            addGitOnlyVersionTag ??
            AddGitOnlyVersionTag(
-             ggLog: (msg) => ggLog('✅ $msg'),
+             ggLog: (msg) => ggLog('✓ $msg'),
              processWrapper: processWrapper,
            ),
        // Like _addVersionTag: operates on the real repo, not through the
@@ -882,21 +882,21 @@ class DoPublish extends DirCommand<void> {
     );
     if (tagRemoved) {
       for (final message in removeMessages) {
-        ggLog('✅ $message');
+        ggLog('✓ $message');
       }
     }
 
     if (_supportsChangeLog(directory)) {
       await _addVersionTag.exec(
         directory: directory,
-        ggLog: (msg) => ggLog('✅ $msg'),
+        ggLog: (msg) => ggLog('✓ $msg'),
       );
       return;
     }
     final type = checkProjectType(directory);
     if (type == ProjectType.typescript) {
       // Bridges tag from package.json too (published as TypeScript).
-      // ggLog with `✅` prefix is bound at construction time.
+      // ggLog with `✓` prefix is bound at construction time.
       await _addTypeScriptVersionTag.exec(directory: directory);
       return;
     }

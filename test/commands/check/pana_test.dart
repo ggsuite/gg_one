@@ -17,6 +17,11 @@ import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   final panaCmd = Platform.isWindows ? 'pana.bat' : 'pana';
 
   late GgProcessWrapper processWrapper;
@@ -67,7 +72,7 @@ void main() {
   setUp(() async {
     messages.clear();
     processWrapper = MockGgProcessWrapper();
-    pana = Pana(ggLog: messages.add, processWrapper: processWrapper);
+    pana = Pana(ggLog: ggLog, processWrapper: processWrapper);
     runner = CommandRunner('test', 'test')..addCommand(pana);
     d = await Directory.systemTemp.createTemp('gg_test');
     await initGit(d);
@@ -114,7 +119,7 @@ void main() {
 
         // Check result
         expect(messages[0], contains('⌛️ Running pana'));
-        expect(messages[1], contains('❌ Running pana'));
+        expect(messages[1], contains('✗ Running pana'));
         expect(
           messages[2],
           contains('FormatException: Unexpected end of input'),
@@ -134,7 +139,7 @@ void main() {
 
         // Check result
         expect(messages[0], contains('⌛️ Running pana'));
-        expect(messages[1], contains('✅ Running pana'));
+        expect(messages[1], contains('✓ Running pana'));
       });
 
       test('when pana prints a preamble before the JSON', () async {
@@ -145,7 +150,7 @@ void main() {
         await runner.run(['pana', '--input', d.path]);
 
         expect(messages[0], contains('⌛️ Running pana'));
-        expect(messages[1], contains('✅ Running pana'));
+        expect(messages[1], contains('✓ Running pana'));
       });
 
       group('when the project has no manifest', () {
@@ -155,7 +160,7 @@ void main() {
             await runner.run(['pana', '--input', emptyDir.path]);
             expect(
               messages[0],
-              contains('✅ Skipping pana (no project manifest)'),
+              contains('✓ Skipping pana (no project manifest)'),
             );
           } finally {
             emptyDir.deleteSync(recursive: true);
@@ -174,7 +179,7 @@ void main() {
           await runner.run(['pana', '--input', d.path, '--published-only']);
 
           // Pana is skipped (not published to pub.dev) and says so explicitly.
-          expect(messages[0], contains('✅ Skipping pana'));
+          expect(messages[0], contains('✓ Skipping pana'));
           expect(messages[0], contains('none'));
         });
       });
@@ -188,7 +193,7 @@ void main() {
 
           // Check result
           expect(messages[0], contains('⌛️ Running pana'));
-          expect(messages[1], contains('✅ Running pana'));
+          expect(messages[1], contains('✓ Running pana'));
         },
       );
     });
@@ -216,7 +221,7 @@ void main() {
 
         // Check result
         expect(messages[0], contains('⌛️ Running pana'));
-        expect(messages[1], contains('❌ Running pana'));
+        expect(messages[1], contains('✗ Running pana'));
         expect(
           messages[2],
           contains(red('[x] 0/10 points: Provide a valid `pubspec.yaml`')),

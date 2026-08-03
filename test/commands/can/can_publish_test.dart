@@ -19,7 +19,10 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late CanPublish canPublish;
 
   // ...........................................................................
@@ -31,32 +34,30 @@ void main() {
 
   // ...........................................................................
   void mockCommands() {
-    when(() => pana.exec(directory: d, ggLog: messages.add)).thenAnswer((
-      _,
-    ) async {
+    when(() => pana.exec(directory: d, ggLog: ggLog)).thenAnswer((_) async {
       messages.add('pana');
     });
-    when(() => npmLoggedIn.exec(directory: d, ggLog: messages.add)).thenAnswer((
+    when(() => npmLoggedIn.exec(directory: d, ggLog: ggLog)).thenAnswer((
       _,
     ) async {
       messages.add('npmLoggedIn');
     });
-    when(() => didCommit.exec(directory: d, ggLog: messages.add)).thenAnswer((
+    when(() => didCommit.exec(directory: d, ggLog: ggLog)).thenAnswer((
       _,
     ) async {
       messages.add('didCommit');
       return true;
     });
-    when(
-      () => isVersionPrepared.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => isVersionPrepared.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('isVersionPrepared');
       return true;
     });
 
-    when(
-      () => hasRightFormat.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => hasRightFormat.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('hasRightFormat');
       return true;
     });
@@ -103,9 +104,9 @@ void main() {
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('Current branch is feature branch'));
         expect(messages[count++], contains('⌛️ No pubspec_overrides.yaml'));
-        expect(messages[count++], contains('✅ No pubspec_overrides.yaml'));
+        expect(messages[count++], contains('✓ No pubspec_overrides.yaml'));
         expect(messages[count++], contains('⌛️ CHANGELOG.md has right format'));
-        expect(messages[count++], contains('✅ CHANGELOG.md has right format'));
+        expect(messages[count++], contains('✓ CHANGELOG.md has right format'));
         expect(messages[count++], 'didCommit');
         expect(messages[count++], 'pana');
         expect(messages[count++], 'npmLoggedIn');

@@ -17,7 +17,10 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late CommandRunner<void> runner;
   late DoUpgradeDependencies doUpgrade;
 
@@ -128,7 +131,7 @@ void main() {
         void check() {
           expect(messages[0], contains('✅ CanUpgrade'));
           expect(messages[1], contains('⌛️ Run »dart pub upgrade«'));
-          expect(messages[2], contains('✅ Run »dart pub upgrade«'));
+          expect(messages[2], contains('✓ Run »dart pub upgrade«'));
           expect(messages[3], contains('✅ CanCommit'));
         }
 
@@ -269,7 +272,7 @@ void main() {
 
           expect(
             messages[2],
-            contains('✅ Run »dart pub upgrade --major-versions«'),
+            contains('✓ Run »dart pub upgrade --major-versions«'),
           );
         });
 

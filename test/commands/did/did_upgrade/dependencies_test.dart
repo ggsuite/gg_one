@@ -7,6 +7,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:mocktail/mocktail.dart';
@@ -19,7 +20,10 @@ void main() {
   late CommandRunner<void> runner;
 
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
 
   // ...........................................................................
   setUp(() async {
@@ -49,7 +53,7 @@ void main() {
               await runner.run(['dependencies', '-i', d.path]);
             }
             expect(messages[0], contains('⌛️ Everything is upgraded'));
-            expect(messages[1], contains('✅ Everything is upgraded'));
+            expect(messages[1], contains('✓ Everything is upgraded'));
           });
         }
       });

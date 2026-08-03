@@ -6,8 +6,8 @@
 
 import 'dart:io';
 
-import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
+import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
@@ -79,7 +79,7 @@ class DartAnalyzer extends Analyzer {
       ...ErrorInfoReader().filePathes(result.stderr as String),
       ...ErrorInfoReader().filePathes(result.stdout as String),
     ];
-    ggLog(yellow('There are analyzer errors:'));
+    ggLog('There are analyzer errors:');
     ggLog(files.map((e) => red('- $e')).join('\n'));
 
     throw Exception(

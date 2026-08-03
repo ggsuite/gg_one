@@ -7,18 +7,24 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:test/test.dart';
 
 void main() {
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late CommandRunner<void> runner;
   late Directory tmpDir;
 
   setUp(() {
     messages.clear();
     runner = CommandRunner<void>('test', 'test');
-    runner.addCommand(CheckPackageJsonScripts(ggLog: messages.add));
+    runner.addCommand(CheckPackageJsonScripts(ggLog: ggLog));
     tmpDir = Directory.systemTemp.createTempSync();
   });
 
@@ -69,7 +75,7 @@ void main() {
           'prepublish runs build', () async {
         writeTsProject(validScripts);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('for a bridge whose build does not run test (exempt)', () async {
@@ -81,7 +87,7 @@ void main() {
         writeTsProject(scripts);
         File('${tmpDir.path}/pubspec.yaml').writeAsStringSync('name: b\n');
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('when not build but prebuild runs test', () async {
@@ -92,7 +98,7 @@ void main() {
           ..['prebuild'] = 'npm run test';
         writeTsProject(scripts);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('when the publish-lifecycle script is prepublishOnly '
@@ -102,7 +108,7 @@ void main() {
           ..['prepublishOnly'] = 'npm run build';
         writeTsProject(scripts);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
 
       test('for a private package without a prepublish script', () async {
@@ -112,7 +118,7 @@ void main() {
           ..remove('prepublish');
         writeTsProject(scripts, private: true);
         await run();
-        expect(messages.any((m) => m.contains('✅')), isTrue);
+        expect(messages.any((m) => m.contains('✓')), isTrue);
       });
     });
 

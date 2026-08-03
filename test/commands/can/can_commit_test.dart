@@ -6,9 +6,9 @@
 
 import 'dart:io';
 
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_test/gg_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
@@ -18,44 +18,49 @@ void main() {
   late Directory d;
   late Checks commands;
   final messages = <String>[];
+
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late CanCommit commit;
 
   // ...........................................................................
   void mockCommands() {
     when(
-      () => commands.pubGetOffline.exec(directory: d, ggLog: messages.add),
+      () => commands.pubGetOffline.exec(directory: d, ggLog: ggLog),
     ).thenAnswer((_) async {
       messages.add('did pub get');
     });
-    when(
-      () => commands.analyze.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => commands.analyze.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('did analyze');
     });
-    when(
-      () => commands.format.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => commands.format.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('did format');
     });
-    when(
-      () => commands.build.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => commands.build.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('did build');
     });
-    when(
-      () => commands.tests.exec(directory: d, ggLog: messages.add),
-    ).thenAnswer((_) async {
+    when(() => commands.tests.exec(directory: d, ggLog: ggLog)).thenAnswer((
+      _,
+    ) async {
       messages.add('did cover');
     });
     when(
-      () => commands.packageJsonScripts.exec(directory: d, ggLog: messages.add),
+      () => commands.packageJsonScripts.exec(directory: d, ggLog: ggLog),
     ).thenAnswer((_) async {});
   }
 
   // ...........................................................................
   setUp(() async {
     commands = Checks(
-      ggLog: messages.add,
+      ggLog: ggLog,
       pubGetOffline: MockPubGetOffline(),
       analyze: MockAnalyze(),
       build: MockBuild(),
@@ -64,7 +69,7 @@ void main() {
       packageJsonScripts: MockCheckPackageJsonScripts(),
     );
 
-    commit = CanCommit(ggLog: messages.add, checks: commands);
+    commit = CanCommit(ggLog: ggLog, checks: commands);
     d = Directory.systemTemp.createTempSync();
     await initGit(d);
     registerFallbackValue(d);
@@ -81,7 +86,7 @@ void main() {
   group('Can', () {
     group('constructor', () {
       test('with defaults', () {
-        final c = CanCommit(ggLog: messages.add);
+        final c = CanCommit(ggLog: ggLog);
         expect(c.name, 'commit');
         expect(c.description, 'Check if this repo can be committed');
       });
@@ -92,8 +97,8 @@ void main() {
         test('should print "Can commit?" first, then pub get, analyze, format, '
             'build and coverage in that order', () async {
           await addAndCommitSampleFile(d);
-          await commit.exec(directory: d, ggLog: messages.add);
-          expect(messages[0], yellow('Can commit?'));
+          await commit.exec(directory: d, ggLog: ggLog);
+          expect(messages[0], 'Can commit?');
           expect(messages[1], 'did pub get');
           expect(messages[2], 'did analyze');
           expect(messages[3], 'did format');
@@ -119,7 +124,7 @@ void main() {
 
           await canCommit.exec(
             directory: d,
-            ggLog: messages.add,
+            ggLog: ggLog,
             force: true,
             saveState: false,
           );
@@ -150,7 +155,7 @@ void main() {
 
           await canCommit.get(
             directory: d,
-            ggLog: messages.add,
+            ggLog: ggLog,
             force: true,
             saveState: false,
           );

@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_one/gg_one.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
@@ -15,7 +16,10 @@ import 'package:test/test.dart';
 void main() {
   late Directory d;
   final messages = <String>[];
-  final ggLog = messages.add;
+  // Strip the colors so the expectations stay readable. A function
+  // declaration, not a closure variable: mocktail matches the ggLog
+  // argument by identity, and every tear-off of it must be the same.
+  void ggLog(String msg) => messages.add(rmC(msg));
   late CanMerge canMerge;
   late MockGgMergeCanMerge mockGgMergeCanMerge;
   late MockDidCommit mockDidCommit;
