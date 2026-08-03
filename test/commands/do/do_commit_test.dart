@@ -376,7 +376,7 @@ void main() {
             } catch (e) {
               exception = rmC(e.toString());
             }
-            expect(exception, contains(doCommit.helpOnMissingMessage));
+            expect(exception, contains(rmC(doCommit.helpOnMissingMessage)));
 
             // Commit everything.
             // Run the command again without message and log type.
@@ -506,7 +506,7 @@ void main() {
             exception = rmC(e.toString());
           }
 
-          expect(exception, 'Exception: ${doCommit.helpOnMissingMessage}');
+          expect(exception, 'Exception: ${rmC(doCommit.helpOnMissingMessage)}');
         });
 
         test('when pubspec.yaml does not contain a repo URL', () async {

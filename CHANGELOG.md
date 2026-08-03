@@ -5,7 +5,11 @@
 ### Changed
 
 - dart pub upgrade --major-versions --tighten
-- replace the ✅/❌ emoji by the plain marks ✓/✗ — gg_status_printer 1.2.0
+- use the semantic colors of gg_console_colors: cAction for instructions,
+  cWarn for warnings, cDetail for progress, cCmd/cPath inside a message
+- wrap every exception text in cError
+- assert the plain text in the tests, not the escape codes (rmC)
+- replace the ✓/✗ emoji by the plain marks ✓/✗ — gg_status_printer 1.2.0
   colors them via cSuccess/cError
 - replace do cancel-review with do review --abort
 - refactor: rename publish --reconfigure to --restart
@@ -14,7 +18,7 @@
 - refactor(gg_one): move do upgrade to do upgrade dependencies
 - refactor(gg_one): move did upgrade to did upgrade dependencies
 - reword all command descriptions to the same terse imperative gg do and
-gg can already use
+  gg can already use
 
 ### Removed
 
@@ -150,10 +154,10 @@ gg can already use
 ### Fixed
 
 - `do publish` now discards publish progress recorded on a different feature
-branch instead of refusing to run (or, on `--continue`, silently skipping
-the version bump and registry upload and merging without publishing). Such
-progress is a stale leftover that arrived with a copy of the repository —
-e.g. a ticket copy of the master workspace.
+  branch instead of refusing to run (or, on `--continue`, silently skipping
+  the version bump and registry upload and merging without publishing). Such
+  progress is a stale leftover that arrived with a copy of the repository —
+  e.g. a ticket copy of the master workspace.
 - Fix publishing error
 
 ## 11.2.4 - 2026-07-30
@@ -280,15 +284,15 @@ e.g. a ticket copy of the master workspace.
 ### Added
 
 - delete_feature_branch (bool, optional) in `.gg-publish.json`: replaces
-the interactive delete-feature-branch prompt, so a config-driven publish
-is fully headless. `do configure-publish` now asks the question up front
-(presettable via `--delete-feature-branch`) and `do publish` persists
-the decision in the runtime file — a resumed run never re-asks, and no
-prompt sits between the irreversible publish steps anymore.
+  the interactive delete-feature-branch prompt, so a config-driven publish
+  is fully headless. `do configure-publish` now asks the question up front
+  (presettable via `--delete-feature-branch`) and `do publish` persists
+  the decision in the runtime file — a resumed run never re-asks, and no
+  prompt sits between the irreversible publish steps anymore.
 - All default prompts (version increment, merge message, branch/ticket
-deletion) fail fast with an actionable error when stdin is not a
-terminal (new throwWhenNotATerminal in `tools/terminal_guard.dart`),
-instead of hanging forever in CI or piped shells.
+  deletion) fail fast with an actionable error when stdin is not a
+  terminal (new throwWhenNotATerminal in `tools/terminal_guard.dart`),
+  instead of hanging forever in CI or piped shells.
 
 ### Changed
 
@@ -299,40 +303,40 @@ instead of hanging forever in CI or piped shells.
 ### Added
 
 - `do configure-publish`: new command that interactively writes
-`<repo>/.gg/.gg-publish.json` (version increment + merge message; `-m`
-presets the message). `do publish` runs it automatically when started
-without a resolved configuration, so all interactive decisions happen
-before the unattended publish. The command also makes sure
-`.gg/.gg-publish.json` is listed in `.gitignore` (appending and
-committing the entry once per repo).
+  `<repo>/.gg/.gg-publish.json` (version increment + merge message; `-m`
+  presets the message). `do publish` runs it automatically when started
+  without a resolved configuration, so all interactive decisions happen
+  before the unattended publish. The command also makes sure
+  `.gg/.gg-publish.json` is listed in `.gitignore` (appending and
+  committing the entry once per repo).
 - `do publish --continue` / `--reconfigure`: per-step publish progress
-(done_steps: prepare_version, publish_registry, merge, tag) is
-recorded in `.gg/.gg-publish.json` and a failed publish resumes at the
-first open step — including the version tag, which the old hash-based
-state could silently skip. A leftover progress file makes a plain
-re-run refuse until `--continue` or `--reconfigure` is chosen. The file
-stores the feature branch (trusted only when resuming) and is deleted
-after a fully successful publish. On resume, the hash-keyed
-`did commit` check still runs, so raw commits added after the failure
-are never published unvalidated; the feature-branch deletion is
-idempotent and re-runs; when the merge is already done, the default
-branch is checked out before the first push. `do configure-publish`
-refuses to overwrite a file that carries `done_steps` (code review).
+  (done_steps: prepare_version, publish_registry, merge, tag) is
+  recorded in `.gg/.gg-publish.json` and a failed publish resumes at the
+  first open step — including the version tag, which the old hash-based
+  state could silently skip. A leftover progress file makes a plain
+  re-run refuse until `--continue` or `--reconfigure` is chosen. The file
+  stores the feature branch (trusted only when resuming) and is deleted
+  after a fully successful publish. On resume, the hash-keyed
+  `did commit` check still runs, so raw commits added after the failure
+  are never published unvalidated; the feature-branch deletion is
+  idempotent and re-runs; when the merge is already done, the default
+  branch is checked out before the first push. `do configure-publish`
+  refuses to overwrite a file that carries `done_steps` (code review).
 - `DoPublish.exec` accepts `resume:` so `gg_multi do publish --continue`
-resumes each repo at its open step.
+  resumes each repo at its open step.
 - `PublishConfig`: done_steps + branch runtime fields with
-withStepDone/isStepDone/hasStepProgress; new
-`EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
-`.gg/.gg-publish.json` from content hashes.
+  withStepDone/isStepDone/hasStepProgress; new
+  `EnsurePublishConfigIgnored` tool; `GgState.ignoreFiles` now excludes
+  `.gg/.gg-publish.json` from content hashes.
 
 ### Changed
 
 - **Breaking:** `DoPublish` no longer takes versionSelector /
-editMessage — both prompts live in the injectable
-`DoConfigurePublish` now. The publish-step resume no longer uses the
-hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
-doPublish/doCommit are still written for `did publish` and the
-pre-push hook.
+  editMessage — both prompts live in the injectable
+  `DoConfigurePublish` now. The publish-step resume no longer uses the
+  hash-keyed doPrepareVersion/doPublishPubDev/doMerge GgState keys;
+  doPublish/doCommit are still written for `did publish` and the
+  pre-push hook.
 - Tidy CHANGELOGs: single Unreleased section and chronological order
 
 ### Fixed
@@ -352,12 +356,12 @@ pre-push hook.
 ### Changed
 
 - npm-logged-in: resolve the package's actual publish registry
-(`publishConfig.registry` → `@scope:registry` → default `registry`) and run
-`whoami` against that registry, instead of always checking npmjs.org. This
-makes the check work for Azure DevOps, GitHub Packages and other private
-registries. Registries without reliable `whoami` support (e.g. Azure
-DevOps) are skipped gracefully instead of failing the check — the auth is
-verified for real at publish time.
+  (`publishConfig.registry` → `@scope:registry` → default `registry`) and run
+  `whoami` against that registry, instead of always checking npmjs.org. This
+  makes the check work for Azure DevOps, GitHub Packages and other private
+  registries. Registries without reliable `whoami` support (e.g. Azure
+  DevOps) are skipped gracefully instead of failing the check — the auth is
+  verified for real at publish time.
 
 ## 9.3.0 - 2026-07-01
 
@@ -423,13 +427,13 @@ verified for real at publish time.
 ### Changed
 
 - `CanCommit`: `dart pub get --offline` (or the Flutter equivalent) now runs as
-a regular check below the `Can commit?` header and is logged as
-`Running "dart pub get --offline"`, matching the style of the other checks
-(was framed with `»«` and printed above the header).
+  a regular check below the `Can commit?` header and is logged as
+  `Running "dart pub get --offline"`, matching the style of the other checks
+  (was framed with `»«` and printed above the header).
 - Renamed package from `gg` to `gg_one` and moved the repository to
-[https://github.com/ggsuite/gg_one](https://github.com/ggsuite/gg_one). The previous history (versions
-up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
-at commit `9141ef54f5edac470d119a39285813299143898f`.
+  [https://github.com/ggsuite/gg_one](https://github.com/ggsuite/gg_one). The previous history (versions
+  up to and including `7.0.5`) lives at [https://github.com/ggsuite/gg](https://github.com/ggsuite/gg)
+  at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 ## 8.2.0 - 2026-05-19
 
@@ -798,7 +802,7 @@ at commit `9141ef54f5edac470d119a39285813299143898f`.
 
 ### Added
 
-- missing ✅ for message Tag 1.2.3 added
+- missing ✓ for message Tag 1.2.3 added
 
 ## 3.0.2 - 2024-04-13
 

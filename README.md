@@ -7,10 +7,10 @@ colorized error messages.
 
 ## Key Features
 
-- ✅ **Precise Colorized Error Messages**: Get detailed feedback with error messages that are both precise and easy to understand, enhanced with color for better readability.
-- ✅ **Optimized for VSCode**: Error messages are tailored for display in Visual Studio Code, ensuring a seamless integration into your development environment.
-- ✅ **Enforces 100% Code Coverage**: Achieve and maintain high-quality code with enforced 100% test coverage for your codebase.
-- ✅ **GitHub Action Integration**: Easily integrate gg_one with GitHub Actions to automate your testing workflow directly within GitHub.
+- ✓ **Precise Colorized Error Messages**: Get detailed feedback with error messages that are both precise and easy to understand, enhanced with color for better readability.
+- ✓ **Optimized for VSCode**: Error messages are tailored for display in Visual Studio Code, ensuring a seamless integration into your development environment.
+- ✓ **Enforces 100% Code Coverage**: Achieve and maintain high-quality code with enforced 100% test coverage for your codebase.
+- ✓ **GitHub Action Integration**: Easily integrate gg_one with GitHub Actions to automate your testing workflow directly within GitHub.
 
 ## Preparation
 
@@ -119,9 +119,9 @@ gg one do publish --config .gg-publish.json
 
 ```jsonc
 {
-  "version_increment": "patch",                // "patch" | "minor" | "major"
+  "version_increment": "patch", // "patch" | "minor" | "major"
   "merge_message": "Release: API cleanup",
-  "delete_feature_branch": true                // optional
+  "delete_feature_branch": true, // optional
 }
 ```
 
@@ -170,7 +170,7 @@ Each level only reads its own markers. `PublishConfig` (in
 `lib/src/tools/publish_config.dart`) also serializes back out
 (`toJson` / `save`), so the file can be generated as well as read.
 
-Note the two entry points read *different* config fields: single-repo
+Note the two entry points read _different_ config fields: single-repo
 `--config` uses the **top-level** `version_increment` / `merge_message`
 and ignores `repos`, whereas a file produced by
 `gg multi do configure-publish` puts every value in per-repo

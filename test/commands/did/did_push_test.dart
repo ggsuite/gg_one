@@ -45,7 +45,9 @@ void main() {
         }
         expect(
           exception,
-          contains(DidCommand.colorizeSuggestion('Please run »gg do push«.')),
+          contains(
+            rmC(DidCommand.colorizeSuggestion('Please run »gg do push«.')),
+          ),
         );
 
         // It should not throw anymore but return false,
