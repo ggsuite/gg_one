@@ -177,9 +177,6 @@ class DoCommit extends DirCommand<void> {
         message: message,
         logType: logType,
       );
-      ggLog(cDetail('Checks successful. Commit successful.'));
-    } else {
-      ggLog(cDetail('Checks successful. Nothing to commit.'));
     }
 
     // Save the state

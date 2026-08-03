@@ -151,7 +151,7 @@ void main() {
           });
         });
 
-        group('and log »Checks successful. Nothing to commit.«', () {
+        group('and stay silent', () {
           test('when the command is executed the first time '
               'but nothing needs to be committed.', () async {
             // Execute command the first time
@@ -162,11 +162,11 @@ void main() {
               logType: LogType.added,
             );
 
-            expect(messages.last, 'Checks successful. Nothing to commit.');
+            expect(messages, isEmpty);
           });
         });
 
-        group('and commit and log »Checks successful. Commit successful.«', () {
+        group('and commit silently', () {
           test('when the command is executed the first time '
               'and uncommitted changes were committed.', () async {
             // Add uncommitted file
@@ -180,7 +180,7 @@ void main() {
               logType: LogType.added,
             );
 
-            expect(messages.last, 'Checks successful. Commit successful.');
+            expect(messages, isEmpty);
           });
         });
 
@@ -350,7 +350,7 @@ void main() {
               '-m',
               'My commit',
             ]);
-            expect(messages.last, 'Checks successful. Commit successful.');
+            expect(messages, isEmpty);
           });
         });
         test('and have 100% code coverage', () {
@@ -394,7 +394,7 @@ void main() {
               logType: null,
             );
 
-            expect(messages.last, 'Checks successful. Nothing to commit.');
+            expect(messages, isEmpty);
           });
         });
       });
@@ -664,7 +664,7 @@ void main() {
           );
 
           expect(await isCommitted(repo), isTrue);
-          expect(messages.last, 'Checks successful. Commit successful.');
+          expect(messages, isEmpty);
         });
       });
 
@@ -752,7 +752,7 @@ void main() {
       // CHANGELOG.md should not have been touched
       expect(await changelogFile.readAsString(), changeLogBefore);
 
-      expect(messages.last, 'Checks successful. Commit successful.');
+      expect(messages, isEmpty);
     });
   });
 
@@ -780,7 +780,7 @@ void main() {
       // CHANGELOG.md should not have been touched
       expect(await changelogFile.readAsString(), changeLogBefore);
 
-      expect(messages.last, 'Checks successful. Commit successful.');
+      expect(messages, isEmpty);
     });
   });
 
@@ -807,7 +807,7 @@ void main() {
         ),
       );
 
-      expect(messages.last, 'Checks successful. Commit successful.');
+      expect(messages, isEmpty);
 
       // Second call should reuse state
       await doCommit.exec(
@@ -842,7 +842,7 @@ void main() {
         ),
       );
 
-      expect(messages.last, 'Checks successful. Commit successful.');
+      expect(messages, isEmpty);
     });
 
     test('should bypass checks and set state when nothing to commit', () async {
@@ -864,7 +864,7 @@ void main() {
         ),
       );
 
-      expect(messages.last, 'Checks successful. Nothing to commit.');
+      expect(messages, isEmpty);
 
       // Run again to ensure state is used
       await doCommit.exec(
