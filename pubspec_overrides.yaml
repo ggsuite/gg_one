@@ -4,7 +4,7 @@
 # change-refs-to-git-feature-branch and change-refs-to-pub-dev
 # remove it again.
 dependency_overrides:
+  gg_publish:
+    path: ../gg_publish
   gg_test:
-    git:
-      url: git@github.com:ggsuite/gg_test.git
-      ref: CDM-1668-C
+    path: ../gg_test
