@@ -29,7 +29,7 @@ class AddTypeScriptVersionTag {
     if (version == null) return;
 
     if (await _headAlreadyHasTag(directory: directory, tag: version)) {
-      ggLog('Version $version tag already present.');
+      ggLog(cDetail('Version $version tag already present.'));
       return;
     }
 
@@ -48,7 +48,7 @@ class AddTypeScriptVersionTag {
         ),
       );
     }
-    ggLog('Tag $version added.');
+    ggLog(cDetail('Tag $version added.'));
   }
 
   /// One status line per `exec`: `Tag <v> added.` or `… already present.`.

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Finetune command line output
+
 ## 12.5.4 - 2026-08-03
 
 ### Changed
