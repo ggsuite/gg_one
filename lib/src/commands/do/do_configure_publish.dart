@@ -183,7 +183,7 @@ class DoConfigurePublish extends DirCommand<void> {
       deleteFeatureBranch: delete,
     );
     await config.save(file: file);
-    ggLog(green('Wrote publish configuration to ${file.path}'));
+    // ggLog(cDetail('Wrote publish configuration to ${file.path}'));
     return config;
   }
 

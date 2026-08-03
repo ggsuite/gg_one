@@ -103,7 +103,7 @@ void main() {
         // The runtime file was gitignored before it was written.
         final gitignore = File(join(d.path, '.gitignore')).readAsStringSync();
         expect(gitignore, contains('.gg/gg-publish.json'));
-        expect(messages.join('\n'), contains('Wrote publish configuration'));
+        expect(messages, ['Added .gg/gg-publish.json to .gitignore.']);
       },
     );
 

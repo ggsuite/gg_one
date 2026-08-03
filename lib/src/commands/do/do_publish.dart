@@ -1165,7 +1165,7 @@ class DoPublish extends DirCommand<void> {
       );
     }
 
-    ggLog(green('Deleted remote feature branch $branchName.'));
+    ggLog(cDetail('✓ Deleted remote feature branch $branchName.'));
   }
 
   /// Throws when [directory] still redirects dependencies to local working
