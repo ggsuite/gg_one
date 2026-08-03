@@ -16,7 +16,7 @@ class CanPush extends CommandCluster {
     Checks? checkCommands,
     super.name = 'push',
     super.shortDescription = 'Can push?',
-    super.description = 'Are the last changes ready for »git push«?',
+    super.description = 'Check if this repo can be pushed',
     super.stateKey = 'canPush',
   }) : super(commands: _checks(checkCommands, ggLog));
 

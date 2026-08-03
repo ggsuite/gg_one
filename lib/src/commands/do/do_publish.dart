@@ -56,7 +56,7 @@ class DoPublish extends DirCommand<void> {
   DoPublish({
     required super.ggLog,
     super.name = 'publish',
-    super.description = 'Publishes the current directory.',
+    super.description = 'Publish this repo',
     CanPublish? canPublish,
     Publish? publish,
     GgState? state,

@@ -45,7 +45,7 @@ class DoCommit extends DirCommand<void> {
   DoCommit({
     required super.ggLog,
     super.name = 'commit',
-    super.description = 'Commits the current directory.',
+    super.description = 'Commit changes in this repo',
     IsCommitted? isCommitted,
     CanCommit? canCommit,
     Commit? commit,

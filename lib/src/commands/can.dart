@@ -26,7 +26,7 @@ class Can extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Check if you can commit, push, publish, ....';
+  final description = 'Check what you can do in this repo';
 
   // ...........................................................................
   void _initSubCommands(DepsOfCan deps) {

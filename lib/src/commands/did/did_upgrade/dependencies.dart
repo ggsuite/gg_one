@@ -18,7 +18,7 @@ class DidUpgradeDependencies extends DidCommand {
   DidUpgradeDependencies({
     required super.ggLog,
     super.name = 'dependencies',
-    super.description = 'Are the dependencies of the package upgraded?',
+    super.description = 'Check if the dependencies were upgraded',
     super.shortDescription = 'Everything is upgraded',
     super.suggestion =
         'Not upgraded yet. Please run »gg do upgrade dependencies«.',

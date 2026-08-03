@@ -26,7 +26,7 @@ class Did extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Check if you did commit, push, upgrade, ....';
+  final description = 'Check what you already did in this repo';
 
   // ...........................................................................
   void _initSubCommands(DepsOfDid deps) {

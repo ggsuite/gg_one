@@ -39,7 +39,7 @@ void main() {
 
       expect(
         messages.first,
-        contains('Check if you did commit, push, upgrade, ....'),
+        contains('Check what you already did in this repo'),
       );
     });
   });

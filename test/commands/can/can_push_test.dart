@@ -57,7 +57,7 @@ void main() {
         test('with defaults', () {
           final c = CanPush(ggLog: messages.add);
           expect(c.name, 'push');
-          expect(c.description, 'Are the last changes ready for »git push«?');
+          expect(c.description, 'Check if this repo can be pushed');
         });
       });
       group('run(directory)', () {

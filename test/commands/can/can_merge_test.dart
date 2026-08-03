@@ -47,10 +47,7 @@ void main() {
       test('should initialize with defaults', () {
         final instance = CanMerge(ggLog: ggLog);
         expect(instance.name, 'merge');
-        expect(
-          instance.description,
-          'Are the last changes ready to be merged?',
-        );
+        expect(instance.description, 'Check if this repo can be merged');
         expect(instance.shortDescription, 'Can merge?');
         expect(instance.stateKey, 'canMerge');
         expect(instance.commands.length, 2);

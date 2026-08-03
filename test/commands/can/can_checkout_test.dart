@@ -42,10 +42,7 @@ void main() {
       test('should initialize with defaults', () {
         final instance = CanCheckout(ggLog: ggLog);
         expect(instance.name, 'checkout');
-        expect(
-          instance.description,
-          'Are the current changes ready for a new checkout?',
-        );
+        expect(instance.description, 'Check if this repo can be checked out');
         expect(instance.shortDescription, 'Can checkout?');
         expect(instance.stateKey, 'canCheckout');
         expect(instance.commands.length, 1);

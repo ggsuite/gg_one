@@ -37,10 +37,7 @@ void main() {
         ggLog: messages.add,
       );
 
-      expect(
-        messages.first,
-        contains('Provide actions or commit, push, publish.'),
-      );
+      expect(messages.first, contains('Act on this repo'));
       expect(messages.first, contains('create'));
     });
   });

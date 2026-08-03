@@ -83,7 +83,7 @@ void main() {
       test('with defaults', () {
         final c = CanCommit(ggLog: messages.add);
         expect(c.name, 'commit');
-        expect(c.description, 'Are the last changes ready for »git commit«?');
+        expect(c.description, 'Check if this repo can be committed');
       });
     });
 

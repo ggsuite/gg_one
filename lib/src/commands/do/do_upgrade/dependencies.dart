@@ -21,7 +21,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
   DoUpgradeDependencies({
     required super.ggLog,
     super.name = 'dependencies',
-    super.description = 'Upgrade all dependencies of the package',
+    super.description = 'Upgrade all dependencies of this repo',
     GgState? state,
     DidUpgradeDependencies? didUpgrade,
     CanUpgrade? canUpgrade,

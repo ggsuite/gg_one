@@ -14,7 +14,7 @@ class CanMerge extends CommandCluster {
   CanMerge({
     required super.ggLog,
     super.name = 'merge',
-    super.description = 'Are the last changes ready to be merged?',
+    super.description = 'Check if this repo can be merged',
     super.shortDescription = 'Can merge?',
     super.stateKey = 'canMerge',
     DidCommit? didCommit,

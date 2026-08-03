@@ -37,10 +37,7 @@ void main() {
         ggLog: messages.add,
       );
 
-      expect(
-        messages.first,
-        contains('Create development artifacts like ticket branches.'),
-      );
+      expect(messages.first, contains('Create development artifacts'));
       expect(messages.first, contains('ticket'));
     });
   });

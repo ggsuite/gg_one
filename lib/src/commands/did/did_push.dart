@@ -11,7 +11,7 @@ class DidPush extends DidCommand {
   /// Constructor
   DidPush({
     super.name = 'push',
-    super.description = 'Are all changes pushed to the remote repository?',
+    super.description = 'Check if this repo was pushed',
     super.shortDescription = 'Changes are pushed to the git remote',
     super.suggestion = 'Please run »gg do push«.',
     super.stateKey = 'doPush',

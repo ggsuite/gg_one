@@ -26,7 +26,7 @@ class Do extends Command<void> {
 
   /// The description of the command
   @override
-  final description = 'Provide actions or commit, push, publish.';
+  final description = 'Act on this repo';
 
   // ...........................................................................
   void _initSubCommands(DepsOfDo deps) {

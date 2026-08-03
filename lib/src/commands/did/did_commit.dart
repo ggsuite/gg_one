@@ -12,7 +12,7 @@ class DidCommit extends DidCommand {
   DidCommit({
     required super.ggLog,
     super.name = 'commit',
-    super.description = 'Are all changes committed?',
+    super.description = 'Check if this repo was committed',
     super.shortDescription = 'All changes are committed',
     super.suggestion = 'Not committed yet. Please run »gg do commit«.',
     super.stateKey = 'doCommit',
