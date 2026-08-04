@@ -188,10 +188,9 @@ packages:
   gg_changelog:
     dependency: "direct main"
     description:
-      name: gg_changelog
-      sha256: "998fd7ccc003998451b2a7143539fbc4b319eb9f80ebfc5079a5f3a2bc6fa7a4"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../gg_changelog"
+      relative: true
+    source: path
     version: "1.1.4"
   gg_console_colors:
     dependency: "direct main"
@@ -284,10 +283,9 @@ packages:
   gg_publish:
     dependency: "direct main"
     description:
-      name: gg_publish
-      sha256: "88df2d2f2b5450409b056bc09bbcbb176bb2875ee954926bb0731dbc2b12e2ba"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../gg_publish"
+      relative: true
+    source: path
     version: "3.10.1"
   gg_status_printer:
     dependency: "direct main"
