@@ -78,7 +78,12 @@ Automate your testing process by setting up the gg_one GitHub Action, like here:
 `gg one do publish` walks a single repo through the publish pipeline:
 `can publish` → version bump → CHANGELOG release → publish to pub.dev
 (skipped when `publish_to: none` is set in `pubspec.yaml`) → merge
-feature branch into `main` → push → tag.
+feature branch into `main` → push → tag. A leftover
+`pubspec_overrides.yaml` is saved to the git-ignored
+`.gg/pubspec_overrides_backup.yaml` before it is deleted, so the
+multi-repo flow can restore it after the merge. The merged state is
+recorded as `didPublish` in `.gg/gg.json` — `gg did publish` answers
+whether the current content is released.
 
 All interactive decisions are made **up front**: when the command is
 started without a resolved configuration it runs

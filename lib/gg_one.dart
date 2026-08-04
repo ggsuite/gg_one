@@ -26,6 +26,7 @@ export 'src/commands/check/pub_get_offline.dart';
 // Did
 export 'src/commands/did.dart';
 export 'src/commands/did/did_commit.dart';
+export 'src/commands/did/did_publish.dart';
 export 'src/commands/did/did_push.dart';
 export 'src/commands/did/did_upgrade.dart';
 export 'src/commands/did/did_upgrade/dependencies.dart';
@@ -57,6 +58,7 @@ export 'src/tools/lock_files.dart';
 export 'src/tools/ocean_folder_guard.dart';
 export 'src/tools/merge_flow.dart';
 export 'src/tools/publish_config.dart';
+export 'src/tools/pubspec_overrides_backup.dart';
 export 'src/tools/repository_url.dart';
 export 'src/tools/terminal_guard.dart';
 export 'src/tools/workspace_folder_guard.dart';

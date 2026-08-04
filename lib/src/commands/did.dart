@@ -32,6 +32,7 @@ class Did extends Command<void> {
   void _initSubCommands(DepsOfDid deps) {
     addSubcommand(deps.didCommit);
     addSubcommand(deps.didPush);
+    addSubcommand(deps.didPublish);
     addSubcommand(deps.didUpgrade);
   }
 }
@@ -44,9 +45,11 @@ class DepsOfDid {
     required this.ggLog,
     DidCommit? commit,
     DidPush? push,
+    DidPublish? publish,
     DidUpgrade? upgrade,
   }) : didCommit = commit ?? DidCommit(ggLog: ggLog),
        didPush = push ?? DidPush(ggLog: ggLog),
+       didPublish = publish ?? DidPublish(ggLog: ggLog),
        didUpgrade = upgrade ?? DidUpgrade(ggLog: ggLog);
 
   /// The log function
@@ -57,6 +60,9 @@ class DepsOfDid {
 
   /// The can push command
   final DidPush didPush;
+
+  /// The did publish command
+  final DidPublish didPublish;
 
   /// The can publish command
   final DidUpgrade didUpgrade;
