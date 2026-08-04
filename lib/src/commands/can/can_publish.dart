@@ -7,9 +7,9 @@
 import 'package:gg_one_state/gg_one_state.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_changelog/gg_changelog.dart';
-import 'package:gg_one/src/commands/did/did_commit.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:gg_one_checks/gg_one_checks.dart';
+import 'package:gg_one_commit/gg_one_commit.dart';
 
 /// Are the last changes ready to be published?
 class CanPublish extends CommandCluster {

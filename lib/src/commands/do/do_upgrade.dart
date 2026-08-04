@@ -6,7 +6,7 @@
 
 import 'package:args/command_runner.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/src/commands/do/do_upgrade/deps.dart';
+import 'package:gg_one_commit/gg_one_commit.dart';
 
 /// Groups the things a repository can upgrade.
 class DoUpgrade extends Command<void> {
