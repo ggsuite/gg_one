@@ -23,7 +23,6 @@ export 'package:gg_lang/gg_lang.dart'
 // Can
 export 'package:gg_one_commit/gg_one_commit.dart';
 export 'src/commands/can.dart';
-export 'src/commands/can/can_merge.dart';
 export 'src/commands/can/can_publish.dart';
 // Checks
 export 'package:gg_one_checks/gg_one_checks.dart';
@@ -40,11 +39,9 @@ export 'src/commands/do/do_upgrade.dart';
 export 'src/commands/info.dart';
 export 'src/gg.dart';
 // Tools
+export 'package:gg_one_merge/gg_one_merge.dart';
 export 'package:gg_one_publish_config/gg_one_publish_config.dart';
 export 'package:gg_one_state/gg_one_state.dart';
 export 'src/tools/add_git_only_version_tag.dart';
 export 'src/tools/add_typescript_version_tag.dart';
-export 'src/tools/create_pull_request.dart';
-export 'src/tools/lock_files.dart';
-export 'src/tools/merge_flow.dart';
 export 'src/tools/workspace_folder_guard.dart';

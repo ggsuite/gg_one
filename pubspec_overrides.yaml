@@ -7,3 +7,5 @@ dependency_overrides:
     path: ../gg_one_publish_config
   gg_one_commit:
     path: ../gg_one_commit
+  gg_one_merge:
+    path: ../gg_one_merge

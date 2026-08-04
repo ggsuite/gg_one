@@ -18,7 +18,6 @@ import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_one/src/commands/can/can_publish.dart';
 import 'package:gg_one/src/tools/add_git_only_version_tag.dart';
 import 'package:gg_one/src/tools/add_typescript_version_tag.dart';
-import 'package:gg_one/src/tools/merge_flow.dart';
 import 'package:gg_one/src/tools/workspace_folder_guard.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';
@@ -28,6 +27,7 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:gg_one_checks/gg_one_checks.dart';
 import 'package:gg_one_publish_config/gg_one_publish_config.dart';
 import 'package:gg_one_commit/gg_one_commit.dart';
+import 'package:gg_one_merge/gg_one_merge.dart';
 
 /// Publishes the current directory.
 ///
