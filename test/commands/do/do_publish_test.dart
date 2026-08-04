@@ -770,6 +770,192 @@ void main() {
             });
           });
 
+          group('refuses when the next version is already in '
+              'CHANGELOG.md', () {
+            // The published version is 1.2.3 and the increment is patch,
+            // i.e. the next version is 1.2.4.
+            Future<void> writeAndCommitChangelog(String content) async {
+              await File(join(d.path, 'CHANGELOG.md')).writeAsString(content);
+              await commitFile(d, 'CHANGELOG.md', message: 'Update CHANGELOG');
+            }
+
+            Future<void> writeAndCommitPubspec(String version) async {
+              await File(join(d.path, 'pubspec.yaml')).writeAsString(
+                'name: gg\n\nversion: $version\n'
+                'environment:\n  sdk: ^3.8.0\n'
+                'repository: https://github.com/inlavigo/gg.git',
+              );
+              await commitFile(d, 'pubspec.yaml', message: 'Update pubspec');
+            }
+
+            final throwsAlreadyInChangelog = throwsA(
+              isA<Exception>().having(
+                (e) => rmControls(e.toString()),
+                'message',
+                contains('CHANGELOG.md already contains the version »1.2.4«'),
+              ),
+            );
+
+            test('and »## Unreleased« entries would get lost', () async {
+              await writeAndCommitPubspec('1.2.4');
+              await writeAndCommitChangelog(
+                '# Changelog\n\n'
+                '## Unreleased\n\n'
+                '### Added\n\n'
+                '- Pending change\n\n'
+                '## 1.2.4 - 2024-04-09\n\n'
+                '### Changed\n\n'
+                '- Merged too early\n\n'
+                '## 1.2.3 - 2024-04-05\n\n'
+                '- First version\n',
+              );
+              await makeLastStateSuccessful();
+              messages.clear();
+
+              await expectLater(
+                doPublish.exec(
+                  directory: d,
+                  ggLog: ggLog,
+                  deleteFeatureBranch: false,
+                ),
+                throwsAlreadyInChangelog,
+              );
+
+              final allMessages = messages.join('\n');
+              expect(
+                allMessages,
+                contains(
+                  'The next version »1.2.4« is already in ./CHANGELOG.md',
+                ),
+              );
+              expect(
+                allMessages,
+                contains(
+                  'would lose the entries still sitting in »## Unreleased«',
+                ),
+              );
+              expect(allMessages, isNot(contains('does not match')));
+              expect(allMessages, contains('Please fix ./CHANGELOG.md'));
+
+              // Nothing was published
+              verifyNever(
+                () => publish.exec(
+                  directory: any(named: 'directory'),
+                  ggLog: any(named: 'ggLog'),
+                  askBeforePublishing: any(named: 'askBeforePublishing'),
+                ),
+              );
+            });
+
+            test('and the pubspec.yaml version does not match', () async {
+              await writeAndCommitChangelog(
+                '# Changelog\n\n'
+                '## 1.2.4 - 2024-04-09\n\n'
+                '### Changed\n\n'
+                '- Merged too early\n\n'
+                '## 1.2.3 - 2024-04-05\n\n'
+                '- First version\n',
+              );
+              await makeLastStateSuccessful();
+              messages.clear();
+
+              await expectLater(
+                doPublish.exec(
+                  directory: d,
+                  ggLog: ggLog,
+                  deleteFeatureBranch: false,
+                ),
+                throwsAlreadyInChangelog,
+              );
+
+              final allMessages = messages.join('\n');
+              expect(
+                allMessages,
+                contains(
+                  'the version in ./pubspec.yaml (»1.2.3«) does not match '
+                  '»1.2.4«',
+                ),
+              );
+              expect(allMessages, isNot(contains('would lose the entries')));
+
+              // The pubspec.yaml was not touched
+              final pubspec = await File(
+                join(d.path, 'pubspec.yaml'),
+              ).readAsString();
+              expect(pubspec, contains('version: 1.2.3'));
+            });
+
+            test('and reports both problems when both occur', () async {
+              await writeAndCommitChangelog(
+                '# Changelog\n\n'
+                '## Unreleased\n\n'
+                '### Added\n\n'
+                '- Pending change\n\n'
+                '## 1.2.4 - 2024-04-09\n\n'
+                '### Changed\n\n'
+                '- Merged too early\n\n'
+                '## 1.2.3 - 2024-04-05\n\n'
+                '- First version\n',
+              );
+              await makeLastStateSuccessful();
+              messages.clear();
+
+              await expectLater(
+                doPublish.exec(
+                  directory: d,
+                  ggLog: ggLog,
+                  deleteFeatureBranch: false,
+                ),
+                throwsAlreadyInChangelog,
+              );
+
+              final allMessages = messages.join('\n');
+              expect(allMessages, contains('would lose the entries'));
+              expect(allMessages, contains('does not match'));
+            });
+
+            test('but continues and sorts the changelog when the state is '
+                'a fully prepared resume state', () async {
+              // A previous run bumped the version and released the
+              // changelog, but died before the upload. pubspec.yaml carries
+              // the next version and no unreleased entries exist — but a
+              // merge left the versions in the wrong order.
+              mockPublishIsSuccessful(success: true, askBeforePublishing: true);
+              await writeAndCommitPubspec('1.2.4');
+              await writeAndCommitChangelog(
+                '# Changelog\n\n'
+                '## 1.2.3 - 2024-04-05\n\n'
+                '- First version\n\n'
+                '## 1.2.4 - 2024-04-09\n\n'
+                '### Changed\n\n'
+                '- Something new\n',
+              );
+              await makeLastStateSuccessful();
+              messages.clear();
+
+              await doPublish.exec(
+                directory: d,
+                ggLog: ggLog,
+                deleteFeatureBranch: false,
+              );
+
+              final allMessages = messages.join('\n');
+              expect(allMessages, isNot(contains('already contains')));
+              expect(allMessages, contains('Publishing was successful.'));
+              expect(allMessages, contains('Tag 1.2.4 added.'));
+
+              // The changelog was sorted. Newest version first.
+              final changeLog = await File(
+                join(d.path, 'CHANGELOG.md'),
+              ).readAsString();
+              expect(
+                changeLog.indexOf('## 1.2.4'),
+                lessThan(changeLog.indexOf('## 1.2.3')),
+              );
+              expect('## 1.2.4'.allMatches(changeLog).length, 1);
+            });
+          });
+
           test('passes a custom merge message '
               'to the final merge step', () async {
             const customMessage = 'My custom merge message';

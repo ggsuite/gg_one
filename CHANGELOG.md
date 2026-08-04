@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- »do publish« refuses when the version about to be published is already in
+CHANGELOG.md and continuing would lose »## Unreleased« entries or the
+pubspec.yaml version does not match
+- The versions in CHANGELOG.md are sorted before publishing. Newest first.
+
+### Changed
+
+- Fix issues with CHANGELOG.md
+
 ## 12.7.0 - 2026-08-04
 
 ### Changed
