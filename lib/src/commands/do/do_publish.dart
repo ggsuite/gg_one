@@ -71,6 +71,7 @@ class DoPublish extends DirCommand<void> {
     FromPubspec? fromPubspec,
     IsPublished? isPublished,
     changelog.Release? release,
+    changelog.HasVersion? hasVersion,
     PublishTo? publishTo,
     MergeFlow? mergeFlow,
     PublishedVersion? publishedVersion,
@@ -107,6 +108,7 @@ class DoPublish extends DirCommand<void> {
            prepareNextVersion ?? PrepareNextVersion(ggLog: ggLog),
        _fromPubspec = fromPubspec ?? FromPubspec(ggLog: ggLog),
        _releaseChangelog = release ?? changelog.Release(ggLog: ggLog),
+       _hasVersion = hasVersion ?? changelog.HasVersion(ggLog: ggLog),
        _isPublished = isPublished ?? IsPublished(ggLog: ggLog),
        _publishTo = publishTo ?? PublishTo(ggLog: ggLog),
        _mergeFlow = mergeFlow ?? MergeFlow(ggLog: ggLog),
@@ -631,6 +633,7 @@ class DoPublish extends DirCommand<void> {
   final PrepareNextVersion _prepareNextVersion;
   final FromPubspec _fromPubspec;
   final changelog.Release _releaseChangelog;
+  final changelog.HasVersion _hasVersion;
   final IsPublished _isPublished;
   final PublishTo _publishTo;
   final MergeFlow _mergeFlow;
@@ -1006,6 +1009,20 @@ class DoPublish extends DirCommand<void> {
     final increment = parseVersionIncrement(_explicitVersionIncrement!);
     final releaseChannel = parseReleaseChannel(_explicitChannel!);
 
+    // A git merge can carry the next version's section into CHANGELOG.md
+    // before it is released (gg sets »CHANGELOG.md merge=union«). Publishing
+    // over such a section would silently swallow the »## Unreleased« entries.
+    // Refuse right after the registry was asked, before anything is written.
+    if (_supportsChangeLog(directory)) {
+      await _throwIfNextVersionIsAlreadyInChangelog(
+        directory: directory,
+        ggLog: ggLog,
+        increment: increment,
+        channel: releaseChannel,
+        publishedVersion: currentVersion,
+      );
+    }
+
     await _prepareNextVersion.exec(
       directory: directory,
       ggLog: ggLog,
@@ -1036,6 +1053,85 @@ class DoPublish extends DirCommand<void> {
         rethrow;
       }
     }
+  }
+
+  /// Throws when the version about to be published already has a section in
+  /// CHANGELOG.md and continuing would cause harm.
+  ///
+  /// Harm means: the »## Unreleased« section still contains entries that the
+  /// skipped changelog release would silently swallow, or the version in
+  /// pubspec.yaml does not match the version about to be published. A fully
+  /// prepared state — pubspec.yaml carries the next version and no unreleased
+  /// entries exist — passes silently, so »--restart« and runs that lost their
+  /// »./.gg/gg-publish.json« can resume a failed publish.
+  Future<void> _throwIfNextVersionIsAlreadyInChangelog({
+    required Directory directory,
+    required GgLog ggLog,
+    required VersionIncrement increment,
+    required ReleaseChannel channel,
+    required Version publishedVersion,
+  }) async {
+    final next = await _prepareNextVersion.nextVersion(
+      directory: directory,
+      ggLog: <String>[].add,
+      increment: increment,
+      channel: channel,
+      publishedVersion: publishedVersion,
+    );
+
+    final isInChangelog = await _hasVersion.get(
+      directory: directory,
+      ggLog: <String>[].add,
+      version: next,
+    );
+    if (!isInChangelog) {
+      return;
+    }
+
+    final unreleasedHasEntries = await _hasVersion.unreleasedHasEntries(
+      directory: directory,
+      ggLog: <String>[].add,
+    );
+    final pubspecVersion = await _fromPubspec.fromDirectory(
+      directory: directory,
+    );
+    if (!unreleasedHasEntries && pubspecVersion == next) {
+      return;
+    }
+
+    ggLog(
+      cError(
+        'The next version »$next« is already in ${cPath('./CHANGELOG.md')} '
+        '— probably a git merge carried it in.',
+      ),
+    );
+    if (unreleasedHasEntries) {
+      ggLog(
+        cError(
+          'Publishing now would lose the entries still sitting in '
+          '»## Unreleased«.',
+        ),
+      );
+    }
+    if (pubspecVersion != next) {
+      ggLog(
+        cError(
+          'Additionally the version in ${cPath('./pubspec.yaml')} '
+          '(»$pubspecVersion«) does not match »$next«.',
+        ),
+      );
+    }
+    ggLog(
+      cAction(
+        'Please fix ${cPath('./CHANGELOG.md')}: move the »## Unreleased« '
+        'entries into the »## $next« section or remove the premature '
+        '»## $next« section. Then run ${cCmd('gg do publish')} again.',
+      ),
+    );
+
+    throw Exception(
+      cError('CHANGELOG.md already contains the version »$next«.'),
+    );
   }
 
   /// Resolve the version used as baseline for selecting the next increment.
