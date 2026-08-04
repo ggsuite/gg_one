@@ -6,9 +6,9 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/commands/did/did_commit.dart';
 import 'package:gg_git/gg_git_test_helpers.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/commands/did/did_commit.dart';
 import 'package:test/test.dart';
 
 void main() {

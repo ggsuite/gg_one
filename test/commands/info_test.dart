@@ -5,9 +5,9 @@
 // found in the LICENSE file in the root of this package.
 
 import 'package:args/command_runner.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_capture_print/gg_capture_print.dart';
 import 'package:gg_git/gg_git.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:test/test.dart';
 
 void main() {

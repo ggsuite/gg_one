@@ -10,6 +10,7 @@ import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/src/tools/gg_state.dart';
+import 'package:gg_one/src/tools/suggestion.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:meta/meta.dart';
 
@@ -48,16 +49,17 @@ class DidCommand extends DirCommand<bool> {
         );
 
     if (!result) {
-      // Assemble the message without colors and dim it as a whole. Coloring
-      // the parts first and wrapping the result would nest escape codes into
-      // each other.
+      // The suggestion is what the user acts on, so it carries its own
+      // colors: the prose yellow, the command blue. The details below are
+      // context and stay dim — both are colored separately and joined,
+      // because wrapping one in the other would nest escape codes.
       final details = messages.join('\n').trim();
       final printedMessages = <String>[
-        suggestion.replaceAll('»', '').replaceAll('«', ''),
-        if (details.isNotEmpty) details,
+        colorizeSuggestion(suggestion),
+        if (details.isNotEmpty) cDetail(details),
       ];
 
-      throw Exception(cDetail(printedMessages.join('\n')));
+      throw Exception(printedMessages.join('\n'));
     }
 
     return result;

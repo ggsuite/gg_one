@@ -1,5 +1,12 @@
 # Changelog
 
+## 12.9.0 - 2026-08-04
+
+### Changed
+
+- Show ticket deletion dialog at the beginning of publish. Recolorize.
+- Use overrides in package.json
+
 ## 12.8.0 - 2026-08-04
 
 ### Changed

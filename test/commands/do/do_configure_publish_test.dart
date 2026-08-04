@@ -110,8 +110,8 @@ void main() {
         final gitignore = File(join(d.path, '.gitignore')).readAsStringSync();
         expect(gitignore, contains('.gg/gg-publish.json'));
         expect(messages, [
-          'Added .gg/gg-publish.json, .gg/pubspec_overrides_backup.yaml '
-              'to .gitignore.',
+          'Added .gg/gg-publish.json, .gg/pubspec_overrides_backup.yaml, '
+              '.gg/pnpm_workspace_backup.yaml to .gitignore.',
         ]);
       },
     );

@@ -18,48 +18,95 @@ import '../commands/check/no_pubspec_overrides.dart';
 /// workspaces.
 const String pubspecOverridesBackupPath = '.gg/pubspec_overrides_backup.yaml';
 
-/// Saves `pubspec_overrides.yaml` of [directory] to
-/// [pubspecOverridesBackupPath] so it can be restored after the publish.
+/// Where a publish keeps the `pnpm-workspace.yaml` of a TypeScript repo.
 ///
-/// Publishing deletes the overrides file — the package must resolve against
-/// the registry, not against the developer's working copies. Without a backup
-/// the repository loses its workspace wiring the moment it is published;
-/// with it, the multi-repo flow puts the file back once the merge into the
-/// main branch is through, so the repo stays workable.
-///
-/// An existing backup is overwritten — the current overrides are the truth.
-/// Returns whether a backup was written; without an overrides file there is
-/// nothing to save and the previous backup (if any) stays untouched.
-bool backupPubspecOverrides(Directory directory) {
-  final overrides = File(join(directory.path, NoPubspecOverrides.fileName));
-  if (!overrides.existsSync()) {
-    return false;
-  }
+/// The TypeScript twin of [pubspecOverridesBackupPath]: gg_localize_refs
+/// redirects pnpm-managed dependencies through the `overrides` section of
+/// `pnpm-workspace.yaml`, and unlocalizing removes that section (or the whole
+/// file, when gg created it). The backup preserves the exact pre-publish
+/// state — including the user's pnpm settings — for the restore after the
+/// merge.
+const String pnpmWorkspaceBackupPath = '.gg/pnpm_workspace_backup.yaml';
 
-  final backup = File(join(directory.path, pubspecOverridesBackupPath));
-  backup.parent.createSync(recursive: true);
-  overrides.copySync(backup.path);
-  return true;
+/// The name of pnpm's per-repository settings file.
+const String _pnpmWorkspaceFileName = 'pnpm-workspace.yaml';
+
+/// Saves the workspace wiring files of [directory] so they can be restored
+/// after the publish: `pubspec_overrides.yaml` to
+/// [pubspecOverridesBackupPath] and `pnpm-workspace.yaml` to
+/// [pnpmWorkspaceBackupPath].
+///
+/// Publishing removes the localized redirections — the package must resolve
+/// against the registry, not against the developer's working copies. Without
+/// a backup the repository loses its workspace wiring the moment it is
+/// published; with it, the multi-repo flow puts the files back once the
+/// merge into the main branch is through, so the repo stays workable.
+///
+/// An existing backup is overwritten — the current files are the truth.
+/// Returns whether at least one backup was written; without the files there
+/// is nothing to save and the previous backups (if any) stay untouched.
+bool backupPubspecOverrides(Directory directory) {
+  final savedOverrides = _backup(
+    directory,
+    NoPubspecOverrides.fileName,
+    pubspecOverridesBackupPath,
+  );
+  final savedPnpm = _backup(
+    directory,
+    _pnpmWorkspaceFileName,
+    pnpmWorkspaceBackupPath,
+  );
+  return savedOverrides || savedPnpm;
 }
 
-/// Restores `pubspec_overrides.yaml` of [directory] from
-/// [pubspecOverridesBackupPath] and deletes the backup.
+/// Restores the workspace wiring files of [directory] from their backups and
+/// deletes the backups.
 ///
 /// The counterpart of [backupPubspecOverrides]: once the published state is
 /// merged into the main branch and the feature branch is checked out again,
 /// the overrides return and the repository resolves its dependencies against
 /// the sibling checkouts of the ticket like before the publish.
 ///
-/// An overrides file that already exists is overwritten — the backup holds
-/// the pre-publish truth. Returns whether a backup was restored.
+/// A file that already exists is overwritten — the backup holds the
+/// pre-publish truth. Returns whether at least one backup was restored.
 bool restorePubspecOverrides(Directory directory) {
-  final backup = File(join(directory.path, pubspecOverridesBackupPath));
+  final restoredOverrides = _restore(
+    directory,
+    pubspecOverridesBackupPath,
+    NoPubspecOverrides.fileName,
+  );
+  final restoredPnpm = _restore(
+    directory,
+    pnpmWorkspaceBackupPath,
+    _pnpmWorkspaceFileName,
+  );
+  return restoredOverrides || restoredPnpm;
+}
+
+/// Copies `<directory>/<fileName>` to `<directory>/<backupPath>`.
+/// Returns whether the file existed and was saved.
+bool _backup(Directory directory, String fileName, String backupPath) {
+  final file = File(join(directory.path, fileName));
+  if (!file.existsSync()) {
+    return false;
+  }
+
+  final backup = File(join(directory.path, backupPath));
+  backup.parent.createSync(recursive: true);
+  file.copySync(backup.path);
+  return true;
+}
+
+/// Restores `<directory>/<fileName>` from `<directory>/<backupPath>` and
+/// deletes the backup. Returns whether a backup existed and was restored.
+bool _restore(Directory directory, String backupPath, String fileName) {
+  final backup = File(join(directory.path, backupPath));
   if (!backup.existsSync()) {
     return false;
   }
 
-  final overrides = File(join(directory.path, NoPubspecOverrides.fileName));
-  backup.copySync(overrides.path);
+  final file = File(join(directory.path, fileName));
+  backup.copySync(file.path);
   backup.deleteSync();
   return true;
 }

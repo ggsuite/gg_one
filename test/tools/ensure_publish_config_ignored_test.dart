@@ -66,7 +66,9 @@ void main() {
       final content = File(join(d.path, '.gitignore')).readAsStringSync();
       expect(
         content,
-        '.gg/gg-publish.json\n.gg/pubspec_overrides_backup.yaml\n',
+        '.gg/gg-publish.json\n'
+        '.gg/pubspec_overrides_backup.yaml\n'
+        '.gg/pnpm_workspace_backup.yaml\n',
       );
       // The change was committed — the working tree is clean again.
       expect(await gitStatus(), isEmpty);
@@ -74,8 +76,8 @@ void main() {
       expect(
         messages,
         contains(
-          'Added .gg/gg-publish.json, .gg/pubspec_overrides_backup.yaml '
-          'to .gitignore.',
+          'Added .gg/gg-publish.json, .gg/pubspec_overrides_backup.yaml, '
+          '.gg/pnpm_workspace_backup.yaml to .gitignore.',
         ),
       );
     });
@@ -95,7 +97,8 @@ void main() {
           gitignore.readAsStringSync(),
           'build/\n'
           '.gg/gg-publish.json\n'
-          '.gg/pubspec_overrides_backup.yaml\n',
+          '.gg/pubspec_overrides_backup.yaml\n'
+          '.gg/pnpm_workspace_backup.yaml\n',
         );
         expect(await gitStatus(), isEmpty);
       },
@@ -112,7 +115,9 @@ void main() {
       expect(changed, isTrue);
       expect(
         gitignore.readAsStringSync(),
-        '.gg/gg-publish.json\n.gg/pubspec_overrides_backup.yaml\n',
+        '.gg/gg-publish.json\n'
+        '.gg/pubspec_overrides_backup.yaml\n'
+        '.gg/pnpm_workspace_backup.yaml\n',
       );
     });
 

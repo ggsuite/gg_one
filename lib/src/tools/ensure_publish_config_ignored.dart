@@ -44,8 +44,14 @@ class EnsurePublishConfigIgnored {
   static const String entry = '.gg/gg-publish.json';
 
   /// All `.gitignore` entries this helper maintains: the runtime publish
-  /// file and the `pubspec_overrides.yaml` backup a publish writes.
-  static const List<String> entries = [entry, pubspecOverridesBackupPath];
+  /// file and the workspace-wiring backups a publish writes
+  /// (`pubspec_overrides.yaml` for Dart, `pnpm-workspace.yaml` for
+  /// pnpm-managed TypeScript).
+  static const List<String> entries = [
+    entry,
+    pubspecOverridesBackupPath,
+    pnpmWorkspaceBackupPath,
+  ];
 
   /// Ensures [entries] are present in `<directory>/.gitignore`. Returns true
   /// when the file was changed (or created). With [commit] the change is

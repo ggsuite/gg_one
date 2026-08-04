@@ -5,12 +5,12 @@
 // found in the LICENSE file in the root of this package.
 
 import 'package:gg_args/gg_args.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
+import 'package:gg_publish/gg_publish.dart';
 import 'package:gg_test/gg_test.dart';
 import 'package:gg_version/gg_version.dart';
-import 'package:gg_publish/gg_publish.dart';
 
 // .............................................................................
 /// Dependencies for the check command
