@@ -17,6 +17,10 @@ import 'package:mocktail/mocktail.dart';
 
 /// Upgrades all dependencies of the package via
 /// »dart pub upgrade [--major-versions] --tighten«.
+///
+/// The upgrade itself runs no checks — the flows that call it (`gg do push`,
+/// `gg do publish`) run `gg can commit` right afterwards, so validating here
+/// would only duplicate that step.
 class DoUpgradeDependencies extends DirCommand<void> {
   /// Constructor
   DoUpgradeDependencies({
@@ -26,11 +30,9 @@ class DoUpgradeDependencies extends DirCommand<void> {
     GgState? state,
     CanUpgrade? canUpgrade,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
-    CanCommit? canCommit,
   }) : _state = state ?? GgState(ggLog: ggLog),
        _processWrapper = processWrapper,
-       _canUpgrade = canUpgrade ?? CanUpgrade(ggLog: ggLog),
-       _canCommit = canCommit ?? CanCommit(ggLog: ggLog) {
+       _canUpgrade = canUpgrade ?? CanUpgrade(ggLog: ggLog) {
     _addParam();
   }
 
@@ -80,7 +82,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
       majorVersions: majorVersions,
     );
 
-    // If nothing has changed, skip the expensive re-validation.
+    // Tell the user whether the upgrade changed anything.
     final hashAfter = await _state.currentHash(
       directory: directory,
       ggLog: ggLog,
@@ -88,28 +90,6 @@ class DoUpgradeDependencies extends DirCommand<void> {
 
     if (hashBefore == hashAfter) {
       ggLog(cDetail('Everything is already up to date.'));
-      return;
-    }
-
-    // Check if everything is still running after the update
-    try {
-      await _canCommit.exec(
-        directory: directory,
-        ggLog: ggLog,
-        force: true, // Checks need to be done, even if if nothing has changed
-      );
-    }
-    // When not everything is running, reset success sate
-    catch (e) {
-      await _state.reset(directory: directory);
-      throw Exception(
-        cError(
-          cError(
-            'After the update tests are not running anymore. '
-            'Please run ${cCmd('»gg can commit«')} and try again.',
-          ),
-        ),
-      );
     }
   }
 
@@ -124,7 +104,6 @@ class DoUpgradeDependencies extends DirCommand<void> {
   final GgState _state;
   final GgProcessWrapper _processWrapper;
   final CanUpgrade _canUpgrade;
-  final CanCommit _canCommit;
 
   // ...........................................................................
   void _addParam() {
@@ -153,6 +132,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
     await GgStatusPrinter<bool>(
       message: 'Run »dart ${args.join(' ')}«',
       ggLog: ggLog,
+      dark: true,
     ).logTask(
       task: () async {
         final result = await _processWrapper.run(

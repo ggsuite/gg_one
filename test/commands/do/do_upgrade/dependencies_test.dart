@@ -30,7 +30,6 @@ void main() {
   late GgState? state;
   late MockCanUpgrade canUpgrade;
   late MockGgProcessWrapper processWrapper;
-  late MockCanCommit canCommit;
 
   // ...........................................................................
   void initMocks() {
@@ -39,7 +38,6 @@ void main() {
     state = GgState(ggLog: ggLog);
     canUpgrade = MockCanUpgrade();
     processWrapper = MockGgProcessWrapper();
-    canCommit = MockCanCommit();
   }
 
   // ...........................................................................
@@ -49,7 +47,6 @@ void main() {
       state: state,
       canUpgrade: canUpgrade,
       processWrapper: processWrapper,
-      canCommit: canCommit,
     );
 
     runner.addCommand(doUpgrade);
@@ -80,22 +77,8 @@ void main() {
   }
 
   // ...........................................................................
-  void mockCanCommit({bool success = true}) {
-    canCommit.mockExec(
-      result: null,
-      directory: d,
-      ggLog: ggLog,
-      doThrow: !success,
-      message: 'CanCommit failed.',
-      force: true,
-      saveState: null,
-    );
-  }
-
-  // ...........................................................................
   void initDefaultMocks() {
     canUpgrade.mockExec(result: null, directory: d, ggLog: ggLog);
-    mockCanCommit();
     mockDartPubUpgrade();
   }
 
@@ -133,7 +116,6 @@ void main() {
             messages[2],
             contains('✓ Run »dart pub upgrade --major-versions --tighten«'),
           );
-          expect(messages[3], contains('✓ CanCommit'));
         }
 
         test('- programmatically', () async {
@@ -204,14 +186,6 @@ void main() {
 
           void check() {
             expect(messages.last, 'Everything is already up to date.');
-            verifyNever(
-              () => canCommit.exec(
-                directory: any(named: 'directory'),
-                ggLog: any(named: 'ggLog'),
-                force: any(named: 'force'),
-                saveState: any(named: 'saveState'),
-              ),
-            );
           }
 
           test('- programmatically', () async {
@@ -250,26 +224,6 @@ void main() {
           expect(allMessages, isNot(contains('✓ DoPublish')));
         });
       });
-
-      test(
-        '- should require fixing errors happening through updating',
-        () async {
-          mockCanCommit(success: false);
-
-          late String exception;
-          try {
-            await doUpgrade.exec(directory: d, ggLog: ggLog);
-          } catch (e) {
-            exception = rmControls(e.toString());
-          }
-
-          const message =
-              'After the update tests are not running anymore. '
-              'Please run »gg can commit« and try again.';
-
-          expect(exception, contains(message));
-        },
-      );
 
       group('- should allow to skip major versions', () {
         setUp(() {
