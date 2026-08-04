@@ -14,7 +14,7 @@ import 'package:gg_lang/gg_lang.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/src/commands/can/can_commit.dart';
 import 'package:gg_one/src/tools/gg_state.dart';
-import 'package:gg_one/src/tools/master_folder_guard.dart';
+import 'package:gg_one/src/tools/ocean_folder_guard.dart';
 import 'package:gg_one/src/tools/repository_url.dart';
 import 'package:gg_process/gg_process.dart';
 
@@ -99,10 +99,10 @@ class DoCommit extends DirCommand<void> {
     // Does directory exist?
     await check(directory: directory);
 
-    // Commits do not belong into the master workspace. --force bypasses the
-    // guard, so a master repo can still be fixed in place.
+    // Commits do not belong into the ocean workspace. --force bypasses the
+    // guard, so an ocean repo can still be fixed in place.
     if (force != true) {
-      throwWhenInMasterFolder(directory);
+      throwWhenInOceanFolder(directory);
     }
 
     // Commits must never be created on the default branch. --force bypasses

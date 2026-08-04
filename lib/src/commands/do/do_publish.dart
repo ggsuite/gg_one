@@ -240,7 +240,7 @@ class DoPublish extends DirCommand<void> {
     // Step 1b: Progress that was recorded on a DIFFERENT feature branch does
     // not belong to this publish — it is a leftover that arrived with a copy
     // of the repository (the file is gitignored, so copying a workspace
-    // carries it along, e.g. »gg multi do add« copying the master workspace
+    // carries it along, e.g. »gg multi do add« copying the ocean workspace
     // into a new ticket). Trusting it would skip this publish's version bump
     // and registry upload and could delete the wrong feature branch — so
     // discard it. Progress found while HEAD is on the default branch is
