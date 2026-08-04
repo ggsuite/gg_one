@@ -28,7 +28,6 @@ void main() {
 
   // ...........................................................................
   late GgState? state;
-  late MockDidUpgradeDependencies didUpgrade;
   late MockCanUpgrade canUpgrade;
   late MockGgProcessWrapper processWrapper;
   late MockCanCommit canCommit;
@@ -36,8 +35,8 @@ void main() {
   // ...........................................................................
   void initMocks() {
     registerFallbackValue(d);
+    registerFallbackValue(<String>[]);
     state = GgState(ggLog: ggLog);
-    didUpgrade = MockDidUpgradeDependencies();
     canUpgrade = MockCanUpgrade();
     processWrapper = MockGgProcessWrapper();
     canCommit = MockCanCommit();
@@ -48,7 +47,6 @@ void main() {
     doUpgrade = DoUpgradeDependencies(
       ggLog: ggLog,
       state: state,
-      didUpgrade: didUpgrade,
       canUpgrade: canUpgrade,
       processWrapper: processWrapper,
       canCommit: canCommit,
@@ -59,7 +57,7 @@ void main() {
 
   // ...........................................................................
   void mockDartPubUpgrade({
-    bool majorVersions = false,
+    bool majorVersions = true,
     int exitCode = 0,
     String stdout = '',
     String stderr = '',
@@ -70,6 +68,7 @@ void main() {
         'pub',
         'upgrade',
         if (majorVersions) '--major-versions',
+        '--tighten',
       ], workingDirectory: d.path),
     ).thenAnswer((_) async {
       if (upgradingCausesChange) {
@@ -95,13 +94,6 @@ void main() {
 
   // ...........................................................................
   void initDefaultMocks() {
-    didUpgrade.mockGet(
-      result: false,
-      directory: d,
-      ggLog: null,
-      majorVersions: false,
-    );
-
     canUpgrade.mockExec(result: null, directory: d, ggLog: ggLog);
     mockCanCommit();
     mockDartPubUpgrade();
@@ -112,6 +104,7 @@ void main() {
     d = await Directory.systemTemp.createTemp();
     await initGit(d);
     await addAndCommitSampleFile(d);
+    await addAndCommitPubspecFile(d);
 
     messages.clear();
     runner = CommandRunner<void>('gg', 'gg');
@@ -132,8 +125,14 @@ void main() {
           'and finally commit and publish changes', () {
         void check() {
           expect(messages[0], contains('✓ CanUpgrade'));
-          expect(messages[1], contains('⌛️ Run »dart pub upgrade«'));
-          expect(messages[2], contains('✓ Run »dart pub upgrade«'));
+          expect(
+            messages[1],
+            contains('⌛️ Run »dart pub upgrade --major-versions --tighten«'),
+          );
+          expect(
+            messages[2],
+            contains('✓ Run »dart pub upgrade --major-versions --tighten«'),
+          );
           expect(messages[3], contains('✓ CanCommit'));
         }
 
@@ -198,18 +197,21 @@ void main() {
       });
 
       group('- should do nothing', () {
-        group('- when everything is already upgraded', () {
+        group('- when »dart pub upgrade« changes nothing', () {
           setUp(() {
-            // Let's say didUpgrade returns true
-            didUpgrade.mockGet(
-              result: true,
-              directory: d,
-              majorVersions: false,
-            );
+            mockDartPubUpgrade(upgradingCausesChange: false);
           });
 
           void check() {
             expect(messages.last, 'Everything is already up to date.');
+            verifyNever(
+              () => canCommit.exec(
+                directory: any(named: 'directory'),
+                ggLog: any(named: 'ggLog'),
+                force: any(named: 'force'),
+                saveState: any(named: 'saveState'),
+              ),
+            );
           }
 
           test('- programmatically', () async {
@@ -220,6 +222,21 @@ void main() {
           test('- via CLI', () async {
             await runner.run(['dependencies', d.path, '-i', d.path]);
             check();
+          });
+        });
+
+        group('- when there is no pubspec.yaml', () {
+          test('- programmatically', () async {
+            File('${d.path}/pubspec.yaml').deleteSync();
+            await doUpgrade.exec(directory: d, ggLog: ggLog);
+            expect(messages.last, 'No pubspec.yaml — nothing to upgrade.');
+            verifyNever(
+              () => processWrapper.run(
+                any(),
+                any(),
+                workingDirectory: any(named: 'workingDirectory'),
+              ),
+            );
           });
         });
       });
@@ -254,35 +271,32 @@ void main() {
         },
       );
 
-      group('- should allow to upgrade major versions', () {
+      group('- should allow to skip major versions', () {
         setUp(() {
-          mockDartPubUpgrade(majorVersions: true);
-          didUpgrade.mockGet(
-            result: false,
-            directory: d,
-            ggLog: null,
-            majorVersions: true, // <- Major versions
-          );
+          mockDartPubUpgrade(majorVersions: false);
         });
 
         tearDown(() {
-          expect(
-            messages[1],
-            contains('⌛️ Run »dart pub upgrade --major-versions«'),
-          );
+          expect(messages[1], contains('⌛️ Run »dart pub upgrade --tighten«'));
 
-          expect(
-            messages[2],
-            contains('✓ Run »dart pub upgrade --major-versions«'),
-          );
+          expect(messages[2], contains('✓ Run »dart pub upgrade --tighten«'));
         });
 
         test('- programmatically', () async {
-          await doUpgrade.exec(directory: d, ggLog: ggLog, majorVersions: true);
+          await doUpgrade.exec(
+            directory: d,
+            ggLog: ggLog,
+            majorVersions: false,
+          );
         });
 
         test('- via CLI', () async {
-          await runner.run(['dependencies', '-i', d.path, '--major-versions']);
+          await runner.run([
+            'dependencies',
+            '-i',
+            d.path,
+            '--no-major-versions',
+          ]);
         });
       });
 
