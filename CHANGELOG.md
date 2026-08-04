@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Keep published repos editable in tickets
+
 ## 12.7.2 - 2026-08-04
 
 ### Added
