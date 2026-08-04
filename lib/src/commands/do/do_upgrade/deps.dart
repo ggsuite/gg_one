@@ -21,11 +21,11 @@ import 'package:mocktail/mocktail.dart';
 /// The upgrade itself runs no checks — the flows that call it (`gg do push`,
 /// `gg do publish`) run `gg can commit` right afterwards, so validating here
 /// would only duplicate that step.
-class DoUpgradeDependencies extends DirCommand<void> {
+class DoUpgradeDeps extends DirCommand<void> {
   /// Constructor
-  DoUpgradeDependencies({
+  DoUpgradeDeps({
     required super.ggLog,
-    super.name = 'dependencies',
+    super.name = 'deps',
     super.description = 'Upgrade all dependencies of this repo',
     GgState? state,
     CanUpgrade? canUpgrade,
@@ -160,9 +160,8 @@ class DoUpgradeDependencies extends DirCommand<void> {
   }
 }
 
-/// Mock for [DoUpgradeDependencies].
-class MockDoUpgradeDependencies extends MockDirCommand<void>
-    implements DoUpgradeDependencies {
+/// Mock for [DoUpgradeDeps].
+class MockDoUpgradeDeps extends MockDirCommand<void> implements DoUpgradeDeps {
   // ...........................................................................
   /// Makes [exec] successful or not
   @override

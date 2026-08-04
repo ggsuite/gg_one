@@ -24,7 +24,7 @@ void main() {
   // ignore: prefer_function_declarations_over_variables
   final GgLog ggLog = (String msg) => messages.add(rmControls(msg));
   late CommandRunner<void> runner;
-  late DoUpgradeDependencies doUpgrade;
+  late DoUpgradeDeps doUpgrade;
 
   // ...........................................................................
   late GgState? state;
@@ -42,7 +42,7 @@ void main() {
 
   // ...........................................................................
   void initDoUpgrade() {
-    doUpgrade = DoUpgradeDependencies(
+    doUpgrade = DoUpgradeDeps(
       ggLog: ggLog,
       state: state,
       canUpgrade: canUpgrade,
@@ -101,7 +101,7 @@ void main() {
   });
 
   // ...........................................................................
-  group('DoUpgradeDependencies', () {
+  group('DoUpgradeDeps', () {
     group('- main case', () {
       group('- should run »dart pub upggrade», '
           'check if everything still runs (canCommit) '
@@ -124,7 +124,7 @@ void main() {
         });
 
         test('- via CLI', () async {
-          await runner.run(['dependencies', '-i', d.path]);
+          await runner.run(['deps', '-i', d.path]);
           check();
         });
       });
@@ -158,7 +158,7 @@ void main() {
           });
 
           test('- via CLI', () async {
-            await perform(runner.run(['dependencies', d.path, '-i', d.path]));
+            await perform(runner.run(['deps', d.path, '-i', d.path]));
           });
         });
 
@@ -194,7 +194,7 @@ void main() {
           });
 
           test('- via CLI', () async {
-            await runner.run(['dependencies', d.path, '-i', d.path]);
+            await runner.run(['deps', d.path, '-i', d.path]);
             check();
           });
         });
@@ -245,27 +245,22 @@ void main() {
         });
 
         test('- via CLI', () async {
-          await runner.run([
-            'dependencies',
-            '-i',
-            d.path,
-            '--no-major-versions',
-          ]);
+          await runner.run(['deps', '-i', d.path, '--no-major-versions']);
         });
       });
 
-      test('- should init DoUpgradeDependencies with default params', () {
-        expect(() => DoUpgradeDependencies(ggLog: ggLog), returnsNormally);
+      test('- should init DoUpgradeDeps with default params', () {
+        expect(() => DoUpgradeDeps(ggLog: ggLog), returnsNormally);
       });
     });
   });
 
   // #########################################################################
-  group('MockDoUpgradeDependencies', () {
+  group('MockDoUpgradeDeps', () {
     group('mockExec', () {
       group('should mock exec', () {
         test('with ggLog', () async {
-          final didUpgrade = MockDoUpgradeDependencies();
+          final didUpgrade = MockDoUpgradeDeps();
           didUpgrade.mockExec(
             result: null,
             directory: d,
@@ -279,11 +274,11 @@ void main() {
             majorVersions: true,
           );
 
-          expect(messages[0], contains('✓ DoUpgradeDependencies'));
+          expect(messages[0], contains('✓ DoUpgradeDeps'));
         });
 
         test('without ggLog', () async {
-          final didUpgrade = MockDoUpgradeDependencies();
+          final didUpgrade = MockDoUpgradeDeps();
           didUpgrade.mockExec(
             result: null,
             directory: d,
@@ -305,7 +300,7 @@ void main() {
     group('mockGet', () {
       group('should mock get', () {
         test('with ggLog', () async {
-          final didUpgrade = MockDoUpgradeDependencies();
+          final didUpgrade = MockDoUpgradeDeps();
           didUpgrade.mockGet(
             result: null,
             directory: d,
@@ -315,11 +310,11 @@ void main() {
 
           await didUpgrade.get(directory: d, ggLog: ggLog, majorVersions: true);
 
-          expect(messages[0], contains('✓ DoUpgradeDependencies'));
+          expect(messages[0], contains('✓ DoUpgradeDeps'));
         });
 
         test('without ggLog', () async {
-          final didUpgrade = MockDoUpgradeDependencies();
+          final didUpgrade = MockDoUpgradeDeps();
           didUpgrade.mockGet(
             result: null,
             directory: d,
