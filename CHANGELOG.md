@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.8.0 - 2026-08-04
+
+### Changed
+
+- Keep published repos editable in tickets
+
 ## 12.7.2 - 2026-08-04
 
 ### Added

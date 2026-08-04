@@ -478,6 +478,13 @@ void main() {
                           isTrue,
                         );
 
+                        expect(
+                          await DidPublish(
+                            ggLog: ggLog,
+                          ).get(directory: d, ggLog: ggLog),
+                          isTrue,
+                        );
+
                         // Did the publish wait for the version to become
                         // visible on the registry?
                         verify(
@@ -1163,27 +1170,44 @@ void main() {
             },
           );
 
-          test('deletes a leftover pubspec_overrides.yaml', () async {
-            mockPublishIsSuccessful(success: true, askBeforePublishing: false);
-
-            final overrides = File(join(d.path, 'pubspec_overrides.yaml'))
-              ..writeAsStringSync(
-                'dependency_overrides:\n  gg_log:\n    path: ../gg_log',
+          test(
+            'backs up and deletes a leftover pubspec_overrides.yaml',
+            () async {
+              mockPublishIsSuccessful(
+                success: true,
+                askBeforePublishing: false,
               );
 
-            await doPublish.exec(
-              directory: d,
-              ggLog: ggLog,
-              askBeforePublishing: false,
-              deleteFeatureBranch: false,
-            );
+              final overrides = File(join(d.path, 'pubspec_overrides.yaml'))
+                ..writeAsStringSync(
+                  'dependency_overrides:\n  gg_log:\n    path: ../gg_log',
+                );
 
-            expect(overrides.existsSync(), isFalse);
-            expect(
-              messages.join('\n'),
-              contains('Deleted pubspec_overrides.yaml.'),
-            );
-          });
+              await doPublish.exec(
+                directory: d,
+                ggLog: ggLog,
+                askBeforePublishing: false,
+                deleteFeatureBranch: false,
+              );
+
+              expect(overrides.existsSync(), isFalse);
+              // The multi-repo flow restores the file from the backup after
+              // the merge, so the repo stays wired to its sibling checkouts.
+              expect(
+                File(
+                  join(d.path, pubspecOverridesBackupPath),
+                ).readAsStringSync(),
+                'dependency_overrides:\n  gg_log:\n    path: ../gg_log',
+              );
+              expect(
+                messages.join('\n'),
+                contains(
+                  'Saved pubspec_overrides.yaml to '
+                  '$pubspecOverridesBackupPath and deleted it.',
+                ),
+              );
+            },
+          );
 
           test(
             'skips the delete when the remote branch is already gone',
@@ -3364,6 +3388,13 @@ void main() {
           ),
         );
         expect(await tagsOf(d), isEmpty);
+
+        // A merge released nothing, so the merged state is not marked
+        // published.
+        expect(
+          await DidPublish(ggLog: ggLog).get(directory: d, ggLog: ggLog),
+          isFalse,
+        );
 
         final allMessages = messages.join('\n');
         expect(allMessages, contains('not increasing the version'));

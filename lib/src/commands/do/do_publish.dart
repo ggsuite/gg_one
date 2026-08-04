@@ -131,6 +131,11 @@ class DoPublish extends DirCommand<void> {
   /// »gg did commit«, e.g. in CI).
   final String stateKeyDoCommit = 'doCommit';
 
+  /// The key used to save the "this state is published" state (read back by
+  /// »gg did publish« and by the multi-repo flow, which uses it to tell
+  /// released repos from ones that still carry unpublished work).
+  final String stateKeyDidPublish = 'didPublish';
+
   @override
   Future<void> exec({
     required Directory directory,
@@ -566,6 +571,13 @@ class DoPublish extends DirCommand<void> {
     // the main branch. Record it as »doCommit« too, so a later »gg did commit«
     // accepts the merge commit instead of rejecting it.
     await _state.writeSuccess(directory: directory, key: stateKeyDoCommit);
+
+    // Record the merged state as published, so »gg did publish« answers yes
+    // for exactly this content. A merge-only run records nothing — it
+    // releases nothing, so marking it published would be a lie.
+    if (!isMergeOnly) {
+      await _state.writeSuccess(directory: directory, key: stateKeyDidPublish);
+    }
 
     // In the pull-request flow the provider already updated main when it
     // merged the PR, so skip the direct main push there.
@@ -1288,6 +1300,11 @@ class DoPublish extends DirCommand<void> {
   /// Deletes a `pubspec_overrides.yaml` left over from local development, so
   /// the package is published against the versions on pub.dev instead of the
   /// developer's working copies. Does nothing when there is none.
+  ///
+  /// The file is saved to [pubspecOverridesBackupPath] first: the multi-repo
+  /// flow restores it once the merge into the main branch is through, so the
+  /// repository keeps resolving against its sibling checkouts after the
+  /// publish.
   void _deletePubspecOverrides({
     required Directory directory,
     required GgLog ggLog,
@@ -1297,8 +1314,14 @@ class DoPublish extends DirCommand<void> {
       return;
     }
 
+    backupPubspecOverrides(directory);
     file.deleteSync();
-    ggLog(cDetail('Deleted ${NoPubspecOverrides.fileName}.'));
+    ggLog(
+      cDetail(
+        'Saved ${NoPubspecOverrides.fileName} to '
+        '$pubspecOverridesBackupPath and deleted it.',
+      ),
+    );
   }
 
   /// Returns whether [branchName] still exists on the remote. A failing

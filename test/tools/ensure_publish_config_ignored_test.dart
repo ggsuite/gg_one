@@ -55,7 +55,7 @@ void main() {
   }
 
   group('EnsurePublishConfigIgnored', () {
-    test('creates .gitignore with the entry and commits it', () async {
+    test('creates .gitignore with the entries and commits it', () async {
       // The bare constructor also exercises the default GgState +
       // GgProcessWrapper dependencies.
       final ensure = EnsurePublishConfigIgnored(ggLog: ggLog);
@@ -64,11 +64,20 @@ void main() {
 
       expect(changed, isTrue);
       final content = File(join(d.path, '.gitignore')).readAsStringSync();
-      expect(content, '.gg/gg-publish.json\n');
+      expect(
+        content,
+        '.gg/gg-publish.json\n.gg/pubspec_overrides_backup.yaml\n',
+      );
       // The change was committed — the working tree is clean again.
       expect(await gitStatus(), isEmpty);
-      expect(await headMessage(), contains('Ignore .gg/gg-publish.json'));
-      expect(messages, contains('Added .gg/gg-publish.json to .gitignore.'));
+      expect(await headMessage(), contains('Ignore the publish runtime files'));
+      expect(
+        messages,
+        contains(
+          'Added .gg/gg-publish.json, .gg/pubspec_overrides_backup.yaml '
+          'to .gitignore.',
+        ),
+      );
     });
 
     test(
@@ -82,12 +91,32 @@ void main() {
         final changed = await ensure.ensure(directory: d);
 
         expect(changed, isTrue);
-        expect(gitignore.readAsStringSync(), 'build/\n.gg/gg-publish.json\n');
+        expect(
+          gitignore.readAsStringSync(),
+          'build/\n'
+          '.gg/gg-publish.json\n'
+          '.gg/pubspec_overrides_backup.yaml\n',
+        );
         expect(await gitStatus(), isEmpty);
       },
     );
 
-    test('is a no-op when the entry is already present', () async {
+    test('appends only the entries that are missing', () async {
+      final gitignore = File(join(d.path, '.gitignore'));
+      gitignore.writeAsStringSync('.gg/gg-publish.json\n');
+      await commitFile(d, '.gitignore');
+
+      final ensure = EnsurePublishConfigIgnored(ggLog: ggLog);
+      final changed = await ensure.ensure(directory: d);
+
+      expect(changed, isTrue);
+      expect(
+        gitignore.readAsStringSync(),
+        '.gg/gg-publish.json\n.gg/pubspec_overrides_backup.yaml\n',
+      );
+    });
+
+    test('is a no-op when the entries are already present', () async {
       final ensure = EnsurePublishConfigIgnored(ggLog: ggLog);
       await ensure.ensure(directory: d);
       final headBefore = await headMessage();
