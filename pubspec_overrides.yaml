@@ -9,3 +9,5 @@ dependency_overrides:
     path: ../gg_one_commit
   gg_one_merge:
     path: ../gg_one_merge
+  gg_one_do_publish:
+    path: ../gg_one_do_publish

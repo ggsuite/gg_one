@@ -7,9 +7,9 @@
 import 'package:args/command_runner.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_one/src/commands/do/create.dart';
-import 'package:gg_one/src/commands/do/do_publish.dart';
 import 'package:gg_one/src/commands/do/do_upgrade.dart';
 import 'package:gg_one_commit/gg_one_commit.dart';
+import 'package:gg_one_do_publish/gg_one_do_publish.dart';
 
 // .............................................................................
 /// Various checks for the source code

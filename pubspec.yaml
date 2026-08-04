@@ -36,6 +36,7 @@ dependencies:
   gg_merge: ^2.1.1
   gg_one_checks: ^1.0.0
   gg_one_commit: ^1.0.0
+  gg_one_do_publish: ^1.0.0
   gg_one_merge: ^1.0.0
   gg_one_publish_config: ^1.0.0
   gg_one_state: ^1.0.0

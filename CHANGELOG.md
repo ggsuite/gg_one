@@ -9,6 +9,7 @@
 - Extract PublishConfig, VersionSelector, terminal guard, EnsurePublishConfigIgnored and DoConfigurePublish into the new gg_one_publish_config package
 - Extract the commit, push, upgrade and ticket flows into the new gg_one_commit package
 - Extract MergeFlow, CreatePullRequest, lock files helper and CanMerge into the new gg_one_merge package
+- Extract DoPublish, CanPublish, DidPublish and the version tag tools into the new gg_one_do_publish package
 
 ### Removed
 
