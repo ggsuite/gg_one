@@ -3,3 +3,5 @@ dependency_overrides:
     path: ../gg_one_state
   gg_one_checks:
     path: ../gg_one_checks
+  gg_one_publish_config:
+    path: ../gg_one_publish_config

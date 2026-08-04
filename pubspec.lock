@@ -264,6 +264,13 @@ packages:
       relative: true
     source: path
     version: "1.0.0"
+  gg_one_publish_config:
+    dependency: "direct main"
+    description:
+      path: "../gg_one_publish_config"
+      relative: true
+    source: path
+    version: "1.0.0"
   gg_one_state:
     dependency: "direct main"
     description:
