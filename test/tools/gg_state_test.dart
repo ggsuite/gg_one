@@ -24,24 +24,28 @@ void main() {
   late ModifiedFiles modifiedFiles;
 
   // ...........................................................................
-  Future<void> initCommand() async {
-    ggState = GgState(ggLog: messages.add);
-    await initGit(dLocal);
-  }
-
-  // ...........................................................................
   setUp(() async {
     messages.clear();
     dLocal = await initTestDir();
     dRemote = await initTestDir();
 
-    await initGit(dLocal, isEolLfEnabled: false);
-    await initRemoteGit(dRemote);
+    await initCachedRepo(
+      dLocal,
+      key: 'gg_state_local',
+      build: (repo) async {
+        await initGit(repo, isEolLfEnabled: false);
 
-    await initCommand();
-    await addPubspecFileWithoutCommitting(dLocal, version: '1.0.0');
-    await commitPubspecFile(dLocal);
+        // The former initCommand() called initGit a second time which
+        // commits a .gitattributes file - keep the recipe verbatim so the
+        // commit counts stay the same.
+        await initGit(repo);
+        await addPubspecFileWithoutCommitting(repo, version: '1.0.0');
+        await commitPubspecFile(repo);
+      },
+    );
+    await initCachedRepo(dRemote, key: 'gg_state_remote', build: initRemoteGit);
 
+    ggState = GgState(ggLog: messages.add);
     commitCount = CommitCount(ggLog: messages.add);
     modifiedFiles = ModifiedFiles(ggLog: messages.add);
   });

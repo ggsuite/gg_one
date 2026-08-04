@@ -86,27 +86,33 @@ void main() {
   setUp(() async {
     messages.clear();
     d = await Directory.systemTemp.createTemp();
-    await initGit(d);
-
-    // »gg do commit« refuses to run on the default branch
-    await createBranch(d, 'feature');
-
-    await addAndCommitSampleFile(d);
-
-    // Insert CHANGELOG.md
-    await addAndCommitSampleFile(
+    await initCachedRepo(
       d,
-      fileName: 'CHANGELOG.md',
-      content: '# Changelog',
-    );
+      key: 'do_commit_base',
+      build: (repo) async {
+        await initGit(repo);
 
-    // Insert pubspec.yaml
-    await addAndCommitSampleFile(
-      d,
-      fileName: 'pubspec.yaml',
-      content:
-          'version: 1.0.0\n'
-          'repository:https://github.com/inlavigo/gg.git',
+        // »gg do commit« refuses to run on the default branch
+        await createBranch(repo, 'feature');
+
+        await addAndCommitSampleFile(repo);
+
+        // Insert CHANGELOG.md
+        await addAndCommitSampleFile(
+          repo,
+          fileName: 'CHANGELOG.md',
+          content: '# Changelog',
+        );
+
+        // Insert pubspec.yaml
+        await addAndCommitSampleFile(
+          repo,
+          fileName: 'pubspec.yaml',
+          content:
+              'version: 1.0.0\n'
+              'repository:https://github.com/inlavigo/gg.git',
+        );
+      },
     );
 
     // Mock stuff
@@ -608,22 +614,29 @@ void main() {
         });
       });
 
-      group('when the repo lies inside the ».master« folder', () {
+      group('when the repo lies inside the ».ocean« folder', () {
         late Directory workspace;
         late Directory repo;
 
         setUp(() async {
-          // The master workspace mirrors the repos as .master/<org>/<repo>
+          // The ocean mirrors the repos as .ocean/<org>/<repo>
           workspace = await Directory.systemTemp.createTemp();
           repo = Directory(
-            path.join(workspace.path, '.master', 'ggsuite', 'gg_one'),
+            path.join(workspace.path, '.ocean', 'ggsuite', 'gg_one'),
           );
           await repo.create(recursive: true);
-          await initGit(repo);
+          await initCachedRepo(
+            repo,
+            key: 'do_commit_ocean',
+            build: (r) async {
+              await initGit(r);
 
-          // Not even a feature branch makes the master folder committable
-          await createBranch(repo, 'feature');
-          await addAndCommitSampleFile(repo);
+              // Not even a feature branch makes the ocean folder
+              // committable
+              await createBranch(r, 'feature');
+              await addAndCommitSampleFile(r);
+            },
+          );
           await addFileWithoutCommitting(repo);
         });
 
@@ -646,7 +659,7 @@ void main() {
           }
 
           expect(exception, contains('gg do commit'));
-          expect(exception, contains('».master«'));
+          expect(exception, contains('».ocean«'));
           expect(exception, contains('gg do checkout <ticket>'));
           expect(exception, contains('gg do commit --force'));
 

@@ -55,12 +55,31 @@ void main() async {
 
   // ...........................................................................
   setUp(() async {
-    (dLocal, dRemote) = await initLocalAndRemoteGit();
-    await enableEolLf(dLocal);
+    (dLocal, dRemote) = await initCachedRepoPair(
+      key: 'do_push_base',
+      build: (local, remote) async {
+        await initLocalGit(local);
+        await initRemoteGit(remote);
+        await addRemoteToLocal(local: local, remote: remote);
+        await enableEolLf(local);
 
-    await addAndCommitPubspecFile(dLocal);
-    await addAndCommitSampleFile(dLocal);
-    await pushLocalChanges(dLocal);
+        await addAndCommitPubspecFile(local);
+        await addAndCommitSampleFile(local);
+        await pushLocalChanges(local);
+
+        // Init pubspec.yaml
+        await File(
+          join(local.path, 'pubspec.yaml'),
+        ).writeAsString('version: 1.0.0\nrepository: https://foo.com');
+        await commitFile(local, 'pubspec.yaml');
+
+        // Init CHANGELOG.md
+        await File(
+          join(local.path, 'CHANGELOG.md'),
+        ).writeAsString('# Changelog');
+        await commitFile(local, 'CHANGELOG.md');
+      },
+    );
     registerFallbackValue(dLocal);
 
     canPush = MockCanPush();
@@ -85,16 +104,6 @@ void main() async {
     );
     isPushed = IsPushed(ggLog: ggLog);
     ggJson = File(join(dLocal.path, '.gg', 'gg.json'));
-
-    // Init pubspec.yaml
-    await File(
-      join(dLocal.path, 'pubspec.yaml'),
-    ).writeAsString('version: 1.0.0\nrepository: https://foo.com');
-    await commitFile(dLocal, 'pubspec.yaml');
-
-    // Init CHANGELOG.md
-    await File(join(dLocal.path, 'CHANGELOG.md')).writeAsString('# Changelog');
-    await commitFile(dLocal, 'CHANGELOG.md');
   });
 
   // ...........................................................................

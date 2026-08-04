@@ -5,6 +5,32 @@
 ### Changed
 
 - Improve push and publish workflow
+## 12.6.1 - 2026-08-04
+
+### Added
+
+- Add cached repo test helpers (initCachedRepo, initCachedRepoPair, initCachedGit, initCachedLocalAndRemoteGit); move pushLocalChangesUpstream from gg_one to gg_git; fix stale emoji expectations from gg_status_printer 1.4.2
+
+### Changed
+
+- Merge origin/main and tighten dependency constraints (dart pub upgrade --tighten)
+
+### Fixed
+
+- Migrate slow git-fixture suites to gg_git cached repo helpers (do_publish -43%, full run -36%)
+
+## 12.6.0 - 2026-08-04
+
+### Changed
+
+- Rename .master to .ocean with automatic migration at next start
+- Rename ocean workspace -> ocean
+
+## 12.5.5 - 2026-08-04
+
+### Changed
+
+- Finetune command line output
 
 ## 12.5.4 - 2026-08-03
 

@@ -213,10 +213,10 @@ packages:
     dependency: "direct main"
     description:
       name: gg_git
-      sha256: "8333a25884135b3a9d9bb7370ced70cff67a93caa931dbe42492c2a20fa65394"
+      sha256: "24186fc47fb915f8528bac4c2e7770fcba42f0ff1e76365ce987e607c8aaf173"
       url: "https://pub.dev"
     source: hosted
-    version: "3.2.1"
+    version: "3.2.2"
   gg_hash:
     dependency: transitive
     description:
@@ -245,10 +245,10 @@ packages:
     dependency: "direct main"
     description:
       name: gg_lang
-      sha256: "5e796716d119b946c8811de243bd62d4a9e6d959250e0a69d512f74613c043cf"
+      sha256: "99cc285100285ba8fc65c6f5a61afd176fbfd07856cfd2df4725f8f14e314d3e"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.3"
+    version: "0.4.0"
   gg_log:
     dependency: "direct main"
     description:
@@ -261,10 +261,10 @@ packages:
     dependency: "direct main"
     description:
       name: gg_merge
-      sha256: "0e17a22cbe473766f4d74f49ba93acc4931ff39279e5d15b061aaf823e63bc33"
+      sha256: c79bc64baef58ef49528a6188df3428bcfed59ee1f33cf5711f6815d0e32ff1a
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.3"
+    version: "2.1.1"
   gg_process:
     dependency: "direct main"
     description:
@@ -285,10 +285,10 @@ packages:
     dependency: "direct main"
     description:
       name: gg_publish
-      sha256: "7c99e05a30f6e39aab973e27c60177797278e8fc71a537cc5d5cbc115d93e42b"
+      sha256: "88df2d2f2b5450409b056bc09bbcbb176bb2875ee954926bb0731dbc2b12e2ba"
       url: "https://pub.dev"
     source: hosted
-    version: "3.9.4"
+    version: "3.10.1"
   gg_status_printer:
     dependency: "direct main"
     description:
@@ -301,18 +301,18 @@ packages:
     dependency: "direct main"
     description:
       name: gg_test
-      sha256: "46fb43aa9b93e02aa951ed7d602f84c2cfc7052e11fed7128a775ab0e7e09cdc"
+      sha256: "47548ab67a8d8c00a92eb2be0b2cf34959ff6db9f289e59aa4dfd6994b28c75e"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.2"
+    version: "2.4.0"
   gg_version:
     dependency: "direct main"
     description:
       name: gg_version
-      sha256: bac5841f20991227bed6bad115bea02b557d2b32ed89b97c411937a305df23e4
+      sha256: bb0c4b86c73803780cfa766bf2784c62dbdc214e0bd02e3068bb627d241c9e4b
       url: "https://pub.dev"
     source: hosted
-    version: "4.5.1"
+    version: "4.6.1"
   glob:
     dependency: transitive
     description:

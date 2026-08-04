@@ -52,6 +52,7 @@ class Pana extends DirCommand<void> {
       GgStatusPrinter<void>(
         ggLog: ggLog,
         message: 'Skipping pana (no project manifest)',
+        dark: true,
       ).logStatus(GgStatusPrinterStatus.success);
       return;
     }
@@ -74,6 +75,7 @@ class Pana extends DirCommand<void> {
     final statusPrinter = GgStatusPrinter<ProcessResult>(
       ggLog: ggLog,
       message: 'Running pana',
+      dark: true,
     );
 
     // Announce the command
