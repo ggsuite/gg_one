@@ -6,7 +6,9 @@
 
 import 'package:args/command_runner.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/commands/can/can_commit.dart';
+import 'package:gg_one/src/commands/can/can_publish.dart';
+import 'package:gg_one/src/commands/can/can_push.dart';
 
 // .............................................................................
 /// Various checks for the source code

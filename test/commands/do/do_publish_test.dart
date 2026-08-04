@@ -45,7 +45,6 @@ void main() {
   late DoPublish doPublish;
   late CanPublish canPublish;
   late PublishedVersion publishedVersion;
-  late IsVersionPrepared isVersionPrepared;
   late VersionSelector versionSelector;
   late MockGgProcessWrapper processWrapper;
   late MockLocalBranch localBranch;
@@ -364,12 +363,7 @@ void main() {
 
     publishedVersion = MockPublishedVersion();
 
-    isVersionPrepared = IsVersionPrepared(
-      ggLog: ggLog,
-      publishedVersion: publishedVersion,
-    );
-
-    canPublish = CanPublish(ggLog: ggLog, isVersionPrepared: isVersionPrepared);
+    canPublish = CanPublish(ggLog: ggLog);
     mockPublishedVersion();
 
     versionSelector = MockVersionSelector();

@@ -8,7 +8,10 @@ import 'dart:io';
 
 import 'package:path/path.dart';
 
-import '../commands/check/no_pubspec_overrides.dart';
+/// Name of the pubspec overrides file. The name is fixed by the Dart SDK,
+/// which is why this constant does not need to be shared with
+/// `NoPubspecOverrides.fileName`.
+const String pubspecOverridesFileName = 'pubspec_overrides.yaml';
 
 /// Where a publish keeps the `pubspec_overrides.yaml` it has to delete.
 ///
@@ -48,7 +51,7 @@ const String _pnpmWorkspaceFileName = 'pnpm-workspace.yaml';
 bool backupPubspecOverrides(Directory directory) {
   final savedOverrides = _backup(
     directory,
-    NoPubspecOverrides.fileName,
+    pubspecOverridesFileName,
     pubspecOverridesBackupPath,
   );
   final savedPnpm = _backup(
@@ -73,7 +76,7 @@ bool restorePubspecOverrides(Directory directory) {
   final restoredOverrides = _restore(
     directory,
     pubspecOverridesBackupPath,
-    NoPubspecOverrides.fileName,
+    pubspecOverridesFileName,
   );
   final restoredPnpm = _restore(
     directory,

@@ -8,7 +8,8 @@ import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/tools/checks.dart';
+import 'package:gg_one/src/tools/command_cluster.dart';
 import 'package:matcher/expect.dart';
 import 'package:mocktail/mocktail.dart';
 

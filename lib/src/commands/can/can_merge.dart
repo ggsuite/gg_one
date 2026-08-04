@@ -6,7 +6,8 @@
 
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/commands/did/did_commit.dart';
+import 'package:gg_one/src/tools/command_cluster.dart';
 
 /// Are the last changes ready to be merged?
 class CanMerge extends CommandCluster {

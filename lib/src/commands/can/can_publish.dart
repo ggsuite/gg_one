@@ -6,7 +6,12 @@
 
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_changelog/gg_changelog.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/commands/check/no_pubspec_overrides.dart';
+import 'package:gg_one/src/commands/check/npm_logged_in.dart';
+import 'package:gg_one/src/commands/check/pana.dart';
+import 'package:gg_one/src/commands/check/pub_get_offline.dart';
+import 'package:gg_one/src/commands/did/did_commit.dart';
+import 'package:gg_one/src/tools/command_cluster.dart';
 import 'package:gg_publish/gg_publish.dart';
 
 /// Are the last changes ready to be published?
@@ -19,7 +24,6 @@ class CanPublish extends CommandCluster {
     super.shortDescription = 'Can publish?',
     super.stateKey = 'canPublish',
     DidCommit? didCommit,
-    IsVersionPrepared? isVersionPrepared,
     Pana? pana,
     HasRightFormat? changeLogHasRightFormat,
     IsFeatureBranch? isFeatureBranch,

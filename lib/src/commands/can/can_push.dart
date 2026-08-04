@@ -6,7 +6,9 @@
 
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/commands/can/can_commit.dart';
+import 'package:gg_one/src/tools/checks.dart';
+import 'package:gg_one/src/tools/command_cluster.dart';
 
 /// Are the last changes ready for »git push«?
 class CanPush extends CommandCluster {

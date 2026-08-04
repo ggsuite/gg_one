@@ -5,7 +5,7 @@
 // found in the LICENSE file in the root of this package.
 
 import 'package:gg_args/gg_args.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/tools/command_cluster.dart';
 import 'package:gg_publish/gg_publish.dart';
 
 /// Are the current changes ready for checking out a new branch?

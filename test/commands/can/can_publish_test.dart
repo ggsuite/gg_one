@@ -85,7 +85,6 @@ void main() {
       pana: pana,
       npmLoggedIn: npmLoggedIn,
       didCommit: didCommit,
-      isVersionPrepared: isVersionPrepared,
       pubGetOffline: pubGetOffline,
     );
     d = Directory.systemTemp.createTempSync();

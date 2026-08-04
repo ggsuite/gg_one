@@ -61,7 +61,6 @@ export 'src/gg.dart';
 export 'src/tools/add_git_only_version_tag.dart';
 export 'src/tools/add_typescript_version_tag.dart';
 export 'src/tools/analyzer.dart';
-export 'src/tools/carriage_return.dart';
 export 'src/tools/checks.dart';
 export 'src/tools/command_cluster.dart';
 export 'src/tools/create_pull_request.dart';

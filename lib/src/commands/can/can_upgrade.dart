@@ -5,14 +5,13 @@
 // found in the LICENSE file in the root of this package.
 
 import 'package:gg_args/gg_args.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/tools/command_cluster.dart';
 
 /// Is the package ready to get a dependeny upgrade?
 class CanUpgrade extends CommandCluster {
   /// Constructor
   CanUpgrade({
     required super.ggLog,
-    Checks? checkCommands,
     super.name = 'upgrade',
     super.shortDescription = 'Can upgrade?',
     super.description = 'Check if this repo can be upgraded',

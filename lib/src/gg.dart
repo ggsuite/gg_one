@@ -6,7 +6,10 @@
 
 import 'package:args/command_runner.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/commands/can.dart';
+import 'package:gg_one/src/commands/did.dart';
+import 'package:gg_one/src/commands/do.dart';
+import 'package:gg_one/src/commands/info.dart';
 import 'package:gg_process/gg_process.dart';
 
 /// The command line interface for gg_one

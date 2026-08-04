@@ -12,7 +12,7 @@ import 'package:gg_args/gg_args.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_git/gg_git.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one/src/commands/can/can_checkout.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:path/path.dart' as path;

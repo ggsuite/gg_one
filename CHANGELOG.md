@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Removed
+
+- Decouple internals from the gg_one barrel; remove dead code and unused dependencies
+
 ## 12.9.0 - 2026-08-04
 
 ### Changed
