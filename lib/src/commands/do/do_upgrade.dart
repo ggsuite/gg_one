@@ -34,12 +34,12 @@ class DoUpgrade extends Command<void> {
 /// Dependencies for the do upgrade command.
 class DepsOfDoUpgrade {
   /// Constructor.
-  DepsOfDoUpgrade({required this.ggLog, DoUpgradeDependencies? dependencies})
-    : dependencies = dependencies ?? DoUpgradeDependencies(ggLog: ggLog);
+  DepsOfDoUpgrade({required this.ggLog, DoUpgradeDeps? dependencies})
+    : dependencies = dependencies ?? DoUpgradeDeps(ggLog: ggLog);
 
   /// The log function.
   final GgLog ggLog;
 
   /// The upgrade dependencies command.
-  final DoUpgradeDependencies dependencies;
+  final DoUpgradeDeps dependencies;
 }

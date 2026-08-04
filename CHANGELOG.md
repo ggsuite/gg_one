@@ -1,5 +1,12 @@
 # Changelog
 
+## 12.7.0 - 2026-08-04
+
+### Changed
+
+- Improve push and publish workflow
+- Rename »gg one do upgrade dependencies« into Rename
+
 ## 12.6.1 - 2026-08-04
 
 ### Added

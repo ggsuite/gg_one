@@ -15,23 +15,24 @@ import 'package:gg_status_printer/gg_status_printer.dart';
 import 'package:matcher/expect.dart';
 import 'package:mocktail/mocktail.dart';
 
-/// Upgrades all dependencies of the package
-class DoUpgradeDependencies extends DirCommand<void> {
+/// Upgrades all dependencies of the package via
+/// »dart pub upgrade [--major-versions] --tighten«.
+///
+/// The upgrade itself runs no checks — the flows that call it (`gg do push`,
+/// `gg do publish`) run `gg can commit` right afterwards, so validating here
+/// would only duplicate that step.
+class DoUpgradeDeps extends DirCommand<void> {
   /// Constructor
-  DoUpgradeDependencies({
+  DoUpgradeDeps({
     required super.ggLog,
-    super.name = 'dependencies',
+    super.name = 'deps',
     super.description = 'Upgrade all dependencies of this repo',
     GgState? state,
-    DidUpgradeDependencies? didUpgrade,
     CanUpgrade? canUpgrade,
     GgProcessWrapper processWrapper = const GgProcessWrapper(),
-    CanCommit? canCommit,
   }) : _state = state ?? GgState(ggLog: ggLog),
        _processWrapper = processWrapper,
-       _didUpgrade = didUpgrade ?? DidUpgradeDependencies(ggLog: ggLog),
-       _canUpgrade = canUpgrade ?? CanUpgrade(ggLog: ggLog),
-       _canCommit = canCommit ?? CanCommit(ggLog: ggLog) {
+       _canUpgrade = canUpgrade ?? CanUpgrade(ggLog: ggLog) {
     _addParam();
   }
 
@@ -52,21 +53,15 @@ class DoUpgradeDependencies extends DirCommand<void> {
   }) async {
     majorVersions ??= _majorVersionsFromArgs;
 
-    // Use this log method to supress logs.
-    void noLog(_) {} // coverage:ignore-line
-
     // Does directory exist?
     await check(directory: directory);
 
-    // Is already upgraded?
-    final isDone = await _didUpgrade.get(
-      directory: directory,
-      ggLog: noLog,
-      majorVersions: majorVersions,
-    );
-
-    if (isDone) {
-      ggLog(cDetail('Everything is already up to date.'));
+    // Without a pubspec.yaml there are no pub dependencies to upgrade.
+    // The ticket-wide caller also visits TypeScript repos, where
+    // »dart pub upgrade« would fail.
+    final pubspec = File('${directory.path}/pubspec.yaml');
+    if (!pubspec.existsSync()) {
+      ggLog(cDetail('No pubspec.yaml — nothing to upgrade.'));
       return;
     }
 
@@ -79,42 +74,22 @@ class DoUpgradeDependencies extends DirCommand<void> {
       ggLog: ggLog,
     );
 
-    // Perform the upgrade
+    // Perform the upgrade. Runs unconditionally: a versions-only check would
+    // skip »--tighten« exactly when the bounds are loose but the versions are
+    // current.
     await _runDartPubUpgrade(
       directory: directory,
       majorVersions: majorVersions,
     );
 
-    // Check if everything is still running after the update
-    try {
-      await _canCommit.exec(
-        directory: directory,
-        ggLog: ggLog,
-        force: true, // Checks need to be done, even if if nothing has changed
-      );
-    }
-    // When not everything is running, reset success sate
-    catch (e) {
-      await _state.reset(directory: directory);
-      throw Exception(
-        cError(
-          cError(
-            'After the update tests are not running anymore. '
-            'Please run ${cCmd('»gg can commit«')} and try again.',
-          ),
-        ),
-      );
-    }
-
-    // If nothing has changed, return
+    // Tell the user whether the upgrade changed anything.
     final hashAfter = await _state.currentHash(
       directory: directory,
       ggLog: ggLog,
     );
 
     if (hashBefore == hashAfter) {
-      ggLog(cDetail('No changes after the upgrade.'));
-      return;
+      ggLog(cDetail('Everything is already up to date.'));
     }
   }
 
@@ -128,9 +103,7 @@ class DoUpgradeDependencies extends DirCommand<void> {
   // ...........................................................................
   final GgState _state;
   final GgProcessWrapper _processWrapper;
-  final DidUpgradeDependencies _didUpgrade;
   final CanUpgrade _canUpgrade;
-  final CanCommit _canCommit;
 
   // ...........................................................................
   void _addParam() {
@@ -138,8 +111,8 @@ class DoUpgradeDependencies extends DirCommand<void> {
       'major-versions',
       abbr: 'm',
       help: 'Upgrade packages to their latest versions',
-      defaultsTo: false,
-      negatable: false,
+      defaultsTo: true,
+      negatable: true,
     );
   }
 
@@ -149,11 +122,17 @@ class DoUpgradeDependencies extends DirCommand<void> {
     required Directory directory,
     required bool majorVersions,
   }) async {
-    final args = ['pub', 'upgrade', if (majorVersions) '--major-versions'];
+    final args = [
+      'pub',
+      'upgrade',
+      if (majorVersions) '--major-versions',
+      '--tighten',
+    ];
 
     await GgStatusPrinter<bool>(
       message: 'Run »dart ${args.join(' ')}«',
       ggLog: ggLog,
+      dark: true,
     ).logTask(
       task: () async {
         final result = await _processWrapper.run(
@@ -176,14 +155,13 @@ class DoUpgradeDependencies extends DirCommand<void> {
 
   // ...........................................................................
   bool get _majorVersionsFromArgs {
-    final majorVersions = argResults?['major-versions'] as bool? ?? false;
+    final majorVersions = argResults?['major-versions'] as bool? ?? true;
     return majorVersions;
   }
 }
 
-/// Mock for [DoUpgradeDependencies].
-class MockDoUpgradeDependencies extends MockDirCommand<void>
-    implements DoUpgradeDependencies {
+/// Mock for [DoUpgradeDeps].
+class MockDoUpgradeDeps extends MockDirCommand<void> implements DoUpgradeDeps {
   // ...........................................................................
   /// Makes [exec] successful or not
   @override
