@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 12.7.2 - 2026-08-04
 
 ### Added
 
@@ -12,6 +12,7 @@ pubspec.yaml version does not match
 ### Changed
 
 - Fix issues with CHANGELOG.md
+
 ## 12.7.1 - 2026-08-04
 
 ### Removed
