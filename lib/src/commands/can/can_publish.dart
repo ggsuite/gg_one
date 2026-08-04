@@ -4,9 +4,9 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_changelog/gg_changelog.dart';
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_publish/gg_publish.dart';
 
 /// Are the last changes ready to be published?

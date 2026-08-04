@@ -6,13 +6,13 @@
 
 import 'dart:io';
 
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
-import 'package:mocktail/mocktail.dart' as mocktail;
+import 'package:gg_one/gg_one.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart' as gg_publish;
+import 'package:mocktail/mocktail.dart' as mocktail;
 import 'package:path/path.dart' as p;
 
 /// Performs the merge operation.

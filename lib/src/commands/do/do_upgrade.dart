@@ -5,8 +5,8 @@
 // found in the LICENSE file in the root of this package.
 
 import 'package:args/command_runner.dart';
-import 'package:gg_one/gg_one.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/gg_one.dart';
 
 /// Groups the things a repository can upgrade.
 class DoUpgrade extends Command<void> {
@@ -34,12 +34,12 @@ class DoUpgrade extends Command<void> {
 /// Dependencies for the do upgrade command.
 class DepsOfDoUpgrade {
   /// Constructor.
-  DepsOfDoUpgrade({required this.ggLog, DoUpgradeDependencies? dependencies})
-    : dependencies = dependencies ?? DoUpgradeDependencies(ggLog: ggLog);
+  DepsOfDoUpgrade({required this.ggLog, DoUpgradeDeps? dependencies})
+    : dependencies = dependencies ?? DoUpgradeDeps(ggLog: ggLog);
 
   /// The log function.
   final GgLog ggLog;
 
   /// The upgrade dependencies command.
-  final DoUpgradeDependencies dependencies;
+  final DoUpgradeDeps dependencies;
 }

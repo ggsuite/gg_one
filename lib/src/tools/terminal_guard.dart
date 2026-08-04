@@ -1,4 +1,3 @@
-import 'package:gg_console_colors/gg_console_colors.dart';
 // @license
 // Copyright (c) 2025 Göran Hegenberg. All Rights Reserved.
 //
@@ -6,6 +5,8 @@ import 'package:gg_console_colors/gg_console_colors.dart';
 // found in the LICENSE file in the root of this package.
 
 import 'dart:io';
+
+import 'package:gg_console_colors/gg_console_colors.dart';
 
 /// Signature of the check whether stdin is attached to a terminal.
 typedef HasTerminal = bool Function();

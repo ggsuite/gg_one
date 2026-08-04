@@ -60,7 +60,7 @@ class AddGitOnlyVersionTag {
       directory: directory,
     );
     if (headVersion != null) {
-      ggLog('Version $headVersion tag already present.');
+      ggLog(cDetail('Version $headVersion tag already present.'));
       return;
     }
 
@@ -96,7 +96,7 @@ class AddGitOnlyVersionTag {
         ),
       );
     }
-    ggLog('Tag $version added.');
+    ggLog(cDetail('Tag $version added.'));
   }
 
   /// One status line per `exec`: `Tag <v> added.` or `… already present.`.

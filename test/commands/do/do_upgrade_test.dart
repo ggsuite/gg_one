@@ -26,21 +26,21 @@ void main() {
       expect(upgrade.description, 'Upgrade parts of the repository');
     });
 
-    test('offers the dependencies subcommand', () async {
+    test('offers the deps subcommand', () async {
       await capturePrint(
         ggLog: messages.add,
         code: () async => await runner.run(['upgrade', '--help']),
       );
 
-      expect(messages.join('\n'), contains('dependencies'));
+      expect(messages.join('\n'), contains('deps'));
     });
 
     test('takes the subcommands from the injected dependencies', () {
       final deps = DepsOfDoUpgrade(ggLog: messages.add);
       final upgrade = DoUpgrade(ggLog: messages.add, deps: deps);
 
-      expect(upgrade.subcommands.keys, contains('dependencies'));
-      expect(deps.dependencies.name, 'dependencies');
+      expect(upgrade.subcommands.keys, contains('deps'));
+      expect(deps.dependencies.name, 'deps');
     });
   });
 }

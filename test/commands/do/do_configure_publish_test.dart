@@ -43,12 +43,18 @@ void main() {
     messages.clear();
     capturedInitials.clear();
     d = await Directory.systemTemp.createTemp('configure_publish_');
-    await initLocalGit(d);
-    await enableEolLf(d);
-    await addAndCommitSampleFile(
+    await initCachedRepo(
       d,
-      fileName: 'pubspec.yaml',
-      content: 'name: test\nversion: 1.2.3\n',
+      key: 'configure_publish_base',
+      build: (repo) async {
+        await initLocalGit(repo);
+        await enableEolLf(repo);
+        await addAndCommitSampleFile(
+          repo,
+          fileName: 'pubspec.yaml',
+          content: 'name: test\nversion: 1.2.3\n',
+        );
+      },
     );
   });
 
@@ -103,7 +109,10 @@ void main() {
         // The runtime file was gitignored before it was written.
         final gitignore = File(join(d.path, '.gitignore')).readAsStringSync();
         expect(gitignore, contains('.gg/gg-publish.json'));
-        expect(messages, ['Added .gg/gg-publish.json to .gitignore.']);
+        expect(messages, [
+          'Added .gg/gg-publish.json, .gg/pubspec_overrides_backup.yaml, '
+              '.gg/pnpm_workspace_backup.yaml to .gitignore.',
+        ]);
       },
     );
 

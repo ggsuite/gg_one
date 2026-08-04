@@ -71,6 +71,7 @@ class DoPublish extends DirCommand<void> {
     FromPubspec? fromPubspec,
     IsPublished? isPublished,
     changelog.Release? release,
+    changelog.HasVersion? hasVersion,
     PublishTo? publishTo,
     MergeFlow? mergeFlow,
     PublishedVersion? publishedVersion,
@@ -107,6 +108,7 @@ class DoPublish extends DirCommand<void> {
            prepareNextVersion ?? PrepareNextVersion(ggLog: ggLog),
        _fromPubspec = fromPubspec ?? FromPubspec(ggLog: ggLog),
        _releaseChangelog = release ?? changelog.Release(ggLog: ggLog),
+       _hasVersion = hasVersion ?? changelog.HasVersion(ggLog: ggLog),
        _isPublished = isPublished ?? IsPublished(ggLog: ggLog),
        _publishTo = publishTo ?? PublishTo(ggLog: ggLog),
        _mergeFlow = mergeFlow ?? MergeFlow(ggLog: ggLog),
@@ -128,6 +130,11 @@ class DoPublish extends DirCommand<void> {
   /// The key used to save the "all changes committed" state (read back by
   /// »gg did commit«, e.g. in CI).
   final String stateKeyDoCommit = 'doCommit';
+
+  /// The key used to save the "this state is published" state (read back by
+  /// »gg did publish« and by the multi-repo flow, which uses it to tell
+  /// released repos from ones that still carry unpublished work).
+  final String stateKeyDidPublish = 'didPublish';
 
   @override
   Future<void> exec({
@@ -240,7 +247,7 @@ class DoPublish extends DirCommand<void> {
     // Step 1b: Progress that was recorded on a DIFFERENT feature branch does
     // not belong to this publish — it is a leftover that arrived with a copy
     // of the repository (the file is gitignored, so copying a workspace
-    // carries it along, e.g. »gg multi do add« copying the master workspace
+    // carries it along, e.g. »gg multi do add« copying the ocean
     // into a new ticket). Trusting it would skip this publish's version bump
     // and registry upload and could delete the wrong feature branch — so
     // discard it. Progress found while HEAD is on the default branch is
@@ -565,6 +572,13 @@ class DoPublish extends DirCommand<void> {
     // accepts the merge commit instead of rejecting it.
     await _state.writeSuccess(directory: directory, key: stateKeyDoCommit);
 
+    // Record the merged state as published, so »gg did publish« answers yes
+    // for exactly this content. A merge-only run records nothing — it
+    // releases nothing, so marking it published would be a lie.
+    if (!isMergeOnly) {
+      await _state.writeSuccess(directory: directory, key: stateKeyDidPublish);
+    }
+
     // In the pull-request flow the provider already updated main when it
     // merged the PR, so skip the direct main push there.
     if (!viaPullRequest) {
@@ -619,6 +633,7 @@ class DoPublish extends DirCommand<void> {
   final PrepareNextVersion _prepareNextVersion;
   final FromPubspec _fromPubspec;
   final changelog.Release _releaseChangelog;
+  final changelog.HasVersion _hasVersion;
   final IsPublished _isPublished;
   final PublishTo _publishTo;
   final MergeFlow _mergeFlow;
@@ -994,6 +1009,20 @@ class DoPublish extends DirCommand<void> {
     final increment = parseVersionIncrement(_explicitVersionIncrement!);
     final releaseChannel = parseReleaseChannel(_explicitChannel!);
 
+    // A git merge can carry the next version's section into CHANGELOG.md
+    // before it is released (gg sets »CHANGELOG.md merge=union«). Publishing
+    // over such a section would silently swallow the »## Unreleased« entries.
+    // Refuse right after the registry was asked, before anything is written.
+    if (_supportsChangeLog(directory)) {
+      await _throwIfNextVersionIsAlreadyInChangelog(
+        directory: directory,
+        ggLog: ggLog,
+        increment: increment,
+        channel: releaseChannel,
+        publishedVersion: currentVersion,
+      );
+    }
+
     await _prepareNextVersion.exec(
       directory: directory,
       ggLog: ggLog,
@@ -1024,6 +1053,85 @@ class DoPublish extends DirCommand<void> {
         rethrow;
       }
     }
+  }
+
+  /// Throws when the version about to be published already has a section in
+  /// CHANGELOG.md and continuing would cause harm.
+  ///
+  /// Harm means: the »## Unreleased« section still contains entries that the
+  /// skipped changelog release would silently swallow, or the version in
+  /// pubspec.yaml does not match the version about to be published. A fully
+  /// prepared state — pubspec.yaml carries the next version and no unreleased
+  /// entries exist — passes silently, so »--restart« and runs that lost their
+  /// »./.gg/gg-publish.json« can resume a failed publish.
+  Future<void> _throwIfNextVersionIsAlreadyInChangelog({
+    required Directory directory,
+    required GgLog ggLog,
+    required VersionIncrement increment,
+    required ReleaseChannel channel,
+    required Version publishedVersion,
+  }) async {
+    final next = await _prepareNextVersion.nextVersion(
+      directory: directory,
+      ggLog: <String>[].add,
+      increment: increment,
+      channel: channel,
+      publishedVersion: publishedVersion,
+    );
+
+    final isInChangelog = await _hasVersion.get(
+      directory: directory,
+      ggLog: <String>[].add,
+      version: next,
+    );
+    if (!isInChangelog) {
+      return;
+    }
+
+    final unreleasedHasEntries = await _hasVersion.unreleasedHasEntries(
+      directory: directory,
+      ggLog: <String>[].add,
+    );
+    final pubspecVersion = await _fromPubspec.fromDirectory(
+      directory: directory,
+    );
+    if (!unreleasedHasEntries && pubspecVersion == next) {
+      return;
+    }
+
+    ggLog(
+      cError(
+        'The next version »$next« is already in ${cPath('./CHANGELOG.md')} '
+        '— probably a git merge carried it in.',
+      ),
+    );
+    if (unreleasedHasEntries) {
+      ggLog(
+        cError(
+          'Publishing now would lose the entries still sitting in '
+          '»## Unreleased«.',
+        ),
+      );
+    }
+    if (pubspecVersion != next) {
+      ggLog(
+        cError(
+          'Additionally the version in ${cPath('./pubspec.yaml')} '
+          '(»$pubspecVersion«) does not match »$next«.',
+        ),
+      );
+    }
+    ggLog(
+      cAction(
+        'Please fix ${cPath('./CHANGELOG.md')}: move the »## Unreleased« '
+        'entries into the »## $next« section or remove the premature '
+        '»## $next« section. Then run ${cCmd('gg do publish')} again.',
+      ),
+    );
+
+    throw Exception(
+      cError('CHANGELOG.md already contains the version »$next«.'),
+    );
   }
 
   /// Resolve the version used as baseline for selecting the next increment.
@@ -1192,6 +1300,11 @@ class DoPublish extends DirCommand<void> {
   /// Deletes a `pubspec_overrides.yaml` left over from local development, so
   /// the package is published against the versions on pub.dev instead of the
   /// developer's working copies. Does nothing when there is none.
+  ///
+  /// The file is saved to [pubspecOverridesBackupPath] first: the multi-repo
+  /// flow restores it once the merge into the main branch is through, so the
+  /// repository keeps resolving against its sibling checkouts after the
+  /// publish.
   void _deletePubspecOverrides({
     required Directory directory,
     required GgLog ggLog,
@@ -1201,8 +1314,14 @@ class DoPublish extends DirCommand<void> {
       return;
     }
 
+    backupPubspecOverrides(directory);
     file.deleteSync();
-    ggLog(cDetail('Deleted ${NoPubspecOverrides.fileName}.'));
+    ggLog(
+      cDetail(
+        'Saved ${NoPubspecOverrides.fileName} to '
+        '$pubspecOverridesBackupPath and deleted it.',
+      ),
+    );
   }
 
   /// Returns whether [branchName] still exists on the remote. A failing

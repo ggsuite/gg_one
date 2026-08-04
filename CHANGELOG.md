@@ -1,5 +1,71 @@
 # Changelog
 
+## 12.9.0 - 2026-08-04
+
+### Changed
+
+- Show ticket deletion dialog at the beginning of publish. Recolorize.
+- Use overrides in package.json
+
+## 12.8.0 - 2026-08-04
+
+### Changed
+
+- Keep published repos editable in tickets
+
+## 12.7.2 - 2026-08-04
+
+### Added
+
+- »do publish« refuses when the version about to be published is already in
+CHANGELOG.md and continuing would lose »## Unreleased« entries or the
+pubspec.yaml version does not match
+- The versions in CHANGELOG.md are sorted before publishing. Newest first.
+
+### Changed
+
+- Fix issues with CHANGELOG.md
+
+## 12.7.1 - 2026-08-04
+
+### Removed
+
+- Remove duplicate upgrade calls from publish workflow
+
+## 12.7.0 - 2026-08-04
+
+### Changed
+
+- Improve push and publish workflow
+- Rename »gg one do upgrade dependencies« into Rename
+
+## 12.6.1 - 2026-08-04
+
+### Added
+
+- Add cached repo test helpers (initCachedRepo, initCachedRepoPair, initCachedGit, initCachedLocalAndRemoteGit); move pushLocalChangesUpstream from gg_one to gg_git; fix stale emoji expectations from gg_status_printer 1.4.2
+
+### Changed
+
+- Merge origin/main and tighten dependency constraints (dart pub upgrade --tighten)
+
+### Fixed
+
+- Migrate slow git-fixture suites to gg_git cached repo helpers (do_publish -43%, full run -36%)
+
+## 12.6.0 - 2026-08-04
+
+### Changed
+
+- Rename .master to .ocean with automatic migration at next start
+- Rename ocean workspace -> ocean
+
+## 12.5.5 - 2026-08-04
+
+### Changed
+
+- Finetune command line output
+
 ## 12.5.4 - 2026-08-03
 
 ### Changed

@@ -15,6 +15,8 @@ import 'package:gg_lang/gg_lang.dart' as gg_lang;
 import 'package:gg_log/gg_log.dart';
 import 'package:path/path.dart';
 
+import 'pubspec_overrides_backup.dart';
+
 /// Stores and retrieves the state of the check commands
 class GgState {
   /// Constructor
@@ -69,6 +71,8 @@ class GgState {
     '.gg/gg-publish.json',
     '.gg/.gg.json',
     '.gg/.gg-publish.json',
+    pubspecOverridesBackupPath,
+    pnpmWorkspaceBackupPath,
     'CHANGELOG.md',
     '.kidney_status',
     ...gg_lang.allLockFileNames,

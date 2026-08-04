@@ -6,8 +6,8 @@
 
 import 'dart:io';
 
-import 'package:gg_one/src/tools/did_command.dart';
 import 'package:gg_log/gg_log.dart';
+import 'package:gg_one/src/tools/did_command.dart';
 import 'package:gg_publish/gg_publish.dart';
 import 'package:matcher/expect.dart';
 import 'package:mocktail/mocktail.dart';

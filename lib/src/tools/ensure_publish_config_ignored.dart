@@ -13,15 +13,18 @@ import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
 
 import 'gg_state.dart';
+import 'pubspec_overrides_backup.dart';
 
-/// Makes sure `.gg/gg-publish.json` is listed in a repository's `.gitignore`.
+/// Makes sure the files a publish writes beside the release are listed in a
+/// repository's `.gitignore`: the runtime publish file `.gg/gg-publish.json`
+/// and the `pubspec_overrides.yaml` backup at [pubspecOverridesBackupPath].
 ///
-/// The runtime publish file must be invisible to git: as an untracked file it
-/// would break every is-committed check in the middle of a publish, and as a
-/// tracked file its progress churn would pollute the history. This helper
-/// appends the entry when it is missing and — in the standalone gg_one flow —
-/// commits the `.gitignore` change right away, transplanting the recorded
-/// check hashes via [GgState.updateHash] so analyze/test results stay valid.
+/// Both must be invisible to git: as untracked files they would break every
+/// is-committed check in the middle of a publish, and as tracked files their
+/// churn would pollute the history. This helper appends the missing entries
+/// and — in the standalone gg_one flow — commits the `.gitignore` change
+/// right away, transplanting the recorded check hashes via
+/// [GgState.updateHash] so analyze/test results stay valid.
 class EnsurePublishConfigIgnored {
   /// Constructor.
   EnsurePublishConfigIgnored({
@@ -40,7 +43,17 @@ class EnsurePublishConfigIgnored {
   /// The `.gitignore` entry that hides the runtime publish file from git.
   static const String entry = '.gg/gg-publish.json';
 
-  /// Ensures [entry] is present in `<directory>/.gitignore`. Returns true
+  /// All `.gitignore` entries this helper maintains: the runtime publish
+  /// file and the workspace-wiring backups a publish writes
+  /// (`pubspec_overrides.yaml` for Dart, `pnpm-workspace.yaml` for
+  /// pnpm-managed TypeScript).
+  static const List<String> entries = [
+    entry,
+    pubspecOverridesBackupPath,
+    pnpmWorkspaceBackupPath,
+  ];
+
+  /// Ensures [entries] are present in `<directory>/.gitignore`. Returns true
   /// when the file was changed (or created). With [commit] the change is
   /// committed immediately (only `.gitignore` plus the hash-transplanted
   /// `.gg/gg.json` — other working-tree changes are left alone); without it
@@ -51,11 +64,9 @@ class EnsurePublishConfigIgnored {
   }) async {
     final gitignore = File(join(directory.path, '.gitignore'));
     final content = gitignore.existsSync() ? gitignore.readAsStringSync() : '';
-    final hasEntry = content
-        .split('\n')
-        .map((line) => line.trim())
-        .contains(entry);
-    if (hasEntry) {
+    final lines = content.split('\n').map((line) => line.trim()).toSet();
+    final missing = entries.where((entry) => !lines.contains(entry)).toList();
+    if (missing.isEmpty) {
       return false;
     }
 
@@ -67,12 +78,12 @@ class EnsurePublishConfigIgnored {
         : null;
 
     final glue = content.isEmpty || content.endsWith('\n') ? '' : '\n';
-    gitignore.writeAsStringSync('$content$glue$entry\n');
+    gitignore.writeAsStringSync('$content$glue${missing.join('\n')}\n');
 
     if (commit) {
       await _state.updateHash(hash: hashBefore!, directory: directory);
       await _commitGitignore(directory);
-      ggLog('Added $entry to .gitignore.');
+      ggLog('Added ${missing.join(', ')} to .gitignore.');
     }
     return true;
   }
@@ -98,7 +109,7 @@ class EnsurePublishConfigIgnored {
     final result = await _processWrapper.run('git', [
       'commit',
       '-m',
-      '#gg: Ignore $entry publish runtime file',
+      '#gg: Ignore the publish runtime files of gg',
       '--',
       ...paths,
     ], workingDirectory: directory.path);

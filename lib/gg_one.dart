@@ -6,6 +6,20 @@
 
 library;
 
+// Project-type detection and package-manager handling now live in gg_lang
+// (the shared language catalog). Re-exported here so existing gg_one
+// consumers keep importing them from gg_one.
+export 'package:gg_lang/gg_lang.dart'
+    show
+        ProjectType,
+        ProjectTypeX,
+        detectProjectType,
+        isBridgeProject,
+        checkProjectType,
+        lockFileFor,
+        TypeScriptPackageManager,
+        detectTypeScriptPackageManager;
+
 // Can
 export 'src/commands/can.dart';
 export 'src/commands/can/can_checkout.dart';
@@ -26,6 +40,7 @@ export 'src/commands/check/pub_get_offline.dart';
 // Did
 export 'src/commands/did.dart';
 export 'src/commands/did/did_commit.dart';
+export 'src/commands/did/did_publish.dart';
 export 'src/commands/did/did_push.dart';
 export 'src/commands/did/did_upgrade.dart';
 export 'src/commands/did/did_upgrade/dependencies.dart';
@@ -38,7 +53,7 @@ export 'src/commands/do/do_configure_publish.dart';
 export 'src/commands/do/do_publish.dart';
 export 'src/commands/do/do_push.dart';
 export 'src/commands/do/do_upgrade.dart';
-export 'src/commands/do/do_upgrade/dependencies.dart';
+export 'src/commands/do/do_upgrade/deps.dart';
 // Info
 export 'src/commands/info.dart';
 export 'src/gg.dart';
@@ -48,29 +63,18 @@ export 'src/tools/add_typescript_version_tag.dart';
 export 'src/tools/analyzer.dart';
 export 'src/tools/carriage_return.dart';
 export 'src/tools/checks.dart';
-export 'src/tools/formatter.dart';
 export 'src/tools/command_cluster.dart';
 export 'src/tools/create_pull_request.dart';
 export 'src/tools/ensure_publish_config_ignored.dart';
+export 'src/tools/formatter.dart';
 export 'src/tools/gg_state.dart';
 export 'src/tools/lock_files.dart';
-export 'src/tools/master_folder_guard.dart';
 export 'src/tools/merge_flow.dart';
+export 'src/tools/ocean_folder_guard.dart';
 export 'src/tools/publish_config.dart';
+export 'src/tools/pubspec_overrides_backup.dart';
 export 'src/tools/repository_url.dart';
+export 'src/tools/suggestion.dart';
 export 'src/tools/terminal_guard.dart';
-export 'src/tools/workspace_folder_guard.dart';
 export 'src/tools/version_selector.dart';
-// Project-type detection and package-manager handling now live in gg_lang
-// (the shared language catalog). Re-exported here so existing gg_one
-// consumers keep importing them from gg_one.
-export 'package:gg_lang/gg_lang.dart'
-    show
-        ProjectType,
-        ProjectTypeX,
-        detectProjectType,
-        isBridgeProject,
-        checkProjectType,
-        lockFileFor,
-        TypeScriptPackageManager,
-        detectTypeScriptPackageManager;
+export 'src/tools/workspace_folder_guard.dart';
