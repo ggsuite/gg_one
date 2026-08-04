@@ -5,6 +5,7 @@
 ### Changed
 
 - Extract GgState, CommandCluster, DidCommand, Suggestion and PubspecOverridesBackup into the new gg_one_state package
+- Extract the check commands, Analyzer, Formatter and Checks into the new gg_one_checks package
 
 ### Removed
 

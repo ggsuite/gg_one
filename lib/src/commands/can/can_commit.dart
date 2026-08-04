@@ -9,9 +9,9 @@ import 'dart:io';
 
 import 'package:gg_args/gg_args.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/src/tools/checks.dart';
 import 'package:matcher/expect.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:gg_one_checks/gg_one_checks.dart';
 
 /// Are the last changes ready for »git commit«?
 class CanCommit extends CommandCluster {
