@@ -72,6 +72,7 @@ class GgState {
     '.gg/.gg.json',
     '.gg/.gg-publish.json',
     pubspecOverridesBackupPath,
+    pnpmWorkspaceBackupPath,
     'CHANGELOG.md',
     '.kidney_status',
     ...gg_lang.allLockFileNames,

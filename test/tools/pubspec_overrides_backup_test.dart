@@ -109,4 +109,36 @@ void main() {
       expect(backupFile().existsSync(), isFalse);
     });
   });
+
+  group('pnpm-workspace.yaml', () {
+    File pnpmWorkspaceFile() => File(join(d.path, 'pnpm-workspace.yaml'));
+
+    File pnpmBackupFile() => File(join(d.path, pnpmWorkspaceBackupPath));
+
+    test('is backed up and restored alongside the Dart overrides', () {
+      pnpmWorkspaceFile().writeAsStringSync(
+        'overrides:\n  dep_a: link:../dep_a\n',
+      );
+
+      final didBackup = backupPubspecOverrides(d);
+      expect(didBackup, isTrue);
+      expect(pnpmBackupFile().existsSync(), isTrue);
+
+      // Simulate the unlocalization deleting the gg-created file.
+      pnpmWorkspaceFile().deleteSync();
+
+      final didRestore = restorePubspecOverrides(d);
+      expect(didRestore, isTrue);
+      expect(
+        pnpmWorkspaceFile().readAsStringSync(),
+        'overrides:\n  dep_a: link:../dep_a\n',
+      );
+      expect(pnpmBackupFile().existsSync(), isFalse);
+    });
+
+    test('a TypeScript repo without the file reports false', () {
+      expect(backupPubspecOverrides(d), isFalse);
+      expect(restorePubspecOverrides(d), isFalse);
+    });
+  });
 }
