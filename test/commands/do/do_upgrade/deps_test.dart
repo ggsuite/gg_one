@@ -59,9 +59,10 @@ void main() {
     String stdout = '',
     String stderr = '',
     bool upgradingCausesChange = true,
+    String executable = 'dart',
   }) {
     when(
-      () => processWrapper.run('dart', [
+      () => processWrapper.run(executable, [
         'pub',
         'upgrade',
         if (majorVersions) '--major-versions',
@@ -246,6 +247,36 @@ void main() {
 
         test('- via CLI', () async {
           await runner.run(['deps', '-i', d.path, '--no-major-versions']);
+        });
+      });
+
+      group('- should use flutter for Flutter repos', () {
+        setUp(() {
+          // A top-level `flutter:` key makes checkProjectType report the
+          // repo as a Flutter package.
+          File(
+            '${d.path}/pubspec.yaml',
+          ).writeAsStringSync('name: test\nflutter:\n  uses-material: true\n');
+          mockDartPubUpgrade(executable: 'flutter');
+        });
+
+        tearDown(() {
+          expect(
+            messages[1],
+            contains('⌛️ Run »flutter pub upgrade --major-versions --tighten«'),
+          );
+          expect(
+            messages[2],
+            contains('✓ Run »flutter pub upgrade --major-versions --tighten«'),
+          );
+        });
+
+        test('- programmatically', () async {
+          await doUpgrade.exec(directory: d, ggLog: ggLog);
+        });
+
+        test('- via CLI', () async {
+          await runner.run(['deps', '-i', d.path]);
         });
       });
 
