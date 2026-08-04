@@ -32,8 +32,6 @@ import 'package:path/path.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
 
-import '../../test_helpers/test_helpers.dart';
-
 void main() {
   final messages = <String>[];
   // Strip the colors so the expectations stay readable. One closure

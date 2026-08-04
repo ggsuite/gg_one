@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add cached repo test helpers (initCachedRepo, initCachedRepoPair, initCachedGit, initCachedLocalAndRemoteGit); move pushLocalChangesUpstream from gg_one to gg_git; fix stale emoji expectations from gg_status_printer 1.4.2
+
 ## 12.5.5 - 2026-08-04
 
 ### Changed
