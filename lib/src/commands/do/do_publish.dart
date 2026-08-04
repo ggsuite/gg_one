@@ -4,6 +4,7 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import 'package:gg_one_state/gg_one_state.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -22,10 +23,8 @@ import 'package:gg_one/src/commands/do/do_push.dart';
 import 'package:gg_one/src/tools/add_git_only_version_tag.dart';
 import 'package:gg_one/src/tools/add_typescript_version_tag.dart';
 import 'package:gg_one/src/tools/ensure_publish_config_ignored.dart';
-import 'package:gg_one/src/tools/gg_state.dart';
 import 'package:gg_one/src/tools/merge_flow.dart';
 import 'package:gg_one/src/tools/publish_config.dart';
-import 'package:gg_one/src/tools/pubspec_overrides_backup.dart';
 import 'package:gg_one/src/tools/workspace_folder_guard.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart';

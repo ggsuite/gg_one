@@ -34,6 +34,7 @@ dependencies:
   matcher: ^0.12.20
   gg_direct_json: ^2.0.1
   gg_merge: ^2.1.1
+  gg_one_state: ^1.0.0
   interact: ^2.2.0
 
 dev_dependencies:

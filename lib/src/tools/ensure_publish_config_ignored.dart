@@ -4,6 +4,7 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import 'package:gg_one_state/gg_one_state.dart';
 import 'dart:io';
 
 import 'package:gg_console_colors/gg_console_colors.dart';
@@ -11,9 +12,6 @@ import 'package:gg_log/gg_log.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart';
-
-import 'gg_state.dart';
-import 'pubspec_overrides_backup.dart';
 
 /// Makes sure the files a publish writes beside the release are listed in a
 /// repository's `.gitignore`: the runtime publish file `.gg/gg-publish.json`

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Extract GgState, CommandCluster, DidCommand, Suggestion and PubspecOverridesBackup into the new gg_one_state package
+
 ### Removed
 
 - Decouple internals from the gg_one barrel; remove dead code and unused dependencies

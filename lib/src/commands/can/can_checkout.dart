@@ -4,8 +4,8 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import 'package:gg_one_state/gg_one_state.dart';
 import 'package:gg_args/gg_args.dart';
-import 'package:gg_one/src/tools/command_cluster.dart';
 import 'package:gg_publish/gg_publish.dart';
 
 /// Are the current changes ready for checking out a new branch?
