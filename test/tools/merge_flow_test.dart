@@ -116,8 +116,14 @@ void main() {
   setUp(() async {
     messages.clear();
     d = await Directory.systemTemp.createTemp();
-    await initGit(d);
-    await addAndCommitSampleFile(d);
+    await initCachedRepo(
+      d,
+      key: 'merge_flow_base',
+      build: (repo) async {
+        await initGit(repo);
+        await addAndCommitSampleFile(repo);
+      },
+    );
     mockGgMergeDoMerge = MockGgMergeDoMerge();
     mockWaitForMerge = MockGgMergeWaitForMerge();
     mockGgState = MockGgState();

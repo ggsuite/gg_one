@@ -188,10 +188,22 @@ void main() {
   }
 
   // ...........................................................................
-  Future<void> makeLastStateSuccessful() async {
-    successHash = await LastChangesHash(
-      ggLog: ggLog,
-    ).get(directory: d, ggLog: ggLog, ignoreFiles: GgState.ignoreFiles);
+  // The setUp fixture is a copy of the same template in every test, so its
+  // LastChangesHash is identical too - compute it only once per test file.
+  int? freshFixtureHash;
+
+  // ...........................................................................
+  Future<void> makeLastStateSuccessful({bool isFreshFixture = false}) async {
+    if (isFreshFixture && freshFixtureHash != null) {
+      successHash = freshFixtureHash!;
+    } else {
+      successHash = await LastChangesHash(
+        ggLog: ggLog,
+      ).get(directory: d, ggLog: ggLog, ignoreFiles: GgState.ignoreFiles);
+      if (isFreshFixture) {
+        freshFixtureHash = successHash;
+      }
+    }
 
     final ggDir = Directory(join(d.path, '.gg'));
     if (!ggDir.existsSync()) {
@@ -219,61 +231,64 @@ void main() {
 
   // ...........................................................................
   setUp(() async {
-    // Create repositories
-    d = await Directory.systemTemp.createTemp('local');
-    await initLocalGit(d);
-    await enableEolLf(d);
-    dRemote = await Directory.systemTemp.createTemp('remote');
-    await initRemoteGit(dRemote);
-    await addRemoteToLocal(local: d, remote: dRemote);
+    // Create repositories from a template that is built only once per
+    // test file and copied for every test.
+    (d, dRemote) = await initCachedRepoPair(
+      key: 'do_publish_base',
+      build: (local, remote) async {
+        await initLocalGit(local);
+        await enableEolLf(local);
+        await initRemoteGit(remote);
+        await addRemoteToLocal(local: local, remote: remote);
+
+        // Setup a pubspec.yaml and a CHANGELOG.md with right versions.
+        // The SDK constraint is not decoration: `can push` runs `pub get
+        // --offline` before `isCommitted`, and pub refuses a manifest
+        // without a lower bound.
+        await File(join(local.path, 'pubspec.yaml')).writeAsString(
+          'name: gg\n\nversion: 1.2.3\n'
+          'environment:\n  sdk: ^3.8.0\n'
+          'repository: https://github.com/inlavigo/gg.git',
+        );
+
+        // Prepare ChangeLog
+        await File(join(local.path, 'CHANGELOG.md')).writeAsString(
+          '# Changelog\n\n'
+          '## Unreleased\n'
+          '-Message 1\n'
+          '-Message 2\n'
+          '## 1.2.3 - 2024-04-05\n\n- First version',
+        );
+
+        await addAndCommitSampleFile(
+          local,
+          fileName: 'CLAUDE.md',
+          content: 'This is the CLAUDE.md',
+        );
+        final runner = CommandRunner<void>('gg', 'gg')
+          ..addCommand(Create(ggLog: ggLog));
+        await runner.run([
+          'create',
+          'ticket',
+          '-i',
+          local.path,
+          'feat_abc',
+          '-m',
+          'Ticket merge message',
+        ]);
+        await commitFile(local, 'CLAUDE.md');
+        await addAndCommitSampleFile(
+          local,
+          fileName: 'README.md',
+          content: 'This is the readme',
+        );
+        await pushLocalChangesUpstream(local, 'feat_abc');
+      },
+    );
     publishedVersionValue = Version.parse('1.2.3');
 
     // Clear messages
     messages.clear();
-
-    // Setup a pubspec.yaml and a CHANGELOG.md with right versions.
-    // The SDK constraint is not decoration: `can push` runs `pub get
-    // --offline` before `isCommitted`, and pub refuses a manifest without a
-    // lower bound.
-    await File(join(d.path, 'pubspec.yaml')).writeAsString(
-      'name: gg\n\nversion: 1.2.3\n'
-      'environment:\n  sdk: ^3.8.0\n'
-      'repository: https://github.com/inlavigo/gg.git',
-    );
-
-    // Prepare ChangeLog
-    await File(join(d.path, 'CHANGELOG.md')).writeAsString(
-      '# Changelog\n\n'
-      '## Unreleased\n'
-      '-Message 1\n'
-      '-Message 2\n'
-      '## 1.2.3 - 2024-04-05\n\n- First version',
-    );
-
-    await addAndCommitSampleFile(
-      d,
-      fileName: 'CLAUDE.md',
-      content: 'This is the CLAUDE.md',
-    );
-    final runner = CommandRunner<void>('gg', 'gg')
-      ..addCommand(Create(ggLog: ggLog));
-    await runner.run([
-      'create',
-      'ticket',
-      '-i',
-      d.path,
-      'feat_abc',
-      '-m',
-      'Ticket merge message',
-    ]);
-    messages.clear();
-    await commitFile(d, 'CLAUDE.md');
-    await addAndCommitSampleFile(
-      d,
-      fileName: 'README.md',
-      content: 'This is the readme',
-    );
-    await pushLocalChangesUpstream(d, 'feat_abc');
 
     // Create a .gg/gg.json that has all preconditions for publishing
     needsChangeHash = 12345;
@@ -383,7 +398,7 @@ void main() {
       mergeFlow: noPubGetMergeFlow(),
     );
 
-    await makeLastStateSuccessful();
+    await makeLastStateSuccessful(isFreshFixture: true);
     messages.clear();
   });
 

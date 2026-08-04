@@ -48,12 +48,22 @@ void main() {
         .toList();
   }
 
+  // ...........................................................................
+  /// Copies a cached, tag-free repo with one committed sample file into [d].
+  Future<void> initRepo() => initCachedRepo(
+    d,
+    key: 'tag_base',
+    build: (repo) async {
+      await initGit(repo);
+      await addAndCommitSampleFile(repo);
+    },
+  );
+
   group('AddGitOnlyVersionTag', () {
     group('exec(directory, increment, channel)', () {
       group('should tag HEAD', () {
         test('with 0.0.1 when the repo has no version tag yet', () async {
-          await initGit(d);
-          await addAndCommitSampleFile(d);
+          await initRepo();
 
           await command.exec(directory: d, increment: VersionIncrement.patch);
 
@@ -62,8 +72,7 @@ void main() {
         });
 
         test('with the incremented latest version tag', () async {
-          await initGit(d);
-          await addAndCommitSampleFile(d);
+          await initRepo();
           await addTags(d, ['0.0.1']);
 
           await updateAndCommitSampleFile(d);
@@ -76,8 +85,7 @@ void main() {
         });
 
         test('also when tags sort differently as strings', () async {
-          await initGit(d);
-          await addAndCommitSampleFile(d);
+          await initRepo();
           await addTags(d, ['9.0.0']);
           await updateAndCommitSampleFile(d);
           await addTags(d, ['10.0.0']);
@@ -89,8 +97,7 @@ void main() {
         });
 
         test('with an rc version when the channel is rc', () async {
-          await initGit(d);
-          await addAndCommitSampleFile(d);
+          await initRepo();
           await addTags(d, ['0.0.1']);
 
           await updateAndCommitSampleFile(d);
@@ -113,8 +120,7 @@ void main() {
 
       group('should do nothing', () {
         test('when HEAD already carries a version tag', () async {
-          await initGit(d);
-          await addAndCommitSampleFile(d);
+          await initRepo();
           await addTags(d, ['0.0.1']);
 
           await command.exec(directory: d, increment: VersionIncrement.patch);
@@ -130,8 +136,7 @@ void main() {
 
       group('should throw', () {
         test('when not everything is committed', () async {
-          await initGit(d);
-          await addAndCommitSampleFile(d);
+          await initRepo();
           await addFileWithoutCommitting(d);
 
           await expectLater(
@@ -147,8 +152,7 @@ void main() {
         });
 
         test('when git tag fails', () async {
-          await initGit(d);
-          await addAndCommitSampleFile(d);
+          await initRepo();
 
           final processWrapper = _MockGgProcessWrapper();
           when(

@@ -86,27 +86,33 @@ void main() {
   setUp(() async {
     messages.clear();
     d = await Directory.systemTemp.createTemp();
-    await initGit(d);
-
-    // »gg do commit« refuses to run on the default branch
-    await createBranch(d, 'feature');
-
-    await addAndCommitSampleFile(d);
-
-    // Insert CHANGELOG.md
-    await addAndCommitSampleFile(
+    await initCachedRepo(
       d,
-      fileName: 'CHANGELOG.md',
-      content: '# Changelog',
-    );
+      key: 'do_commit_base',
+      build: (repo) async {
+        await initGit(repo);
 
-    // Insert pubspec.yaml
-    await addAndCommitSampleFile(
-      d,
-      fileName: 'pubspec.yaml',
-      content:
-          'version: 1.0.0\n'
-          'repository:https://github.com/inlavigo/gg.git',
+        // »gg do commit« refuses to run on the default branch
+        await createBranch(repo, 'feature');
+
+        await addAndCommitSampleFile(repo);
+
+        // Insert CHANGELOG.md
+        await addAndCommitSampleFile(
+          repo,
+          fileName: 'CHANGELOG.md',
+          content: '# Changelog',
+        );
+
+        // Insert pubspec.yaml
+        await addAndCommitSampleFile(
+          repo,
+          fileName: 'pubspec.yaml',
+          content:
+              'version: 1.0.0\n'
+              'repository:https://github.com/inlavigo/gg.git',
+        );
+      },
     );
 
     // Mock stuff
@@ -619,11 +625,18 @@ void main() {
             path.join(workspace.path, '.master', 'ggsuite', 'gg_one'),
           );
           await repo.create(recursive: true);
-          await initGit(repo);
+          await initCachedRepo(
+            repo,
+            key: 'do_commit_master',
+            build: (r) async {
+              await initGit(r);
 
-          // Not even a feature branch makes the master folder committable
-          await createBranch(repo, 'feature');
-          await addAndCommitSampleFile(repo);
+              // Not even a feature branch makes the master folder
+              // committable
+              await createBranch(r, 'feature');
+              await addAndCommitSampleFile(r);
+            },
+          );
           await addFileWithoutCommitting(repo);
         });
 

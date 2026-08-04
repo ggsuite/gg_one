@@ -77,8 +77,14 @@ void main() {
     pana = Pana(ggLog: ggLog, processWrapper: processWrapper);
     runner = CommandRunner('test', 'test')..addCommand(pana);
     d = await Directory.systemTemp.createTemp('gg_test');
-    await initGit(d);
-    await addAndCommitPubspecFile(d);
+    await initCachedRepo(
+      d,
+      key: 'pana_base',
+      build: (repo) async {
+        await initGit(repo);
+        await addAndCommitPubspecFile(repo);
+      },
+    );
     mockPanaIsInstalled(isInstalled: true);
   });
 
