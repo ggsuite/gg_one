@@ -40,7 +40,7 @@ bool isInOceanFolder(Directory directory) =>
 
 /// Throws when [directory] lies inside the workspace's ocean folder.
 ///
-/// The ocean workspace only mirrors the registered repositories; changes
+/// The ocean only mirrors the registered repositories; changes
 /// belong into a ticket workspace (`<root>/tickets/<ticket>/<org>/<repo>`).
 /// Callers skip the guard when »--force« is given — the message names that
 /// escape hatch, so an ocean repo can still be fixed in place.

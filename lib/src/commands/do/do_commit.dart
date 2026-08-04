@@ -99,7 +99,7 @@ class DoCommit extends DirCommand<void> {
     // Does directory exist?
     await check(directory: directory);
 
-    // Commits do not belong into the ocean workspace. --force bypasses the
+    // Commits do not belong into the ocean. --force bypasses the
     // guard, so an ocean repo can still be fixed in place.
     if (force != true) {
       throwWhenInOceanFolder(directory);

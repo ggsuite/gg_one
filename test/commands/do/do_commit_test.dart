@@ -613,7 +613,7 @@ void main() {
         late Directory repo;
 
         setUp(() async {
-          // The ocean workspace mirrors the repos as .ocean/<org>/<repo>
+          // The ocean mirrors the repos as .ocean/<org>/<repo>
           workspace = await Directory.systemTemp.createTemp();
           repo = Directory(
             path.join(workspace.path, '.ocean', 'ggsuite', 'gg_one'),
