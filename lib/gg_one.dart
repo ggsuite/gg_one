@@ -65,6 +65,7 @@ export 'src/tools/carriage_return.dart';
 export 'src/tools/checks.dart';
 export 'src/tools/command_cluster.dart';
 export 'src/tools/create_pull_request.dart';
+export 'src/tools/ensure_gg_json_not_ignored.dart';
 export 'src/tools/ensure_publish_config_ignored.dart';
 export 'src/tools/formatter.dart';
 export 'src/tools/gg_state.dart';

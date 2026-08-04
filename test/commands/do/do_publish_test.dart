@@ -67,6 +67,20 @@ void main() {
     return false;
   }
 
+  // After a publish the head commit is gg's own »#gg: …« state bookkeeping
+  // (user commits are never amended) — the merge message sits directly
+  // beneath it. Asserts the bookkeeping commit and returns that message.
+  Future<String> mergeMessageBelowStateCommit(Directory dir) async {
+    final result = await Process.run('git', [
+      'log',
+      '-2',
+      '--format=%s',
+    ], workingDirectory: dir.path);
+    final lines = (result.stdout as String).trim().split('\n');
+    expect(lines.first, '#gg: Add .gg/gg.json check results');
+    return lines.last;
+  }
+
   // Builds the DoConfigurePublish that »do publish« runs when it is started
   // without a resolved configuration. Uses the mocked version selector and
   // non-interactive prompts.
@@ -458,9 +472,9 @@ void main() {
                         expect(changeLog, contains('## 1.2.4 -'));
 
                         // Was the new version checked in?
-                        final headMessage = await HeadMessage(
-                          ggLog: ggLog,
-                        ).get(directory: d, ggLog: ggLog);
+                        final headMessage = await mergeMessageBelowStateCommit(
+                          d,
+                        );
                         expect(headMessage, 'Ticket merge message');
 
                         // Did .gg/gg.json mark commit, push and publish done?
@@ -671,9 +685,7 @@ void main() {
               expect(changeLog, contains('## 1.0.2 -'));
 
               // Was the new version checked in?
-              final headMessage = await HeadMessage(
-                ggLog: ggLog,
-              ).get(directory: d, ggLog: ggLog);
+              final headMessage = await mergeMessageBelowStateCommit(d);
               expect(headMessage, 'Ticket merge message');
 
               // Did .gg/gg.json mark commit, push and publish done?
@@ -977,9 +989,7 @@ void main() {
               deleteFeatureBranch: false,
             );
 
-            final headMessage = await HeadMessage(
-              ggLog: ggLog,
-            ).get(directory: d, ggLog: ggLog);
+            final headMessage = await mergeMessageBelowStateCommit(d);
             expect(headMessage, customMessage);
           });
 
@@ -1030,9 +1040,7 @@ void main() {
 
             expect(initialMessage, 'Ticket merge message');
 
-            final headMessage = await HeadMessage(
-              ggLog: ggLog,
-            ).get(directory: d, ggLog: ggLog);
+            final headMessage = await mergeMessageBelowStateCommit(d);
             expect(headMessage, 'Edited merge message');
           });
 
@@ -1084,9 +1092,7 @@ void main() {
 
             expect(initialMessage, '');
 
-            final headMessage = await HeadMessage(
-              ggLog: ggLog,
-            ).get(directory: d, ggLog: ggLog);
+            final headMessage = await mergeMessageBelowStateCommit(d);
             expect(headMessage, 'Edited without ticket');
           });
 
@@ -1134,9 +1140,7 @@ void main() {
               deleteFeatureBranch: false,
             );
 
-            final headMessage = await HeadMessage(
-              ggLog: ggLog,
-            ).get(directory: d, ggLog: ggLog);
+            final headMessage = await mergeMessageBelowStateCommit(d);
             expect(headMessage, 'Programmatic merge message');
           });
 
@@ -1735,9 +1739,7 @@ void main() {
                 '--no-delete-feature-branch',
               ]);
 
-              final headMessage = await HeadMessage(
-                ggLog: ggLog,
-              ).get(directory: d, ggLog: ggLog);
+              final headMessage = await mergeMessageBelowStateCommit(d);
               expect(headMessage, 'CLI merge message');
             },
           );
@@ -2734,9 +2736,7 @@ void main() {
           deleteFeatureBranch: false,
         );
 
-        final headMessage = await HeadMessage(
-          ggLog: ggLog,
-        ).get(directory: d, ggLog: ggLog);
+        final headMessage = await mergeMessageBelowStateCommit(d);
         expect(headMessage, 'From runtime file');
         // The runtime file is removed after the successful publish.
         expect(runtimeFile.existsSync(), isFalse);
@@ -2843,9 +2843,7 @@ void main() {
             ),
           );
           // Explicit parameters win over the runtime file values.
-          final headMessage = await HeadMessage(
-            ggLog: ggLog,
-          ).get(directory: d, ggLog: ggLog);
+          final headMessage = await mergeMessageBelowStateCommit(d);
           expect(headMessage, 'Resumed merge');
           expect(runtimeFile.existsSync(), isFalse);
         },
@@ -3217,9 +3215,7 @@ void main() {
           '--no-delete-feature-branch',
         ]);
 
-        final headMessage = await HeadMessage(
-          ggLog: ggLog,
-        ).get(directory: d, ggLog: ggLog);
+        final headMessage = await mergeMessageBelowStateCommit(d);
         expect(headMessage, 'Reconfigured');
         expect(runtimeFile.existsSync(), isFalse);
       });
