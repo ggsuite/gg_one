@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Show ticket deletion dialog at the beginning of publish. Recolorize.
+
 ## 12.8.0 - 2026-08-04
 
 ### Changed
