@@ -16,7 +16,8 @@ import 'package:matcher/expect.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Upgrades all dependencies of the package via
-/// »dart pub upgrade [--major-versions] --tighten«.
+/// »dart pub upgrade [--major-versions] --tighten«
+/// (»flutter pub upgrade …« in a Flutter repo).
 ///
 /// The upgrade itself runs no checks — the flows that call it (`gg do push`,
 /// `gg do publish`) run `gg can commit` right afterwards, so validating here
@@ -117,11 +118,16 @@ class DoUpgradeDeps extends DirCommand<void> {
   }
 
   // ...........................................................................
-  /// Runs »dart pub upgrade«
+  /// Runs »dart pub upgrade« — »flutter pub upgrade« in a Flutter repo, where
+  /// plain `dart pub` cannot resolve the `sdk: flutter` dependencies.
   Future<void> _runDartPubUpgrade({
     required Directory directory,
     required bool majorVersions,
   }) async {
+    final executable = checkProjectType(directory) == ProjectType.flutter
+        ? 'flutter'
+        : 'dart';
+
     final args = [
       'pub',
       'upgrade',
@@ -130,20 +136,20 @@ class DoUpgradeDeps extends DirCommand<void> {
     ];
 
     await GgStatusPrinter<bool>(
-      message: 'Run »dart ${args.join(' ')}«',
+      message: 'Run »$executable ${args.join(' ')}«',
       ggLog: ggLog,
       dark: true,
     ).logTask(
       task: () async {
         final result = await _processWrapper.run(
-          'dart',
+          executable,
           args,
           workingDirectory: directory.path,
         );
 
         if (result.exitCode != 0) {
           throw Exception(
-            cError('»dart pub upgrade« failed: ${result.stderr}'),
+            cError('»$executable pub upgrade« failed: ${result.stderr}'),
           );
         }
 

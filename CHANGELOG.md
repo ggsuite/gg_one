@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Removed
+
+- Remove duplicate upgrade calls from publish workflow
+
 ## 12.7.0 - 2026-08-04
 
 ### Changed
