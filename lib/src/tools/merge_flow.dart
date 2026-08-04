@@ -10,7 +10,6 @@ import 'dart:io';
 import 'package:gg_console_colors/gg_console_colors.dart';
 import 'package:gg_log/gg_log.dart';
 import 'package:gg_merge/gg_merge.dart' as gg_merge;
-import 'package:gg_one/src/commands/do/do_publish.dart';
 import 'package:gg_one/src/tools/lock_files.dart';
 import 'package:gg_process/gg_process.dart';
 import 'package:gg_publish/gg_publish.dart' as gg_publish;
@@ -22,7 +21,7 @@ import 'package:path/path.dart' as p;
 /// This is a plain tool, not a CLI command: `gg do merge` was folded into
 /// `gg do publish --merge-only`, which runs the whole publish flow without
 /// any release artifact. What is left is the merge *implementation*
-/// [DoPublish] drives (the merge step itself and [removeTicketJson]), so both
+/// `DoPublish` drives (the merge step itself and [removeTicketJson]), so both
 /// a real publish and a merge-only run go through exactly one code path.
 class MergeFlow {
   /// Constructor
