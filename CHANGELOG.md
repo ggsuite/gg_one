@@ -10,10 +10,31 @@
 - Extract DoPublish, CanPublish, DidPublish and the version tag tools into the new gg_one_do_publish package
 - Reduce gg_one to the umbrella CLI; distribute behavior docs into the sub-packages
 - Split gg_one into gg_one_core, gg_one_commit, gg_one_merge and gg_one_do_publish
+- Port the .gg/gg.json ignore guard from gg_one main into gg_one_core
 
 ### Removed
 
 - Decouple internals from the gg_one barrel; remove dead code and unused dependencies
+
+## 12.9.1 - 2026-08-04
+
+### Added
+
+- ».gg/gg.json« must not be git-ignored: every command now heals simple
+.gitignore rules (».gg«, ».gg/«, ».gg/*«, a literal ».gg/gg.json«) into the
+canonical ».gg/*« + »!.gg/gg.json« pair and commits the fix — or fails with
+the manual fix when the rule cannot be rewritten safely
+
+### Changed
+
+- Changes to .gg/gg.json are only amended into gg's own »#gg: …« bookkeeping
+commits. User commits are never rewritten silently; the state lands in a
+separate »#gg:« commit instead
+
+### Fixed
+
+- The first »do publish« in a repository whose .gitignore ignored the whole
+».gg/« folder no longer crashes with »git add .gitignore .gg/gg.json failed«
 
 ## 12.9.0 - 2026-08-04
 
