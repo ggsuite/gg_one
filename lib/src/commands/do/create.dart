@@ -6,7 +6,7 @@
 
 import 'package:args/command_runner.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one_commit/gg_one_commit.dart';
 
 /// Groups commands for creating new development artifacts.
 class Create extends Command<void> {

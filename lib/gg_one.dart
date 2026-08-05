@@ -20,62 +20,20 @@ export 'package:gg_lang/gg_lang.dart'
         TypeScriptPackageManager,
         detectTypeScriptPackageManager;
 
-// Can
+// The implementation lives in the packages of the gg_one family. They are
+// re-exported here so existing consumers keep importing everything from
+// gg_one.
+export 'package:gg_one_commit/gg_one_commit.dart';
+export 'package:gg_one_core/gg_one_core.dart';
+export 'package:gg_one_do_publish/gg_one_do_publish.dart';
+export 'package:gg_one_merge/gg_one_merge.dart';
+
+// The command groups wiring those packages into one command line.
 export 'src/commands/can.dart';
-export 'src/commands/can/can_checkout.dart';
-export 'src/commands/can/can_commit.dart';
-export 'src/commands/can/can_merge.dart';
-export 'src/commands/can/can_publish.dart';
-export 'src/commands/can/can_push.dart';
-export 'src/commands/can/can_upgrade.dart';
-// Checks
-export 'src/commands/check/analyze.dart';
-export 'src/commands/check/build.dart';
-export 'src/commands/check/format.dart';
-export 'src/commands/check/no_pubspec_overrides.dart';
-export 'src/commands/check/npm_logged_in.dart';
-export 'src/commands/check/package_json_scripts.dart';
-export 'src/commands/check/pana.dart';
-export 'src/commands/check/pub_get_offline.dart';
-// Did
 export 'src/commands/did.dart';
-export 'src/commands/did/did_commit.dart';
-export 'src/commands/did/did_publish.dart';
-export 'src/commands/did/did_push.dart';
 export 'src/commands/did/did_upgrade.dart';
-export 'src/commands/did/did_upgrade/dependencies.dart';
-// Do
 export 'src/commands/do.dart';
 export 'src/commands/do/create.dart';
-export 'src/commands/do/create/create_ticket.dart';
-export 'src/commands/do/do_commit.dart';
-export 'src/commands/do/do_configure_publish.dart';
-export 'src/commands/do/do_publish.dart';
-export 'src/commands/do/do_push.dart';
 export 'src/commands/do/do_upgrade.dart';
-export 'src/commands/do/do_upgrade/deps.dart';
-// Info
 export 'src/commands/info.dart';
 export 'src/gg.dart';
-// Tools
-export 'src/tools/add_git_only_version_tag.dart';
-export 'src/tools/add_typescript_version_tag.dart';
-export 'src/tools/analyzer.dart';
-export 'src/tools/carriage_return.dart';
-export 'src/tools/checks.dart';
-export 'src/tools/command_cluster.dart';
-export 'src/tools/create_pull_request.dart';
-export 'src/tools/ensure_gg_json_not_ignored.dart';
-export 'src/tools/ensure_publish_config_ignored.dart';
-export 'src/tools/formatter.dart';
-export 'src/tools/gg_state.dart';
-export 'src/tools/lock_files.dart';
-export 'src/tools/merge_flow.dart';
-export 'src/tools/ocean_folder_guard.dart';
-export 'src/tools/publish_config.dart';
-export 'src/tools/pubspec_overrides_backup.dart';
-export 'src/tools/repository_url.dart';
-export 'src/tools/suggestion.dart';
-export 'src/tools/terminal_guard.dart';
-export 'src/tools/version_selector.dart';
-export 'src/tools/workspace_folder_guard.dart';

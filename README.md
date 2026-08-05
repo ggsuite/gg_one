@@ -5,6 +5,11 @@ offering a suite of pre-commit checks. These include code analysis, linting,
 testing, and coverage verification, all complemented by highly optimized and
 colorized error messages.
 
+Since v13 gg_one is the umbrella CLI of the gg_one tool family — the
+implementation lives in the packages `gg_one_core`, `gg_one_commit`,
+`gg_one_merge` and `gg_one_do_publish`, which this package bundles and
+re-exports.
+
 ## Key Features
 
 - ✓ **Precise Colorized Error Messages**: Get detailed feedback with error messages that are both precise and easy to understand, enhanced with color for better readability.

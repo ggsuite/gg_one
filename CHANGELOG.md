@@ -1,5 +1,21 @@
 # Changelog
 
+## 12.9.2 - 2026-08-05
+
+### Changed
+
+- Extract the state kernel, the check commands and the publish configuration into the new gg_one_core package
+- Extract the commit, push, upgrade and ticket flows into the new gg_one_commit package
+- Extract MergeFlow, CreatePullRequest, lock files helper and CanMerge into the new gg_one_merge package
+- Extract DoPublish, CanPublish, DidPublish and the version tag tools into the new gg_one_do_publish package
+- Reduce gg_one to the umbrella CLI; distribute behavior docs into the sub-packages
+- Split gg_one into gg_one_core, gg_one_commit, gg_one_merge and gg_one_do_publish
+- Port the .gg/gg.json ignore guard from gg_one main into gg_one_core
+
+### Removed
+
+- Decouple internals from the gg_one barrel; remove dead code and unused dependencies
+
 ## 12.9.1 - 2026-08-04
 
 ### Added

@@ -6,7 +6,7 @@
 
 import 'package:args/command_runner.dart';
 import 'package:gg_log/gg_log.dart';
-import 'package:gg_one/gg_one.dart';
+import 'package:gg_one_commit/gg_one_commit.dart';
 
 /// Groups the things whose upgrade can be checked.
 class DidUpgrade extends Command<void> {
