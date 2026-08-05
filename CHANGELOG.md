@@ -4,13 +4,12 @@
 
 ### Changed
 
-- Extract GgState, CommandCluster, DidCommand, Suggestion and PubspecOverridesBackup into the new gg_one_state package
-- Extract the check commands, Analyzer, Formatter and Checks into the new gg_one_checks package
-- Extract PublishConfig, VersionSelector, terminal guard, EnsurePublishConfigIgnored and DoConfigurePublish into the new gg_one_publish_config package
+- Extract the state kernel, the check commands and the publish configuration into the new gg_one_core package
 - Extract the commit, push, upgrade and ticket flows into the new gg_one_commit package
 - Extract MergeFlow, CreatePullRequest, lock files helper and CanMerge into the new gg_one_merge package
 - Extract DoPublish, CanPublish, DidPublish and the version tag tools into the new gg_one_do_publish package
 - Reduce gg_one to the umbrella CLI; distribute behavior docs into the sub-packages
+- Merge gg_one_state, gg_one_checks and gg_one_publish_config into the new gg_one_core package
 
 ### Removed
 

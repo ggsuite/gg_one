@@ -20,23 +20,20 @@ export 'package:gg_lang/gg_lang.dart'
         TypeScriptPackageManager,
         detectTypeScriptPackageManager;
 
-// Can
+// The implementation lives in the packages of the gg_one family. They are
+// re-exported here so existing consumers keep importing everything from
+// gg_one.
 export 'package:gg_one_commit/gg_one_commit.dart';
+export 'package:gg_one_core/gg_one_core.dart';
+export 'package:gg_one_do_publish/gg_one_do_publish.dart';
+export 'package:gg_one_merge/gg_one_merge.dart';
+
+// The command groups wiring those packages into one command line.
 export 'src/commands/can.dart';
-// Checks
-export 'package:gg_one_checks/gg_one_checks.dart';
-// Did
 export 'src/commands/did.dart';
 export 'src/commands/did/did_upgrade.dart';
-// Do
-export 'package:gg_one_do_publish/gg_one_do_publish.dart';
 export 'src/commands/do.dart';
 export 'src/commands/do/create.dart';
 export 'src/commands/do/do_upgrade.dart';
-// Info
 export 'src/commands/info.dart';
 export 'src/gg.dart';
-// Tools
-export 'package:gg_one_merge/gg_one_merge.dart';
-export 'package:gg_one_publish_config/gg_one_publish_config.dart';
-export 'package:gg_one_state/gg_one_state.dart';

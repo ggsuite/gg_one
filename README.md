@@ -6,9 +6,9 @@ testing, and coverage verification, all complemented by highly optimized and
 colorized error messages.
 
 Since v13 gg_one is the umbrella CLI of the gg_one tool family — the
-implementation lives in the packages `gg_one_state`, `gg_one_checks`,
-`gg_one_commit`, `gg_one_publish_config`, `gg_one_merge` and
-`gg_one_do_publish`, which this package bundles and re-exports.
+implementation lives in the packages `gg_one_core`, `gg_one_commit`,
+`gg_one_merge` and `gg_one_do_publish`, which this package bundles and
+re-exports.
 
 ## Key Features
 
