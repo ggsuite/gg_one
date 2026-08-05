@@ -13,10 +13,10 @@ dependencies:
   gg_git: ^3.2.2
   gg_lang: ^0.4.0
   gg_log: ^1.0.6
-  gg_one_commit: ^1.0.0
-  gg_one_core: ^1.0.0
-  gg_one_do_publish: ^1.0.0
-  gg_one_merge: ^1.0.0
+  gg_one_commit: ^1.0.1
+  gg_one_core: ^1.0.1
+  gg_one_do_publish: ^1.0.1
+  gg_one_merge: ^1.0.1
   gg_process: ^1.1.6
   path: ^1.9.1
 
