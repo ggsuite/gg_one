@@ -9,7 +9,7 @@
 - Extract MergeFlow, CreatePullRequest, lock files helper and CanMerge into the new gg_one_merge package
 - Extract DoPublish, CanPublish, DidPublish and the version tag tools into the new gg_one_do_publish package
 - Reduce gg_one to the umbrella CLI; distribute behavior docs into the sub-packages
-- Rewrite the changelogs of the new packages for their initial release
+- Split gg_one into gg_one_core, gg_one_commit, gg_one_merge and gg_one_do_publish
 
 ### Removed
 
