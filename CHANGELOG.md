@@ -1,5 +1,25 @@
 # Changelog
 
+## 12.9.1 - 2026-08-04
+
+### Added
+
+- ».gg/gg.json« must not be git-ignored: every command now heals simple
+.gitignore rules (».gg«, ».gg/«, ».gg/*«, a literal ».gg/gg.json«) into the
+canonical ».gg/*« + »!.gg/gg.json« pair and commits the fix — or fails with
+the manual fix when the rule cannot be rewritten safely
+
+### Changed
+
+- Changes to .gg/gg.json are only amended into gg's own »#gg: …« bookkeeping
+commits. User commits are never rewritten silently; the state lands in a
+separate »#gg:« commit instead
+
+### Fixed
+
+- The first »do publish« in a repository whose .gitignore ignored the whole
+».gg/« folder no longer crashes with »git add .gitignore .gg/gg.json failed«
+
 ## 12.9.0 - 2026-08-04
 
 ### Changed
