@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Fix azure URL bug
+
 ## 12.9.3 - 2026-08-07
 
 ## 12.9.2 - 2026-08-05
