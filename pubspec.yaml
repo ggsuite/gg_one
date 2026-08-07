@@ -1,6 +1,6 @@
 name: gg_one
 description: The convenient dart & flutter developer command line, bundling the gg_one tool family into one CLI.
-version: 12.9.2
+version: 12.9.3
 repository: https://github.com/ggsuite/gg_one.git
 
 environment:
@@ -16,7 +16,7 @@ dependencies:
   gg_one_commit: ^1.0.1
   gg_one_core: ^1.0.1
   gg_one_do_publish: ^1.0.1
-  gg_one_merge: ^1.0.1
+  gg_one_merge: ^1.0.2
   gg_process: ^1.1.6
   path: ^1.9.1
 
