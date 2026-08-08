@@ -15,7 +15,7 @@ dependencies:
   gg_log: ^1.0.6
   gg_one_commit: ^2.0.0
   gg_one_core: ^2.0.0
-  gg_one_do_publish: ^2.0.0
+  gg_one_do_publish: ^2.1.0
   gg_one_merge: ^2.0.0
   gg_process: ^1.1.6
   path: ^1.9.1
