@@ -1,5 +1,12 @@
 # Changelog
 
+## 14.1.0 - 2026-08-09
+
+### Changed
+
+- Move gg commit conventions from gg_git to gg_one_core
+- Improve commit behavior
+
 ## 14.0.0 - 2026-08-09
 
 ## 13.1.0 - 2026-08-08
