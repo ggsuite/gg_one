@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Removed
+
+- Merge .ticket with ticket.json. Remove usage of .ticket
+
 ## 14.1.0 - 2026-08-09
 
 ### Changed
