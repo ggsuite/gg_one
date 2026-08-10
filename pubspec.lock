@@ -277,10 +277,10 @@ packages:
     dependency: "direct main"
     description:
       name: gg_one_do_publish
-      sha256: c4438e990dc749615659d98c951d0b072752560ed738d7d28d51393fbfd35eec
+      sha256: "9b5a43109085715dba758e4426d188848c6f46b0261008ccc371e3c7aa796939"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.2"
+    version: "2.4.3"
   gg_one_merge:
     dependency: "direct main"
     description:

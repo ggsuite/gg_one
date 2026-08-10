@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.1.3 - 2026-08-10
+
+### Changed
+
+- Make sure »dart pub upgrade --tighten --major-versions« is called before publishing
+
 ## 14.1.2 - 2026-08-10
 
 ## 14.1.1 - 2026-08-10
