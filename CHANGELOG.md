@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Refactor commit messages, version increment
+
 ## 14.1.3 - 2026-08-10
 
 ### Changed
