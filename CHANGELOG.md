@@ -1,5 +1,34 @@
 # Changelog
 
+## 14.1.3 - 2026-08-10
+
+### Changed
+
+- Make sure »dart pub upgrade --tighten --major-versions« is called before publishing
+
+## 14.1.2 - 2026-08-10
+
+## 14.1.1 - 2026-08-10
+
+### Removed
+
+- Merge .ticket with ticket.json. Remove usage of .ticket
+
+## 14.1.0 - 2026-08-09
+
+### Changed
+
+- Move gg commit conventions from gg_git to gg_one_core
+- Improve commit behavior
+
+## 14.0.0 - 2026-08-09
+
+## 13.1.0 - 2026-08-08
+
+## 13.0.0 - 2026-08-08
+
+## 12.9.3 - 2026-08-07
+
 ## 12.9.2 - 2026-08-05
 
 ### Changed
