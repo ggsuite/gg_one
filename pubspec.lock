@@ -285,10 +285,10 @@ packages:
     dependency: "direct main"
     description:
       name: gg_one_merge
-      sha256: "5129b88ab87e8f70bd712f85b81bfe8bae3483a03fed9b4fc743f6b4cb558451"
+      sha256: "70be21cf07ba8a017b1bb93bb7acc3be6553eae145edfe5357aa434016d8cc48"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.0"
+    version: "2.3.1"
   gg_process:
     dependency: "direct main"
     description:
