@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.4.7 - 2026-10-06
+
+### Changed
+
+- Upgrade_dependencies
+
 ## 14.4.6 - 2026-10-06
 
 ### Changed
