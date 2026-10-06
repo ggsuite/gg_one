@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Upgrade dependencies
+
 ## 14.4.5 - 2026-10-05
 
 ### Changed
