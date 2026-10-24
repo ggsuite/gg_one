@@ -81,7 +81,8 @@ Automate your testing process by setting up the gg_one GitHub Action, like here:
 ## Publish a single package with `gg one do publish`
 
 `gg one do publish` walks a single repo through the publish pipeline:
-`can publish` → version bump → CHANGELOG release → publish to pub.dev
+upgrade and tighten the dependencies → `can publish` → version bump →
+CHANGELOG release → publish to pub.dev
 (skipped when `publish_to: none` is set in `pubspec.yaml`) → merge
 feature branch into `main` → push → tag. A leftover
 `pubspec_overrides.yaml` is saved to the git-ignored
@@ -89,6 +90,12 @@ feature branch into `main` → push → tag. A leftover
 multi-repo flow can restore it after the merge. The merged state is
 recorded as `didPublish` in `.gg/gg.json` — `gg did publish` answers
 whether the current content is released.
+
+The upgrade step runs `dart pub upgrade --major-versions --tighten` after
+the overrides are gone; `--no-upgrade` skips it. On its own,
+`gg one do upgrade deps` tightens only with `--tighten`: in a ticket
+workspace the overrides point at local checkouts, and pub crashes when it
+tightens against a checkout that is newer than the constraint.
 
 All interactive decisions are made **up front**: when the command is
 started without a resolved configuration it runs
