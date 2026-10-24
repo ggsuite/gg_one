@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add the blog post of ticket gg-1
+
+Name the upgrade and tighten step of do publish in the README
+Say that do upgrade deps tightens only with --tighten
+
+### Changed
+
+- Make gg checks work on Windows
+
 ## 14.4.11 - 2026-10-19
 
 ## 14.4.10 - 2026-10-16
