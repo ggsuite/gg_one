@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.4.13 - 2026-11-06
+
+### Changed
+
+- Tighten dependencies
+
 ## 14.4.12 - 2026-10-29
 
 ### Changed
