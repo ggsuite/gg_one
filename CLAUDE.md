@@ -39,7 +39,4 @@ Detailed behavior documentation (publish flow, resume semantics, guards, merge-o
 - Tests use `gg_git_test_helpers` (including the cached repo helpers) and `gg_capture_print`.
 
 <!-- helix:claude_md:start -->
-
-@.claude/CLAUDE_dna_gg.md
-
 <!-- helix:claude_md:end -->
